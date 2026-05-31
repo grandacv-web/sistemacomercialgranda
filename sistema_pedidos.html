@@ -1631,35 +1631,118 @@ async function submit(){
   savePedidoFS(p).catch(e=>toast('Erro ao salvar: '+e.message,'terr'));
   toast(wasEditing?'Pedido atualizado!':'Pedido emitido! Enviando e-mail...','tok');
   // Enviar email via EmailJS
-  if(!wasEditing&&(ed.emails||[]).length){
+  const _destEmails=[...(ed.emails||[]),...(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean)].filter((v,i,a)=>a.indexOf(v)===i);
+  if(!wasEditing&&_destEmails.length){
     try{
       emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
       const sid=cfg.s||'service_t99xeta';
       const tid=cfg.t||'template_8ymz4j4';
-      const fmtSec=(titulo,obj)=>Object.keys(obj).length?`<tr><td colspan="2" style="padding:12px 0 4px;font-weight:700;color:#00bac7;font-size:13px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e2e8f0">${titulo}</td></tr>`+Object.entries(obj).map(([k,v])=>`<tr><td style="padding:5px 12px 5px 0;color:#64748b;font-size:13px;white-space:nowrap">${k}</td><td style="padding:5px 0;color:#0f172a;font-size:13px">${v}</td></tr>`).join(''):'';
-      const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif">
-<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)">
-<div style="background:#0f172a;padding:28px 32px;display:flex;align-items:center;gap:16px">
-<img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="44" style="height:44px">
-<div><div style="color:#fff;font-size:18px;font-weight:700">RESUMO DO PEDIDO</div><div style="color:#94a3b8;font-size:13px">OS Nº ${p.os} · ${p.tipo}</div></div>
-</div>
-<div style="padding:28px 32px">
-<table style="width:100%;border-collapse:collapse">
-<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px">Cliente</td><td style="color:#0f172a;font-size:13px;font-weight:600">${p.cliente}</td></tr>
-<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px">JOB</td><td style="color:#0f172a;font-size:13px">${p.job||'—'}</td></tr>
-<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px">Responsável</td><td style="color:#0f172a;font-size:13px">${p.responsavel||'—'}</td></tr>
-<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px">Prazo</td><td style="color:#0f172a;font-size:13px">${fmtD(p.prazo)||'—'}</td></tr>
-${p.obs?`<tr><td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px">Observações</td><td style="color:#0f172a;font-size:13px">${p.obs}</td></tr>`:''}
-${fmtSec('Valores',val)}${fmtSec('Pagamento',pag)}${fmtSec('Instalação',inst)}${fmtSec('Frete',fr)}
-${ed.art?`<tr><td colspan="2" style="padding:12px 0 4px;font-weight:700;color:#00bac7;font-size:13px;text-transform:uppercase;border-bottom:1px solid #e2e8f0">Projetos</td></tr><tr><td style="color:#64748b;font-size:13px">ART</td><td style="color:#0f172a;font-size:13px">${ed.art}</td></tr>`:''}
+      const fmtSec=(titulo,obj)=>{
+        if(!Object.keys(obj).length)return'';
+        const rows=Object.entries(obj).map(([k,v])=>`
+          <tr>
+            <td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;vertical-align:top;width:42%;border-bottom:1px solid #f3f4f6">${k}</td>
+            <td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;vertical-align:top;border-bottom:1px solid #f3f4f6">${v}</td>
+          </tr>`).join('');
+        return`
+          <tr><td colspan="2" style="padding:24px 0 0"></td></tr>
+          <tr><td colspan="2" style="padding:0 0 12px">
+            <div style="display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px">${titulo}</div>
+          </td></tr>
+          ${rows}`;
+      };
+      const pdfLinks=[
+        ed.arq_os_url?{label:'PDF da OS',url:ed.arq_os_url}:null,
+        ed.arq_oc_url?{label:'Ordem de Compra',url:ed.arq_oc_url}:null,
+        ed.arq_chumb_url?{label:'PDF Chumbador',url:ed.arq_chumb_url}:null
+      ].filter(Boolean);
+      const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+
+  <!-- HEADER -->
+  <tr><td style="background:#111827;padding:32px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding-bottom:20px">
+          <img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="48" alt="Granda" style="height:48px;display:block">
+        </td>
+      </tr>
+      <tr><td style="border-top:1px solid #374151;padding-top:20px">
+        <div style="color:#9ca3af;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px">EMISSÃO DE PEDIDO</div>
+        <div style="color:#ffffff;font-size:22px;font-weight:700;margin-bottom:4px">${p.cliente}</div>
+        <div style="color:#6b7280;font-size:13px">OS Nº ${p.os}&nbsp;&nbsp;·&nbsp;&nbsp;${p.tipo}</div>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- OS BADGE ROW -->
+  <tr><td style="background:#f9fafb;padding:14px 40px;border-bottom:1px solid #e5e7eb">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-size:12px;color:#6b7280">Responsável: <span style="color:#111827;font-weight:600">${p.responsavel||'—'}</span></td>
+        <td align="right" style="font-size:12px;color:#6b7280">Prazo: <span style="color:#111827;font-weight:600">${fmtD(p.prazo)||'—'}</span></td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- BODY -->
+  <tr><td style="padding:32px 40px">
+
+    <!-- Identificação -->
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td colspan="2" style="padding:0 0 12px">
+        <div style="display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px">Identificação</div>
+      </td></tr>
+      <tr>
+        <td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;width:42%;border-bottom:1px solid #f3f4f6">JOB</td>
+        <td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;border-bottom:1px solid #f3f4f6">${p.job||'—'}</td>
+      </tr>
+      ${p.obs?`<tr><td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;vertical-align:top;border-bottom:1px solid #f3f4f6">Observações</td><td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;vertical-align:top;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
+      ${fmtSec('Valores',val)}
+      ${fmtSec('Pagamento',pag)}
+      ${fmtSec('Instalação',inst)}
+      ${fmtSec('Frete',fr)}
+      ${ed.art?`
+      <tr><td colspan="2" style="padding:24px 0 0"></td></tr>
+      <tr><td colspan="2" style="padding:0 0 12px"><div style="display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px">Projetos</div></td></tr>
+      <tr><td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6">ART</td><td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;border-bottom:1px solid #f3f4f6">${ed.art}</td></tr>`:''}
+    </table>
+
+    ${cfg.avisos?`
+    <div style="margin-top:28px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:4px;padding:16px 20px">
+      <div style="font-weight:700;color:#92400e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚠ OBSERVAÇÕES IMPORTANTES</div>
+      <div style="color:#78350f;font-size:13px;line-height:1.6;white-space:pre-line">${cfg.avisos}</div>
+    </div>`:''}
+
+    ${pdfLinks.length?`
+    <div style="margin-top:28px;padding-top:24px;border-top:1px solid #e5e7eb">
+      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6b7280;margin-bottom:14px">Documentos Anexos</div>
+      <table cellpadding="0" cellspacing="0"><tr>${pdfLinks.map(l=>`
+        <td style="padding-right:10px">
+          <a href="${l.url}" target="_blank" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-size:12px;font-weight:600;padding:9px 18px;border-radius:5px;letter-spacing:.5px">${l.label} ↗</a>
+        </td>`).join('')}</tr></table>
+    </div>`:''}
+
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-size:11px;color:#9ca3af">GCore · Sistema Granda</td>
+        <td align="right" style="font-size:11px;color:#9ca3af">E-mail automático — não responda</td>
+      </tr>
+    </table>
+  </td></tr>
+
 </table>
-${cfg.avisos?`<div style="margin-top:24px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:16px"><div style="font-weight:700;color:#92400e;font-size:12px;text-transform:uppercase;margin-bottom:8px">⚠️ OBSERVAÇÕES IMPORTANTES</div><div style="color:#78350f;font-size:13px;white-space:pre-line">${cfg.avisos}</div></div>`:''}
-</div>
-<div style="background:#0f172a;padding:16px 32px;text-align:center"><div style="color:#64748b;font-size:11px">GCore · Sistema Granda · Este é um e-mail automático.</div></div>
-</div></body></html>`;
-      const todosEmails=[...(ed.emails||[]),...(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean)].filter((v,i,a)=>a.indexOf(v)===i).join(',');
-      await emailjs.send(sid,tid,{html_content,to_email:todosEmails,to_name:p.cliente,os_numero:String(p.os),subject:`RESUMO DO PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
-      toast('E-mail enviado com sucesso!','tok');
+</td></tr></table>
+</body></html>`;
+      await emailjs.send(sid,tid,{html_content,to_email:_destEmails.join(','),to_name:p.cliente,os_numero:String(p.os),subject:`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
+      toast(`E-mail enviado para ${_destEmails.length} destinatário(s)!`,'tok');
     }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
   }
 }
