@@ -1657,7 +1657,8 @@ ${cfg.avisos?`<div style="margin-top:24px;background:#fffbeb;border:1.5px solid 
 </div>
 <div style="background:#0f172a;padding:16px 32px;text-align:center"><div style="color:#64748b;font-size:11px">GCore · Sistema Granda · Este é um e-mail automático.</div></div>
 </div></body></html>`;
-      await emailjs.send(sid,tid,{html_content,to_email:(ed.emails||[]).join(','),to_name:p.cliente,os_numero:String(p.os),subject:`RESUMO DO PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
+      const todosEmails=[...(ed.emails||[]),...(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean)].filter((v,i,a)=>a.indexOf(v)===i).join(',');
+      await emailjs.send(sid,tid,{html_content,to_email:todosEmails,to_name:p.cliente,os_numero:String(p.os),subject:`RESUMO DO PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
       toast('E-mail enviado com sucesso!','tok');
     }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
   }
