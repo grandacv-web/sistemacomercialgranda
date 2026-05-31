@@ -1639,109 +1639,109 @@ async function submit(){
       const tid=cfg.t||'template_8ymz4j4';
       const fmtSec=(titulo,obj)=>{
         if(!Object.keys(obj).length)return'';
-        const rows=Object.entries(obj).map(([k,v])=>`
-          <tr>
-            <td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;vertical-align:top;width:42%;border-bottom:1px solid #f3f4f6">${k}</td>
-            <td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;vertical-align:top;border-bottom:1px solid #f3f4f6">${v}</td>
+        const rows=Object.entries(obj).map(([k,v],i)=>`
+          <tr style="background:${i%2===0?'#ffffff':'#fafafa'}">
+            <td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">${k}</td>
+            <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600;vertical-align:top">${v}</td>
           </tr>`).join('');
         return`
-          <tr><td colspan="2" style="padding:24px 0 0"></td></tr>
-          <tr><td colspan="2" style="padding:0 0 12px">
-            <div style="display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px">${titulo}</div>
+          <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
+          <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
+            <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">${titulo}</span>
           </td></tr>
-          ${rows}`;
+          <tr><td colspan="2" style="padding:0">${rows?`<table width="100%" cellpadding="0" cellspacing="0">${rows}</table>`:''}</td></tr>`;
       };
       const pdfLinks=[
         ed.arq_os_url?{label:'PDF da OS',url:ed.arq_os_url}:null,
         ed.arq_oc_url?{label:'Ordem de Compra',url:ed.arq_oc_url}:null,
         ed.arq_chumb_url?{label:'PDF Chumbador',url:ed.arq_chumb_url}:null
       ].filter(Boolean);
+      const clientEmails=(ed.emails||[]).join(',');
+      const fixedEmails=(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean).join(',');
       const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px">
+<body style="margin:0;padding:0;background:#1a1a2e;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a2e;padding:40px 16px">
 <tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden">
 
   <!-- HEADER -->
-  <tr><td style="background:#111827;padding:32px 40px">
+  <tr><td style="background:#111827;padding:0">
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td style="padding-bottom:20px">
-          <img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="48" alt="Granda" style="height:48px;display:block">
-        </td>
-      </tr>
-      <tr><td style="border-top:1px solid #374151;padding-top:20px">
-        <div style="color:#9ca3af;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px">EMISSÃO DE PEDIDO</div>
-        <div style="color:#ffffff;font-size:22px;font-weight:700;margin-bottom:4px">${p.cliente}</div>
-        <div style="color:#6b7280;font-size:13px">OS Nº ${p.os}&nbsp;&nbsp;·&nbsp;&nbsp;${p.tipo}</div>
+      <tr><td align="center" style="padding:36px 40px 28px">
+        <img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="56" alt="Granda Comunicação Visual" style="height:56px;display:block;margin:0 auto">
+      </td></tr>
+      <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
+      <tr><td style="padding:24px 40px 32px;background:#111827">
+        <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">EMISSÃO DE PEDIDO</p>
+        <p style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="background:#1f2937;border-radius:20px;padding:5px 14px">
+            <span style="color:#e91e63;font-size:12px;font-weight:700">OS Nº ${p.os}</span>
+            <span style="color:#6b7280;font-size:12px">&nbsp;·&nbsp;${p.tipo}</span>
+          </td>
+        </tr></table>
       </td></tr>
     </table>
   </td></tr>
 
-  <!-- OS BADGE ROW -->
-  <tr><td style="background:#f9fafb;padding:14px 40px;border-bottom:1px solid #e5e7eb">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td style="font-size:12px;color:#6b7280">Responsável: <span style="color:#111827;font-weight:600">${p.responsavel||'—'}</span></td>
-        <td align="right" style="font-size:12px;color:#6b7280">Prazo: <span style="color:#111827;font-weight:600">${fmtD(p.prazo)||'—'}</span></td>
-      </tr>
-    </table>
+  <!-- INFO BAR -->
+  <tr><td style="background:#f8f9fa;border-bottom:1px solid #e9ecef;padding:16px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:12px;color:#6b7280">Responsável &nbsp;<strong style="color:#111827">${p.responsavel||'—'}</strong></td>
+      <td align="center" style="font-size:12px;color:#dee2e6">|</td>
+      <td style="font-size:12px;color:#6b7280">JOB &nbsp;<strong style="color:#111827">${p.job||'—'}</strong></td>
+      <td align="right" style="font-size:12px;color:#6b7280">Prazo &nbsp;<strong style="color:#e91e63">${fmtD(p.prazo)||'—'}</strong></td>
+    </tr></table>
   </td></tr>
 
   <!-- BODY -->
   <tr><td style="padding:32px 40px">
-
-    <!-- Identificação -->
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td colspan="2" style="padding:0 0 12px">
-        <div style="display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px">Identificação</div>
+      ${p.obs?`
+      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Observações</span>
       </td></tr>
-      <tr>
-        <td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;width:42%;border-bottom:1px solid #f3f4f6">JOB</td>
-        <td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;border-bottom:1px solid #f3f4f6">${p.job||'—'}</td>
-      </tr>
-      ${p.obs?`<tr><td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;vertical-align:top;border-bottom:1px solid #f3f4f6">Observações</td><td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;vertical-align:top;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
+      <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
       ${fmtSec('Valores',val)}
       ${fmtSec('Pagamento',pag)}
       ${fmtSec('Instalação',inst)}
       ${fmtSec('Frete',fr)}
       ${ed.art?`
-      <tr><td colspan="2" style="padding:24px 0 0"></td></tr>
-      <tr><td colspan="2" style="padding:0 0 12px"><div style="display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:4px">Projetos</div></td></tr>
-      <tr><td style="padding:9px 20px 9px 0;color:#6b7280;font-size:13px;border-bottom:1px solid #f3f4f6">ART</td><td style="padding:9px 0;color:#111827;font-size:13px;font-weight:500;border-bottom:1px solid #f3f4f6">${ed.art}</td></tr>`:''}
+      <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
+      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
+      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>`:''}
     </table>
 
     ${cfg.avisos?`
-    <div style="margin-top:28px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:4px;padding:16px 20px">
-      <div style="font-weight:700;color:#92400e;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚠ OBSERVAÇÕES IMPORTANTES</div>
-      <div style="color:#78350f;font-size:13px;line-height:1.6;white-space:pre-line">${cfg.avisos}</div>
-    </div>`:''}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
+      <tr><td style="background:#fff8e1;border-left:4px solid #ffa000;border-radius:4px;padding:16px 20px">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#e65100">⚠ OBSERVAÇÕES IMPORTANTES</p>
+        <p style="margin:0;font-size:13px;color:#5d4037;line-height:1.7;white-space:pre-line">${cfg.avisos}</p>
+      </td></tr>
+    </table>`:''}
 
     ${pdfLinks.length?`
-    <div style="margin-top:28px;padding-top:24px;border-top:1px solid #e5e7eb">
-      <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6b7280;margin-bottom:14px">Documentos Anexos</div>
-      <table cellpadding="0" cellspacing="0"><tr>${pdfLinks.map(l=>`
-        <td style="padding-right:10px">
-          <a href="${l.url}" target="_blank" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;font-size:12px;font-weight:600;padding:9px 18px;border-radius:5px;letter-spacing:.5px">${l.label} ↗</a>
-        </td>`).join('')}</tr></table>
-    </div>`:''}
-
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid #e9ecef">
+      <tr><td style="padding-top:20px 0 12px">
+        <p style="margin:0 0 12px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6b7280">Documentos Anexos</p>
+        <table cellpadding="0" cellspacing="4"><tr>${pdfLinks.map(l=>`
+          <td style="padding-right:8px"><a href="${l.url}" target="_blank" style="display:inline-block;background:#e91e63;color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:10px 20px;border-radius:6px">${l.label} ↗</a></td>`).join('')}</tr></table>
+      </td></tr>
+    </table>`:''}
   </td></tr>
 
   <!-- FOOTER -->
-  <tr><td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td style="font-size:11px;color:#9ca3af">GCore · Sistema Granda</td>
-        <td align="right" style="font-size:11px;color:#9ca3af">E-mail automático — não responda</td>
-      </tr>
-    </table>
+  <tr><td style="background:#111827;padding:20px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:11px;color:#6b7280">GCore · Sistema Granda · E-mail automático</td>
+      <td align="right"><img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+    </tr></table>
   </td></tr>
 
 </table>
 </td></tr></table>
 </body></html>`;
-      await emailjs.send(sid,tid,{html_content,to_email:_destEmails.join(','),to_name:p.cliente,os_numero:String(p.os),subject:`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
+      await emailjs.send(sid,tid,{html_content,to_email:clientEmails||fixedEmails,cc:clientEmails?fixedEmails:'',to_name:p.cliente,os_numero:String(p.os),subject:`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
       toast(`E-mail enviado para ${_destEmails.length} destinatário(s)!`,'tok');
     }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
   }
