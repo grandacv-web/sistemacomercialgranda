@@ -1,0 +1,27 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/*.backup*",
+      "pedidos_importados.json"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/sistema_pedidos.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"},
+          {"key": "X-Frame-Options", "value": "SAMEORIGIN"}
+        ]
+      }
+    ]
+  }
+}

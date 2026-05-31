@@ -1,0 +1,31 @@
+[debug] [2026-05-31T17:35:40.940Z] ----------------------------------------------------------------------
+[debug] [2026-05-31T17:35:40.943Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\User_Alt\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-05-31T17:35:40.943Z] CLI Version:   15.19.0
+[debug] [2026-05-31T17:35:40.943Z] Platform:      win32
+[debug] [2026-05-31T17:35:40.943Z] Node Version:  v24.16.0
+[debug] [2026-05-31T17:35:40.943Z] Time:          Sun May 31 2026 14:35:40 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-05-31T17:35:40.943Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-31T17:35:42.146Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-31T17:35:42.146Z] > authorizing via signed-in user (grandacv@gmail.com)
+[debug] [2026-05-31T17:35:42.146Z] [iam] checking project gcore-d45c5 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-05-31T17:35:42.147Z] Checked if tokens are valid: true, expires at: 1780252535255
+[debug] [2026-05-31T17:35:42.147Z] Checked if tokens are valid: true, expires at: 1780252535255
+[debug] [2026-05-31T17:35:42.148Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/gcore-d45c5:testIamPermissions [none]
+[debug] [2026-05-31T17:35:42.148Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/gcore-d45c5:testIamPermissions  x-goog-user-project=gcore-d45c5
+[debug] [2026-05-31T17:35:42.148Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/gcore-d45c5:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-05-31T17:35:43.174Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/gcore-d45c5:testIamPermissions 403
+[debug] [2026-05-31T17:35:43.174Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/gcore-d45c5:testIamPermissions {"error":{"code":403,"message":"Caller does not have required permission to use project gcore-d45c5. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=gcore-d45c5 and then retry. Propagation of the new permission may take a few minutes.","status":"PERMISSION_DENIED","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"USER_PROJECT_DENIED","domain":"googleapis.com","metadata":{"containerInfo":"gcore-d45c5","consoleUrl":"https://console.developers.google.com/iam-admin/iam?project=gcore-d45c5","service":"cloudresourcemanager.googleapis.com","consumer":"projects/gcore-d45c5"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"Caller does not have required permission to use project gcore-d45c5. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=gcore-d45c5 and then retry. Propagation of the new permission may take a few minutes."},{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Google developer console IAM admin","url":"https://console.developers.google.com/iam-admin/iam?project=gcore-d45c5"}]}]}}
+[debug] [2026-05-31T17:35:43.175Z] [iam] error while checking permissions, command may fail: Request to https://cloudresourcemanager.googleapis.com/v1/projects/gcore-d45c5:testIamPermissions had HTTP Error: 403, Caller does not have required permission to use project gcore-d45c5. Grant the caller the roles/serviceusage.serviceUsageConsumer role, or a custom role with the serviceusage.services.use permission, by visiting https://console.developers.google.com/iam-admin/iam?project=gcore-d45c5 and then retry. Propagation of the new permission may take a few minutes.
+[debug] [2026-05-31T17:35:43.176Z] Checked if tokens are valid: true, expires at: 1780252535255
+[debug] [2026-05-31T17:35:43.176Z] Checked if tokens are valid: true, expires at: 1780252535255
+[debug] [2026-05-31T17:35:43.177Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/gcore-d45c5 [none]
+[debug] [2026-05-31T17:35:43.725Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/gcore-d45c5 403
+[debug] [2026-05-31T17:35:43.725Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/gcore-d45c5 {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2026-05-31T17:35:43.726Z] Request to https://firebase.googleapis.com/v1beta1/projects/gcore-d45c5 had HTTP Error: 403, The caller does not have permission
+[debug] [2026-05-31T17:35:44.013Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/gcore-d45c5 had HTTP Error: 403, The caller does not have permission
+    at responseToError (C:\Users\User_Alt\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\User_Alt\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:333:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to get Firebase project gcore-d45c5. Please make sure the project exists and your account has permission to access it.
