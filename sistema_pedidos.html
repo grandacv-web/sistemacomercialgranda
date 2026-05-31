@@ -235,9 +235,10 @@ select.fc{cursor:pointer}
 .mv-btn:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-xlt)}
 
 /* ── SETTINGS ── */
-.setmod{background:var(--surface);border-radius:var(--radius-xl);width:520px;max-width:100%;max-height:90vh;overflow-y:auto;padding:28px;box-shadow:var(--shadow-xl)}
-.setmod h3{font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:5px;letter-spacing:-.2px}
-.setmod p{font-size:.77rem;color:var(--ink4);margin-bottom:22px;line-height:1.5}
+.setmod{background:var(--surface);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl)}
+.cfg-menu-btn{width:100%;text-align:left;padding:10px 12px;border:none;border-radius:8px;background:transparent;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--ink3);font-family:inherit;transition:all .15s}
+.cfg-menu-btn:hover{background:var(--brand-lt);color:var(--brand-d)}
+.cfg-menu-btn.active{background:var(--brand-lt);color:var(--brand-d)}
 
 /* ── LOGIN ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0f4c75 100%);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -412,50 +413,84 @@ select.fc{cursor:pointer}
 
 <!-- SETTINGS MODAL -->
 <div class="mov" id="mo-set" onclick="cio(event,'mo-set')">
-<div class="setmod">
-  <h3>&#9881; Configurações de E-mail (EmailJS)</h3>
-  <p>Configure suas credenciais do EmailJS para envio automático ao emitir pedidos.</p>
-  <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">📧 EmailJS</div>
-  <div class="fg"><label>Service ID</label><input class="fc no-upper" id="cs" placeholder="service_xxxxxxx"></div>
-  <div class="fg"><label>Template ID</label><input class="fc no-upper" id="ct" placeholder="template_xxxxxxx"></div>
-  <div class="fg"><label>Public Key</label><input class="fc no-upper" id="ck" placeholder="xxxxxxxxxxxxxxx"></div>
-  <div class="fg"><label>E-mails Granda (destino interno, separados por vírgula)</label><input class="fc no-upper" id="ce" placeholder="nome@empresa.com.br, outro@empresa.com.br"></div>
-  <div class="fg"><label>Responsáveis disponíveis (um por linha)</label><textarea class="fc" id="cr" rows="3" placeholder="GUILHERME CLABONDE"></textarea></div>
-  <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px">☁️ Cloudinary (upload de PDFs e Logos)</div>
-  <div class="g2">
-    <div class="fg"><label>Cloud Name</label><input class="fc no-upper" id="cc" placeholder="seu-cloud-name"></div>
-    <div class="fg"><label>Upload Preset (unsigned)</label><input class="fc no-upper" id="cp" placeholder="preset_unsigned"></div>
+<div class="setmod" style="width:780px;max-width:98vw;max-height:92vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+  <!-- Header -->
+  <div style="padding:20px 24px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="font-size:1.05rem;font-weight:700;color:var(--ink)">⚙️ Configurações do Sistema</div>
+    <button onclick="closeM('mo-set')" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--ink4);padding:4px 8px">✕</button>
   </div>
-  <div class="fg"><label>URL da Logo para o E-mail (Cloudinary ou pública)</label>
-    <div style="display:flex;gap:8px;align-items:center">
-      <input class="fc no-upper" id="clogourl" placeholder="https://res.cloudinary.com/..." style="flex:1">
-      <button class="btn-next" style="white-space:nowrap;padding:10px 14px" onclick="uploadLogoEmail()">📤 Enviar logo</button>
+  <!-- Body -->
+  <div style="display:flex;flex:1;overflow:hidden">
+    <!-- Sidebar -->
+    <div style="width:190px;flex-shrink:0;background:#f8fafc;border-right:1.5px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
+      <button class="cfg-menu-btn active" data-sec="email" onclick="setCfgSec('email',this)">📧 E-mail</button>
+      <button class="cfg-menu-btn" data-sec="cloud" onclick="setCfgSec('cloud',this)">☁️ Cloudinary</button>
+      <button class="cfg-menu-btn" data-sec="frete" onclick="setCfgSec('frete',this)">🚚 Fretes</button>
+      <button class="cfg-menu-btn" data-sec="avisos" onclick="setCfgSec('avisos',this)">📋 Avisos</button>
+      <button class="cfg-menu-btn" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
     </div>
-    <p style="font-size:.68rem;color:var(--ink4);margin-top:4px">Selecione a logo colorida da Granda para aparecer no cabeçalho do e-mail</p>
-    <input type="file" id="logo-upload-input" accept="image/*" style="display:none" onchange="fazerUploadLogo(this)">
-  </div>
-  <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px">🚚 CONFIGURAÇÕES DE FRETE</div>
-  <div class="fg"><label>Cidade de origem do frete (ponto zero)</label><input class="fc" id="cfg-frete-origem" placeholder="Ex: PONTA GROSSA/PR"></div>
-  <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px">📋 TABELA DE FRETES FRACIONADOS (DIAS ÚTEIS POR UF)</div>
-  <p style="font-size:.73rem;color:var(--ink4);margin-bottom:10px">Defina quantos dias úteis para frete fracionado por estado.</p>
-  <div id="frete-table-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px"></div>
-  <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px">📋 Observações e Avisos ao Cliente</div>
-  <div class="fg"><label>Texto que aparece no rodapé do documento enviado ao cliente</label><textarea class="fc no-upper" id="cav" rows="4" placeholder="• Aviso 1&#10;• Aviso 2" style="border:2px solid #f59e0b;background:#fffbeb;color:#92400e;font-weight:600"></textarea></div>
-  <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px">👥 Usuários com Acesso</div>
-  <div id="user-list" style="margin-bottom:12px"><p style="font-size:.75rem;color:var(--ink4)">Carregando...</p></div>
-  <div style="background:#f8fafc;border-radius:10px;padding:14px;border:1.5px solid var(--border)">
-    <div style="font-size:.72rem;font-weight:700;color:var(--ink2);margin-bottom:10px">➕ Adicionar novo usuário</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">E-mail</label><input class="fc no-upper" id="nu-email" placeholder="usuario@empresa.com.br" type="email"></div>
-      <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Senha</label><input class="fc no-upper" id="nu-pass" placeholder="mínimo 6 caracteres" type="password"></div>
+    <!-- Content -->
+    <div style="flex:1;overflow-y:auto;padding:20px 24px">
+      <!-- EMAIL -->
+      <div class="cfg-sec" id="cfg-sec-email">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Configurações do EmailJS</div>
+        <div class="fg"><label>Service ID</label><input class="fc no-upper" id="cs" placeholder="service_xxxxxxx"></div>
+        <div class="fg"><label>Template ID</label><input class="fc no-upper" id="ct" placeholder="template_xxxxxxx"></div>
+        <div class="fg"><label>Public Key</label><input class="fc no-upper" id="ck" placeholder="xxxxxxxxxxxxxxx"></div>
+        <div class="fg"><label>E-mails internos Granda (separados por vírgula)</label><input class="fc no-upper" id="ce" placeholder="nome@empresa.com.br"></div>
+        <div class="fg"><label>Responsáveis disponíveis no sistema (um por linha)</label><textarea class="fc" id="cr" rows="4" placeholder="GUILHERME CLABONDE"></textarea></div>
+      </div>
+      <!-- CLOUDINARY -->
+      <div class="cfg-sec" id="cfg-sec-cloud" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Upload de Arquivos (Cloudinary)</div>
+        <div class="g2">
+          <div class="fg"><label>Cloud Name</label><input class="fc no-upper" id="cc" placeholder="seu-cloud-name"></div>
+          <div class="fg"><label>Upload Preset (unsigned)</label><input class="fc no-upper" id="cp" placeholder="gcoregranda"></div>
+        </div>
+        <div class="fg"><label>URL da Logo para o E-mail</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="fc no-upper" id="clogourl" placeholder="https://res.cloudinary.com/..." style="flex:1">
+            <button class="btn-next" style="white-space:nowrap;padding:10px 14px" onclick="uploadLogoEmail()">📤 Enviar logo</button>
+          </div>
+          <p style="font-size:.68rem;color:var(--ink4);margin-top:4px">Logo colorida da Granda para o cabeçalho do e-mail</p>
+          <input type="file" id="logo-upload-input" accept="image/*" style="display:none" onchange="fazerUploadLogo(this)">
+        </div>
+      </div>
+      <!-- FRETE -->
+      <div class="cfg-sec" id="cfg-sec-frete" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Configurações de Frete</div>
+        <div class="fg"><label>Cidade de origem (ponto zero do frete)</label><input class="fc" id="cfg-frete-origem" placeholder="Ex: PONTA GROSSA/PR"></div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:1px;margin:20px 0 6px">Tabela de Fretes Fracionados (Dias Úteis por UF)</div>
+        <p style="font-size:.73rem;color:var(--ink4);margin-bottom:12px">Defina quantos dias úteis para frete fracionado por estado.</p>
+        <div id="frete-table-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+      </div>
+      <!-- AVISOS -->
+      <div class="cfg-sec" id="cfg-sec-avisos" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Avisos e Observações ao Cliente</div>
+        <p style="font-size:.78rem;color:var(--ink3);margin-bottom:12px">Este texto aparece no rodapé do e-mail enviado ao cliente após a emissão do pedido.</p>
+        <textarea class="fc" id="cav" rows="8" placeholder="• Aviso 1&#10;• Aviso 2" style="border:2px solid #f59e0b;background:#fffbeb;color:#92400e;font-weight:600;font-size:.85rem"></textarea>
+      </div>
+      <!-- USUARIOS -->
+      <div class="cfg-sec" id="cfg-sec-usuarios" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Gerenciar Usuários</div>
+        <div id="user-list" style="margin-bottom:16px"><p style="font-size:.75rem;color:var(--ink4)">Carregando...</p></div>
+        <div style="background:#f8fafc;border-radius:10px;padding:16px;border:1.5px solid var(--border)">
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink2);margin-bottom:12px">➕ Adicionar novo usuário</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">E-mail</label><input class="fc no-upper" id="nu-email" placeholder="usuario@empresa.com.br" type="email"></div>
+            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Senha</label><input class="fc no-upper" id="nu-pass" placeholder="mínimo 6 caracteres" type="password"></div>
+          </div>
+          <button class="btn-next" style="width:100%;padding:10px" onclick="addUser()" id="btn-add-user">+ Criar Usuário</button>
+          <div id="nu-err" style="font-size:.75rem;color:var(--danger);margin-top:8px;display:none"></div>
+        </div>
+        <p style="font-size:.68rem;color:var(--ink4);margin-top:10px">🔐 Senhas ficam nos servidores do Google (Firebase). Seguro e criptografado.</p>
+      </div>
     </div>
-    <button class="btn-next" style="width:100%;padding:10px" onclick="addUser()" id="btn-add-user">+ Criar Usuário</button>
-    <div id="nu-err" style="font-size:.75rem;color:var(--danger);margin-top:8px;display:none"></div>
   </div>
-  <p style="font-size:.68rem;color:var(--ink4);margin-top:8px">🔐 Senhas ficam nos servidores do Google (Firebase). Seguro e criptografado.</p>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+  <!-- Footer -->
+  <div style="padding:14px 24px;border-top:1.5px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:#fff">
     <button class="btn-prev" onclick="closeM('mo-set')">Cancelar</button>
-    <button class="btn-next" onclick="saveCfg()">Salvar Configurações</button>
+    <button class="btn-next" onclick="saveCfg()">💾 Salvar Configurações</button>
   </div>
 </div>
 </div>
@@ -510,7 +545,7 @@ const STAGES=['Start Comercial','Pedido','Solicitação de ART','Medição Técn
 const PROD=new Set(['Projeto','Compras','Projeto de Instalação','Projeto de Expedição','Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Chegada de Compras','Receber Cortes Chapas Leves','Compra LM','Chegada LM','Receber Impressões Terceirizadas','Solic. Corte Chapas Pesadas','Receber Cortes Chapas Pesadas','Finalizar Produção','Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador','Finalizar Embalagem','Início do Frete','Início da Instalação']);
 const TC={'Venda':'tv','Garantia / Retrabalho':'tg','Amostra':'ta','Interno':'ti','Brinde':'tb2'};
 
-let pedidos=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'',cld_preset:'',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
+let pedidos=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
 let view='kanban',sf='os',sa=true,vid=null,eid=null;
 let step=0,ed={},editing=null;
 
@@ -1718,6 +1753,13 @@ function openSettings(){
   openM('mo-set');
 }
 
+function setCfgSec(sec,btn){
+  document.querySelectorAll('.cfg-sec').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.cfg-menu-btn').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('cfg-sec-'+sec);
+  if(el)el.style.display='';
+  if(btn)btn.classList.add('active');
+}
 function cio(e,id){if(e.target.id===id)closeM(id);}
 
 async function doLogout(){
