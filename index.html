@@ -11,7 +11,7 @@
 :root{
   --brand:#00bac7;--brand-d:#0099a8;--brand-lt:#e0f9fb;--brand-xlt:#f0fdfe;
   --ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;
-  --bg:#f1f5f9;--surface:#fff;--border:#e2e8f0;--border-lt:#f1f5f9;
+  --bg:#ffffff;--surface:#fff;--border:#e2e8f0;--border-lt:#f1f5f9;
   --success:#16a34a;--success-lt:#dcfce7;--danger:#dc2626;--danger-lt:#fee2e2;
   --warning:#ea580c;--info:#2563eb;--info-lt:#dbeafe;
   --shadow-sm:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
@@ -21,50 +21,68 @@
   --radius-sm:8px;--radius:12px;--radius-lg:16px;--radius-xl:20px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased}
 
 /* ── SIDEBAR ── */
-.sidebar{width:60px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px;flex-shrink:0;position:fixed;left:0;top:0;bottom:0;z-index:50;border-right:1px solid rgba(255,255,255,.04)}
-.sb-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),#0284c7);display:flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 4px 12px rgba(0,186,199,.4)}
-.sb-logo svg{width:20px;height:20px}
-.sb-btn{width:38px;height:38px;border-radius:10px;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);transition:all .2s}
-.sb-btn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.75)}
-.sb-btn.active{background:linear-gradient(135deg,var(--brand),#0284c7);color:#fff;box-shadow:0 4px 12px rgba(0,186,199,.35)}
-.sb-btn svg{width:18px;height:18px}
+.sidebar{width:64px;background:#ffffff;display:flex;flex-direction:column;align-items:stretch;padding:0;flex-shrink:0;position:fixed;left:0;top:0;bottom:0;z-index:50;border-right:1px solid #e5e7eb;transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden}
+.sidebar.expanded{width:220px}
+.sb-top{background:#ffffff;height:64px;padding:0 12px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #e5e7eb;flex-shrink:0;overflow:hidden;white-space:nowrap}
+.sb-logo-icon{display:none}
+
+.sb-logo-full{display:none;max-width:150px;height:36px;object-fit:contain}
+.sidebar.expanded .sb-logo-full{display:block}.sidebar.expanded .sb-logo-icon{display:none}
+
+.sb-toggle{position:absolute;top:50%;right:-11px;transform:translateY(-50%);width:22px;height:22px;background:#e91e63;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:51;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.sb-toggle svg{width:11px;height:11px;stroke:#fff;transition:transform .25s;flex-shrink:0}
+.sidebar.expanded .sb-toggle svg{transform:rotate(180deg)}
+.sb-nav{flex:1;padding:10px 0;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.sb-btn{height:44px;border-radius:0;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;color:#94a3b8;transition:all .2s;padding:0 14px;gap:12px;position:relative;white-space:nowrap;width:100%}
+.sb-btn:hover{background:#f1f5f9;color:#111827}
+.sb-btn.active{background:#fce4ec;color:#e91e63;border-left:3px solid #e91e63;padding-left:11px}
+.sb-btn svg{width:18px;height:18px;flex-shrink:0}
+.sb-btn-label{font-size:.75rem;font-weight:600;letter-spacing:.2px;opacity:0;transition:opacity .15s;pointer-events:none}
+.sidebar.expanded .sb-btn-label{opacity:1;pointer-events:auto}
 .sb-sep{flex:1}
+.sb-bottom{padding:10px 0;border-top:1px solid #e5e7eb;display:flex;flex-direction:column;gap:1px;flex-shrink:0}
 
 /* ── MAIN ── */
-.main{margin-left:60px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.main{margin-left:64px;background:#f4f6f8;min-height:100vh;flex:1;display:flex;flex-direction:column;min-height:100vh}
 
 /* ── HEADER ── */
-.hdr{background:#e0f7fa;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #c7eef2;flex-shrink:0;box-shadow:var(--shadow-sm)}
-.hdr-l h2{font-size:1.15rem;font-weight:700;color:var(--ink);letter-spacing:-.3px}
-.hdr-l p{font-size:.72rem;color:var(--ink4);margin-top:1px;font-weight:400}
+.hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;flex-shrink:0}
+.hdr-l{display:flex;align-items:center;gap:14px}
+.hdr-divider{width:1px;height:28px;background:rgba(255,255,255,.15)}
+.hdr-l h2{font-size:1rem;font-weight:700;color:#fff;letter-spacing:-.2px}
+.hdr-l p{font-size:.67rem;color:#9ca3af;margin-top:1px;font-weight:400}
 .hdr-r{display:flex;align-items:center;gap:12px}
-.btn-novo{background:linear-gradient(135deg,var(--brand) 0%,#0284c7 100%);color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:.83rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 4px 14px rgba(0,186,199,.35);letter-spacing:-.1px}
-.btn-novo:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,186,199,.45)}
+.btn-novo{background:#e91e63;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:.83rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 4px 14px rgba(233,30,99,.4);letter-spacing:-.1px}
+.btn-novo:hover{background:#c2185b;transform:translateY(-1px);box-shadow:0 6px 18px rgba(233,30,99,.5)}
 .btn-novo:active{transform:none}
 
 /* ── STATS ── */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 28px 0}
-.stat{background:var(--surface);border-radius:var(--radius-lg);padding:20px;display:flex;align-items:center;gap:16px;border:1px solid var(--border);box-shadow:var(--shadow-sm);transition:box-shadow .2s}
-.stat:hover{box-shadow:var(--shadow)}
-.stat-ic{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.stat-ic.c1{background:linear-gradient(135deg,#e0f9fb,#b2f0f5)} .stat-ic.c2{background:linear-gradient(135deg,#dbeafe,#bfdbfe)}
-.stat-ic.c3{background:linear-gradient(135deg,#fef9c3,#fde68a)} .stat-ic.c4{background:linear-gradient(135deg,#dcfce7,#bbf7d0)}
-.stat-ic svg{width:22px;height:22px}
-.stat-n{font-size:1.8rem;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-.5px}
-.stat-l{font-size:.7rem;color:var(--ink4);margin-top:4px;font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px 4px}
+.stat{background:#fff;border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;border:1px solid #e5e7eb;border-left:4px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .2s,transform .2s}
+.stat:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
+.stat:nth-child(1){border-left-color:#00bac7}
+.stat:nth-child(2){border-left-color:#1565c0}
+.stat:nth-child(3){border-left-color:#e65100}
+.stat:nth-child(4){border-left-color:#2e7d32}
+.stat-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-ic.c1{background:#e0f9fb} .stat-ic.c2{background:#dbeafe}
+.stat-ic.c3{background:#fff3e0} .stat-ic.c4{background:#dcfce7}
+.stat-ic svg{width:20px;height:20px}
+.stat-n{font-size:1.9rem;font-weight:800;color:#111827;line-height:1;letter-spacing:-.5px}
+.stat-l{font-size:.67rem;color:#6b7280;margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 
 /* ── TOOLBAR ── */
-.toolbar{padding:20px 28px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.toolbar input{padding:9px 14px 9px 38px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:.83rem;min-width:240px;color:var(--ink);transition:border .2s;font-family:inherit;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
+.toolbar{padding:16px 28px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar input{padding:9px 14px 9px 38px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:.83rem;min-width:240px;color:var(--ink);transition:border .2s;font-family:inherit;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
 .toolbar input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,186,199,.1)}
-.toolbar select{padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:.83rem;color:var(--ink2);font-family:inherit;cursor:pointer}
+.toolbar select{padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:.83rem;color:var(--ink2);font-family:inherit;cursor:pointer}
 .toolbar select:focus{outline:none;border-color:var(--brand)}
-.vt{display:flex;gap:2px;margin-left:auto;background:#f1f5f9;padding:3px;border-radius:10px}
-.vbtn{padding:6px 16px;border-radius:8px;border:none;background:transparent;color:var(--ink4);cursor:pointer;font-size:.78rem;font-weight:600;transition:all .2s;font-family:inherit}
-.vbtn.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+.vt{display:flex;gap:2px;background:#e5e7eb;padding:3px;border-radius:8px}
+.vbtn{padding:6px 14px;border-radius:6px;border:none;background:transparent;color:#6b7280;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .2s;font-family:inherit}
+.vbtn.active{background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 
 /* ── KANBAN ── */
 .kw{overflow-x:auto;padding:6px 28px 28px}
@@ -72,10 +90,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 .kw::-webkit-scrollbar-track{background:transparent}
 .kw::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
 .kb{display:flex;gap:14px;min-width:max-content;align-items:flex-start}
-.kcol{width:228px;flex-shrink:0;background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
-.khdr{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-lt);background:#f8fafc}
-.khdr-name{font-size:.72rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.5px}
-.khdr-cnt{min-width:22px;height:22px;border-radius:20px;background:var(--brand-lt);color:var(--brand-d);font-size:.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 7px}
+.kcol{width:236px;flex-shrink:0;background:#fff;border-radius:var(--radius-lg);overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.khdr{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e91e63;background:#111827}
+.khdr-name{font-size:.68rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.8px}
+.khdr-cnt{min-width:20px;height:20px;border-radius:20px;background:rgba(255,255,255,.1);color:#9ca3af;font-size:.65rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px}.khdr-cnt.has{background:#e91e63;color:#fff}
 .khdr-cnt.has{background:var(--brand);color:#fff}
 .kbody{padding:10px 8px;min-height:80px;max-height:62vh;overflow-y:auto}
 .kbody::-webkit-scrollbar{width:3px}
@@ -83,8 +101,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--i
 .kempty{text-align:center;padding:20px 8px;color:#cbd5e1;font-size:.72rem}
 
 /* ── CARD ── */
-.kcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;cursor:pointer;transition:all .22s;box-shadow:var(--shadow-sm)}
-.kcard:hover{border-color:var(--brand);box-shadow:0 8px 24px rgba(0,186,199,.14);transform:translateY(-2px)}
+.kcard{background:#fff;border:1px solid #e5e7eb;border-radius:var(--radius);padding:12px;margin-bottom:8px;cursor:pointer;transition:all .22s;box-shadow:none;border-left:3px solid #00bac7}
+.kcard:hover{border-color:#00bac7;box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
 .kc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .kc-num{font-size:.65rem;font-weight:700;color:var(--ink4);font-variant-numeric:tabular-nums}
 .kc-tipo{font-size:.58rem;padding:3px 8px;border-radius:20px;font-weight:700;letter-spacing:.2px}
@@ -285,34 +303,48 @@ select.fc{cursor:pointer}
 </div>
 
 <!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="sb-logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 12h-4v3"/><path d="M11 9h3a1 1 0 0 1 0 3h-3"/></svg>
+<div class="sidebar" id="sidebar">
+  <div class="sb-top">
+    <img src="logo_gcore.png" alt="GCore" class="sb-logo-icon" style="height:36px;object-fit:contain;flex-shrink:0">
+    <img src="logo_gcore.png" alt="GCore" class="sb-logo-full" style="height:36px;object-fit:contain;margin-left:0;flex-shrink:0;max-width:160px">
   </div>
-  <button class="sb-btn active" id="sb-k" onclick="setView('kanban')" title="Kanban">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+  <button class="sb-toggle" onclick="toggleSidebar()" title="Expandir menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
-  <button class="sb-btn" id="sb-l" onclick="setView('list')" title="Lista">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-  </button>
-  <div class="sb-sep"></div>
-  <button class="sb-btn" onclick="doLogout()" title="Sair" style="color:rgba(255,255,255,.4)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-  </button>
-  <button class="sb-btn" onclick="openSettings()" title="Configurações">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
+  <div class="sb-nav">
+    <button class="sb-btn active" id="sb-k" onclick="setView('kanban')" title="Kanban">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+      <span class="sb-btn-label">Kanban</span>
+    </button>
+    <button class="sb-btn" id="sb-l" onclick="setView('list')" title="Lista">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span class="sb-btn-label">Lista</span>
+    </button>
+  </div>
+  <div class="sb-bottom">
+    <button class="sb-btn" onclick="openSettings()" title="Configurações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="sb-btn-label">Configurações</span>
+    </button>
+    <button class="sb-btn" onclick="doLogout()" title="Sair">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span class="sb-btn-label">Sair</span>
+    </button>
+  </div>
 </div>
 
 <!-- MAIN -->
 <div class="main">
   <div class="hdr">
     <div class="hdr-l">
-      <h2>Painel de Pedidos</h2>
-      <p>Acompanhe todos os pedidos e etapas em tempo real · Granda</p>
+      <img src="logo_granda_branca.png" style="height:32px;object-fit:contain;flex-shrink:0">
+      <div class="hdr-divider"></div>
+      <div><h2>Painel de Pedidos</h2><p>Acompanhe todos os pedidos e etapas em tempo real</p></div>
     </div>
     <div class="hdr-r">
-      <img src="logo_gcore.png" style="height:42px;object-fit:contain">
+      <button onclick="openTesteKanban()" id="btn-teste-kanban" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,.08);color:#9ca3af;border:1px solid rgba(255,255,255,.12);padding:8px 14px;border-radius:8px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">
+        🧪 Teste Kanban
+      </button>
       <button class="btn-novo" onclick="openEmissao()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Pedido
@@ -346,7 +378,7 @@ select.fc{cursor:pointer}
       <option value="">Todos os tipos</option>
       <option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option><option>Brinde</option>
     </select>
-    <div class="vt">
+    <div class="vt" style="margin-left:0">
       <button class="vbtn active" id="vbk" onclick="setView('kanban')">Kanban</button>
       <button class="vbtn" id="vbl" onclick="setView('list')">Lista</button>
     </div>
@@ -363,6 +395,41 @@ select.fc{cursor:pointer}
       <tbody id="ltb"></tbody>
     </table>
   </div>
+</div>
+
+<!-- TESTE KANBAN MODAL -->
+<div class="mov" id="mo-teste" onclick="if(event.target.id==='mo-teste')closeM('mo-teste')">
+<div style="background:#fff;border-radius:18px;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:inherit">
+  <div style="background:#111827;border-radius:18px 18px 0 0;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63">
+    <div>
+      <div style="font-size:.65rem;font-weight:700;letter-spacing:2px;color:#9ca3af;text-transform:uppercase">Administrador</div>
+      <div style="font-size:1rem;font-weight:700;color:#fff;margin-top:2px">🧪 Modo Teste Kanban</div>
+    </div>
+    <button onclick="closeM('mo-teste')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem">✕</button>
+  </div>
+  <div style="padding:24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="fg"><label>Cliente (teste)</label><input class="fc" id="tk-cli" value="CLIENTE TESTE" placeholder="Nome do cliente"></div>
+      <div class="fg"><label>JOB</label><input class="fc" id="tk-job" value="JOB TESTE" placeholder="Nome do job"></div>
+    </div>
+    <div class="fg" style="margin-bottom:16px"><label>Tipo</label>
+      <select class="fc" id="tk-tipo"><option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option></select>
+    </div>
+    <div style="font-size:.72rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Etapas que este pedido teste terá:</div>
+    <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:8px">
+      <div style="font-size:.65rem;font-weight:700;color:#e91e63;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📌 Fixas (sempre presentes)</div>
+      <div id="tk-fixas" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+    </div>
+    <div style="background:#fffbeb;border-radius:12px;padding:14px;margin-bottom:16px">
+      <div style="font-size:.65rem;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚡ Variáveis (selecione as que desejar)</div>
+      <div id="tk-variaveis" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+    </div>
+    <button onclick="criarPedidoTeste()" style="width:100%;padding:12px;background:#e91e63;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">
+      🚀 Criar Pedido de Teste no Kanban
+    </button>
+    <p style="font-size:.7rem;color:#9ca3af;text-align:center;margin-top:8px">O pedido de teste será marcado com ⚙️ TESTE e pode ser excluído normalmente depois.</p>
+  </div>
+</div>
 </div>
 
 <!-- EMISSÃO MODAL -->
@@ -423,15 +490,35 @@ select.fc{cursor:pointer}
   <div style="display:flex;flex:1;overflow:hidden">
     <!-- Sidebar -->
     <div style="width:190px;flex-shrink:0;background:#f8fafc;border-right:1.5px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
-      <button class="cfg-menu-btn active" data-sec="email" onclick="setCfgSec('email',this)">📧 E-mail</button>
-      <button class="cfg-menu-btn" data-sec="cloud" onclick="setCfgSec('cloud',this)">☁️ Cloudinary</button>
-      <button class="cfg-menu-btn" data-sec="frete" onclick="setCfgSec('frete',this)">🚚 Fretes</button>
-      <button class="cfg-menu-btn" data-sec="avisos" onclick="setCfgSec('avisos',this)">📋 Avisos</button>
-      <button class="cfg-menu-btn" data-sec="kanban" onclick="setCfgSec('kanban',this)">📋 Kanban</button>
-      <button class="cfg-menu-btn" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
+      <button class="cfg-menu-btn active" data-sec="conta" onclick="setCfgSec('conta',this)">👤 Minha Conta</button>
+      <button class="cfg-menu-btn admin-only" data-sec="email" onclick="setCfgSec('email',this)">📧 E-mail</button>
+      <button class="cfg-menu-btn admin-only" data-sec="cloud" onclick="setCfgSec('cloud',this)">☁️ Cloudinary</button>
+      <button class="cfg-menu-btn admin-only" data-sec="frete" onclick="setCfgSec('frete',this)">🚚 Fretes</button>
+      <button class="cfg-menu-btn admin-only" data-sec="avisos" onclick="setCfgSec('avisos',this)">📋 Avisos</button>
+      <button class="cfg-menu-btn admin-only" data-sec="kanban" onclick="setCfgSec('kanban',this)">📋 Kanban</button>
+      <button class="cfg-menu-btn admin-only" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
     </div>
     <!-- Content -->
     <div style="flex:1;overflow-y:auto;padding:20px 24px">
+      <!-- MINHA CONTA -->
+      <div class="cfg-sec" id="cfg-sec-conta">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Minha Conta</div>
+        <div style="background:#f8fafc;border-radius:12px;padding:20px;border:1.5px solid var(--border);margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+            <div style="width:48px;height:48px;border-radius:50%;background:#e91e63;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;color:#fff" id="cfg-conta-avatar">?</div>
+            <div>
+              <div style="font-size:.95rem;font-weight:700;color:var(--ink)" id="cfg-conta-nome">—</div>
+              <div style="font-size:.75rem;color:var(--ink4)" id="cfg-conta-email">—</div>
+              <div style="margin-top:4px" id="cfg-conta-cat"></div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid var(--border)">
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">🔑 Mudar minha senha</div>
+          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">Você receberá um e-mail com o link para redefinir sua senha.</p>
+          <button onclick="enviarResetSenha()" class="btn-next" style="padding:10px 20px">Enviar link de redefinição</button>
+        </div>
+      </div>
       <!-- EMAIL -->
       <div class="cfg-sec" id="cfg-sec-email">
         <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Configurações do EmailJS</div>
@@ -492,21 +579,26 @@ select.fc{cursor:pointer}
         <div style="background:#f8fafc;border-radius:10px;padding:16px;border:1.5px solid var(--border)">
           <div style="font-size:.72rem;font-weight:700;color:var(--ink2);margin-bottom:12px">➕ Adicionar novo usuário</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">E-mail</label><input class="fc no-upper" id="nu-email" placeholder="usuario@empresa.com.br" type="email"></div>
-            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Senha</label><input class="fc no-upper" id="nu-pass" placeholder="mínimo 6 caracteres" type="password"></div>
+            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">E-mail <span class="r">*</span></label><input class="fc no-upper" id="nu-email" placeholder="usuario@empresa.com.br" type="email"></div>
+            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Senha <span class="r">*</span></label><input class="fc no-upper" id="nu-pass" placeholder="mínimo 6 caracteres" type="password"></div>
           </div>
-          <div class="fg" style="margin:0 0 10px"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Nome completo</label><input class="fc" id="nu-nome" placeholder="Ex: GUILHERME CLABONDE"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Nome completo <span class="r">*</span></label><input class="fc" id="nu-nome" placeholder="Ex: GUILHERME CLABONDE"></div>
+          </div>
+          <div class="fg" style="margin:0 0 10px"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Categoria <span class="r">*</span></label>
+            <select class="fc" id="nu-cat"><option value="">Selecione...</option><option>ADMINISTRADOR</option><option>COMERCIAL</option><option>RH</option><option>FINANCEIRO</option><option>COMPRAS</option><option>PCP</option><option>PRODUÇÃO</option><option>QUALIDADE</option><option>PLANEJAMENTO</option><option>PROJETOS</option></select>
+          </div>
           <button class="btn-next" style="width:100%;padding:10px" onclick="addUser()" id="btn-add-user">+ Criar Usuário</button>
           <div id="nu-err" style="font-size:.75rem;color:var(--danger);margin-top:8px;display:none"></div>
         </div>
-        <p style="font-size:.68rem;color:var(--ink4);margin-top:10px">🔐 Senhas ficam nos servidores do Google (Firebase). Seguro e criptografado.</p>
+        <p style="font-size:.68rem;color:var(--ink4);margin-top:10px">🔐 Autenticação via Google Firebase. Seguro e criptografado.</p>
       </div>
     </div>
   </div>
   <!-- Footer -->
   <div style="padding:14px 24px;border-top:1.5px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;background:#fff">
-    <button class="btn-prev" onclick="closeM('mo-set')">Cancelar</button>
-    <button class="btn-next" onclick="saveCfg()">💾 Salvar Configurações</button>
+    <button class="btn-prev" onclick="closeM('mo-set')">Fechar</button>
+    <button class="btn-next admin-only" onclick="saveCfg()">💾 Salvar Configurações</button>
   </div>
 </div>
 </div>
@@ -518,7 +610,7 @@ select.fc{cursor:pointer}
 <!-- Firebase Auth -->
 <script type="module">
 import{initializeApp,deleteApp}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword,sendPasswordResetEmail}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import{getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,getDocs}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 
 const firebaseConfig={
@@ -548,6 +640,7 @@ window._fbSignIn=(email,pass)=>signInWithEmailAndPassword(auth,email,pass);
 window._fbSignOut=()=>signOut(auth);
 window._fbOnAuth=(cb)=>onAuthStateChanged(auth,cb);
 window._fbCreateUser=fbCreateUser;
+window._fbSendReset=(email)=>sendPasswordResetEmail(auth,email);
 // Firestore
 window._db=db;
 window._fbSavePedido=(p)=>setDoc(doc(db,'pedidos',String(p.id)),p);
@@ -818,6 +911,76 @@ function setView(v){
 }
 
 function buildFiltro(){const s=document.getElementById('f-etapa');STAGES.forEach(st=>{const o=document.createElement('option');o.value=st;o.textContent=st;s.appendChild(o)})}
+
+function openTesteKanban(){
+  const fixasEl=document.getElementById('tk-fixas');
+  const varEl=document.getElementById('tk-variaveis');
+  if(fixasEl)fixasEl.innerHTML=KANBAN_FIXAS.map(e=>
+    '<label style="display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:500;color:#374151;padding:6px 8px;background:#fff;border-radius:7px;border:1px solid #e5e7eb;cursor:default">'+
+    '<input type="checkbox" checked disabled style="accent-color:#e91e63"> '+e.label+'</label>').join('');
+  if(varEl)varEl.innerHTML=KANBAN_VARIAVEIS.map(e=>
+    '<label style="display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:500;color:#374151;padding:6px 8px;background:#fff;border-radius:7px;border:1px solid #e5e7eb;cursor:pointer">'+
+    '<input type="checkbox" class="tk-var-chk" value="'+e.id+'" style="accent-color:#e91e63"> '+e.label+'</label>').join('');
+  openM('mo-teste');
+}
+
+async function criarPedidoTeste(){
+  const cli=document.getElementById('tk-cli')?.value?.trim()||'CLIENTE TESTE';
+  const job=document.getElementById('tk-job')?.value?.trim()||'JOB TESTE';
+  const tipo=document.getElementById('tk-tipo')?.value||'Venda';
+  const varsSelec=[...document.querySelectorAll('.tk-var-chk:checked')].map(i=>i.value);
+  const etapasFixas=KANBAN_FIXAS.map(e=>e.id);
+  const todasEtapas=STAGES.filter(s=>etapasFixas.includes(s)||varsSelec.includes(s));
+  const prazos=cfg.kanbanPrazos||{};
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  function addDU(d,dias){let r=new Date(d);let a=0;while(a<dias){r.setDate(r.getDate()+1);const dw=r.getDay();if(dw!==0&&dw!==6)a++;}return r;}
+  const rp={};let acum=new Date(hoje);
+  todasEtapas.forEach(etapa=>{const dias=parseInt(prazos[etapa])||0;if(dias>0)acum=addDU(acum,dias);rp[etapa]=acum.toISOString().slice(0,10);});
+  const p={id:'teste_'+Date.now(),os:'T'+Math.floor(Math.random()*9000+1000),tipo,cliente:'[TESTE] '+cli,job,
+    responsavel:usuarioLogado?.nomeExibicao||'TESTE',etapa:'Pedido',prazo:'',obs:'',emails:[],
+    valores:{},pagamento:{},instalacao:{},frete:{},bases:'',elevacoes:[],remocoes:[],projetos:{},
+    _teste:true,etapasKanban:todasEtapas,prazosKanban:rp};
+  await savePedidoFS(p);
+  closeM('mo-teste');
+  toast('Pedido de teste criado! ✅ Aparece no Kanban em [TESTE] '+cli,'tok');
+}
+
+function atualizarBotaoTeste(){
+  try{
+    const email=(usuarioLogado?.email||'').toLowerCase();
+    const ADMINS=['guilherme.clabonde@granda.ind.br','gviniciusclabonde@gmail.com'];
+    const cat=usuarioLogado?.categoria||(cfg.usuarioCats&&cfg.usuarioCats[email])||'';
+    const isAdm=cat==='ADMINISTRADOR'||ADMINS.includes(email);
+    const btn=document.getElementById('btn-teste-kanban');
+    if(btn)btn.style.display=isAdm?'flex':'none';
+  }catch(e){}
+}
+
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const main=document.querySelector('.main');
+  const expanded=sb.classList.toggle('expanded');
+  if(main)main.style.marginLeft=expanded?'220px':'64px';
+  const hdrLogo=document.getElementById('hdr-logo');
+  const hdrDiv=document.getElementById('hdr-divider');
+  if(hdrLogo)hdrLogo.style.display=expanded?'block':'none';
+  if(hdrDiv)hdrDiv.style.display=expanded?'block':'none';
+  localStorage.setItem('sb_expanded',expanded?'1':'0');
+}
+// Restaura estado da sidebar
+(function(){
+  try{
+    if(localStorage.getItem('sb_expanded')==='1'){
+      const sb=document.getElementById('sidebar');
+      const main=document.querySelector('.main');
+      if(sb){sb.classList.add('expanded');if(main)main.style.marginLeft='220px';}
+      const hdrLogo=document.getElementById('hdr-logo');
+      const hdrDiv=document.getElementById('hdr-divider');
+      if(hdrLogo)hdrLogo.style.display='block';
+      if(hdrDiv)hdrDiv.style.display='block';
+    }
+  }catch(e){}
+})();
 
 // VIEW PEDIDO
 function viewP(id){
@@ -2165,10 +2328,11 @@ async function renderUserList(){
 function removerNomeUsuario(email){
   if(!confirm('Remover '+email+' da lista?'))return;
   if(cfg.usuarioNomes)delete cfg.usuarioNomes[email];
+  if(cfg.usuarioCats)delete cfg.usuarioCats[email];
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderUserList();
-  toast('Usuário removido da lista','tok');
+  toast('Usuário removido','tok');
 }
 async function uploadLogoEmail(){toast('Funcionalidade disponível via Cloudinary configurado.','tinf')}
 
@@ -2238,6 +2402,29 @@ function openSettings(){
   const cav=document.getElementById('cav');if(cav)cav.value=c.avisos||'';
   const nomesEl=document.getElementById('cfg-user-nomes');
   renderUserList();
+  // Preenche dados da conta do usuário logado
+  const emailAtual=(usuarioLogado?.email||'').toLowerCase();
+  // Emails fixos de administrador (fallback permanente)
+  const ADMIN_EMAILS=['guilherme.clabonde@granda.ind.br','gviniciusclabonde@gmail.com'];
+  const catAtual=usuarioLogado?.categoria||(cfg.usuarioCats&&cfg.usuarioCats[emailAtual])||'';
+  const isAdmin=catAtual==='ADMINISTRADOR'||ADMIN_EMAILS.includes(emailAtual);
+  if(isAdmin&&usuarioLogado)usuarioLogado.categoria='ADMINISTRADOR';
+  document.querySelectorAll('.admin-only').forEach(el=>el.style.display=isAdmin?'':'none');
+  atualizarBotaoTeste();
+  const avatarEl=document.getElementById('cfg-conta-avatar');
+  const nomeEl=document.getElementById('cfg-conta-nome');
+  const emailEl=document.getElementById('cfg-conta-email');
+  const catEl=document.getElementById('cfg-conta-cat');
+  if(avatarEl&&usuarioLogado?.nomeExibicao)avatarEl.textContent=usuarioLogado.nomeExibicao.charAt(0);
+  if(nomeEl)nomeEl.textContent=usuarioLogado?.nomeExibicao||'—';
+  if(emailEl)emailEl.textContent=usuarioLogado?.email||'—';
+  if(catEl&&usuarioLogado?.categoria){
+    const catColors={'ADMINISTRADOR':'#7c3aed','COMERCIAL':'#e91e63','RH':'#0891b2','FINANCEIRO':'#16a34a','COMPRAS':'#d97706','PCP':'#dc2626','PRODUÇÃO':'#0284c7','QUALIDADE':'#059669','PLANEJAMENTO':'#7c3aed','PROJETOS':'#ea580c'};
+    const cc=catColors[usuarioLogado.categoria]||'#6b7280';
+    catEl.innerHTML='<span style="background:'+cc+'22;color:'+cc+';font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase">'+usuarioLogado.categoria+'</span>';
+  }
+  // Abre na aba Minha Conta por padrão
+  setCfgSec('conta',document.querySelector('[data-sec="conta"]'));
   // Populate frete table
   const ftg=document.getElementById('frete-table-grid');
   if(ftg){
@@ -2256,6 +2443,15 @@ function setCfgSec(sec,btn){
   if(el)el.style.display='';
   if(btn)btn.classList.add('active');
   if(sec==='kanban')renderCfgKanban();
+}
+
+async function enviarResetSenha(){
+  const email=usuarioLogado?.email;
+  if(!email){toast('Usuário não identificado','terr');return;}
+  try{
+    if(window._fbSendReset)await window._fbSendReset(email);
+    toast('Link enviado para '+email+' ✅','tok');
+  }catch(e){toast('Erro: '+(e.message||e),'terr');}
 }
 function cio(e,id){if(e.target.id===id)closeM(id);}
 
@@ -2280,6 +2476,78 @@ async function doLogin(){
   }
 }
 
+async function addUser(){
+  const em=document.getElementById('nu-email')?.value?.trim().toLowerCase();
+  const pw=document.getElementById('nu-pass')?.value;
+  const nome=document.getElementById('nu-nome')?.value?.trim().toUpperCase();
+  const cat=document.getElementById('nu-cat')?.value;
+  if(!em||!pw){toast('Preencha e-mail e senha!','terr');return;}
+  if(!nome){toast('Preencha o nome!','terr');return;}
+  if(!cat){toast('Selecione a categoria!','terr');return;}
+  if(pw.length<6){toast('Senha mínimo 6 caracteres!','terr');return;}
+  const btn=document.getElementById('btn-add-user');
+  if(btn){btn.textContent='Criando...';btn.disabled=true;}
+  try{
+    await window._fbCreateUser(em,pw);
+    if(!cfg.usuarioNomes)cfg.usuarioNomes={};
+    cfg.usuarioNomes[em]=nome;
+    if(!cfg.usuarioCats)cfg.usuarioCats={};
+    cfg.usuarioCats[em]=cat;
+    if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+    localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+    toast('Usuário criado: '+nome,'tok');
+    document.getElementById('nu-email').value='';
+    document.getElementById('nu-pass').value='';
+    document.getElementById('nu-nome').value='';
+    document.getElementById('nu-cat').value='';
+    renderUserList();
+  }catch(e){
+    toast('Erro: '+(e.message||e),'terr');
+  }finally{if(btn){btn.textContent='+ Criar Usuário';btn.disabled=false;}}
+}
+
+async function renderUserList(){
+  const el=document.getElementById('user-list');
+  if(el)el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Use o Console do Firebase para listar/remover usuários.</p>';
+  const lista=document.getElementById('cfg-nomes-lista');
+  if(lista){
+    const nomes=cfg.usuarioNomes||{};
+    const entries=Object.entries(nomes);
+    if(entries.length){
+      lista.innerHTML=entries.map(([email,nome])=>
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #b2ebf2">'+
+        '<span><strong>'+nome+'</strong> <span style="color:#0891b2;font-size:.72rem">'+email+'</span></span>'+
+        '<button onclick="removerNomeUsuario(\''+email+'\')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.8rem;padding:2px 6px" title="Remover">✕</button>'+
+        '</div>'
+      ).join('');
+    } else {
+      lista.innerHTML='<span style="color:#0891b2;font-size:.75rem">Nenhum usuário cadastrado ainda.</span>';
+    }
+  }
+}
+
+function removerNomeUsuario(email){
+  if(!confirm('Remover '+email+' da lista?'))return;
+  if(cfg.usuarioNomes)delete cfg.usuarioNomes[email];
+  if(cfg.usuarioCats)delete cfg.usuarioCats[email];
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderUserList();
+  toast('Usuário removido','tok');
+}
+
+async function uploadLogoEmail(){document.getElementById('logo-upload-input')?.click();}
+async function fazerUploadLogo(input){
+  const f=input.files[0];if(!f)return;
+  if(!cfg.cld_cloud||!cfg.cld_preset){toast('Configure o Cloudinary primeiro!','terr');return;}
+  try{
+    const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);
+    const r=await fetch('https://api.cloudinary.com/v1_1/'+cfg.cld_cloud+'/image/upload',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.secure_url){cfg.cld_logo=d.secure_url;document.getElementById('clogourl').value=d.secure_url;toast('Logo enviada!','tok');}
+  }catch(e){toast('Erro no upload: '+e.message,'terr');}
+}
+
 function selTipo(el){
   document.querySelectorAll('#em-bd .rc-list .rc').forEach(e=>{e.style.borderColor='';e.style.background='';e.querySelector('input').checked=false});
   el.style.borderColor='#00bac7';el.style.background='#e0f7fa';el.querySelector('input').checked=true;ed.tipo=el.dataset.val;
@@ -2294,7 +2562,7 @@ function togElev(chk){
   card.querySelectorAll('input[type=number]').forEach(i=>{i.disabled=!on;i.closest('div').style.opacity=on?'1':'.4';});
 }
 
-load();buildFiltro();
+load().then(()=>atualizarBotaoTeste()).catch(()=>{});buildFiltro();
 
 let usuarioLogado=null;
 
@@ -2308,8 +2576,12 @@ function initAuth(tries){
         setupRealtimeSync();
         load().then(()=>{
           const nomeMap=cfg.usuarioNomes||{};
+          const catMap=cfg.usuarioCats||{};
           const nome=nomeMap[user.email.toLowerCase()]||nomeMap[user.email]||user.displayName||user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
           usuarioLogado.nomeExibicao=nome;
+          usuarioLogado.categoria=catMap[user.email.toLowerCase()]||catMap[user.email]||'';
+          // Mostra/esconde botão teste baseado na categoria
+          atualizarBotaoTeste();
         }).catch(()=>{
           usuarioLogado.nomeExibicao=user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
         });
@@ -2325,4 +2597,4 @@ function initAuth(tries){
 initAuth();
 </script>
 </body>
-</html>
+</htm
