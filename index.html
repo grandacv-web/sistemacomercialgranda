@@ -1680,14 +1680,14 @@ async function submit(){
   if(ed.medicao==='Sim'&&ed.vmed)val['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
   val['Valor Líquido do Pedido']=fmtV(liq);
   const pag={};
-  if(ed.tem_oc)pag['10. Esse pedido tem Ordem de Compra do cliente?']=ed.tem_oc;
+  if(ed.tem_oc)pag['Ordem de Compra do Cliente']=ed.tem_oc;
   if(ed.tem_ent==='Tem entrada'){
     if(ed.vent)pag['Valor de Entrada']=fmtV(moneyToNum(ed.vent));
     if(ed.dent)pag['Data da Entrada']=fmtD(ed.dent);
     if(ed.fent)pag['Forma de Pgto. da Entrada']=ed.fent;
   }
   if(ed.nparc&&ed.nparc!=='Sem parcelamento'){pag['Nº de Parcelas']=ed.nparc;if(ed.fparc)pag['Forma das Parcelas']=ed.fparc;}
-  if(ed.nf)pag['Emissão de NF']=ed.nf;
+  if(ed.nf)pag['Emissão de Nota Fiscal']=ed.nf;
   if(ed.obsfin)pag['Observações Financeiras']=ed.obsfin;
   const inst={};
   if(ed.i_tipo)inst['Tipo de Instalação']=ed.i_tipo;
@@ -1801,11 +1801,11 @@ async function submit(){
       ${fmtSec('Valores',val)}
       ${fmtSec('Pagamento',pag)}
       ${ed.arq_os_url?`
-      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">9. PDF da OS</td>
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
         <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_os_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
       </tr>`:''}
       ${ed.arq_oc_url?`
-      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Arquivo da Ordem de Compra (PDF ou JPG)</td>
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Compra</td>
         <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_oc_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
       </tr>`:''}
 
@@ -1830,13 +1830,13 @@ async function submit(){
       ${ed.bases?`
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.bases}</td></tr>
       ${ed.chumbador?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.chumbador}</td></tr>`:''}
-      ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Nº da OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
-      ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">PDF do Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_chumb_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td></tr>`:''}
+      ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
+      ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_chumb_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td></tr>`:''}
       `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
 
       ${ed.art?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
-      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>
+      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Emissão de ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>
       ${ed.art==='Sim'&&ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${ed.cnpj_art_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
       `:''}
     </table>
