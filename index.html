@@ -1576,47 +1576,47 @@ async function submit(){
   const fmtV=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   const val={};
   if(ed.vtotal)val['Valor Total']=fmtV(moneyToNum(ed.vtotal));
-  if(ed.i_tipo)val['Instalacao']=ed.i_tipo;
-  if(ed.vinst)val['Valor da Instalacao']=fmtV(moneyToNum(ed.vinst));
-  if(ed.vmob)val['Valor da Mobilizacao']=fmtV(moneyToNum(ed.vmob));
-  if(ed.remocao==='Sim'&&ed.vrem)val['Valor da Remocao']=fmtV(moneyToNum(ed.vrem));
+  if(ed.i_tipo)val['Instalação']=ed.i_tipo;
+  if(ed.vinst)val['Valor da Instalação']=fmtV(moneyToNum(ed.vinst));
+  if(ed.vmob)val['Valor da Mobilização']=fmtV(moneyToNum(ed.vmob));
+  if(ed.remocao==='Sim'&&ed.vrem)val['Valor da Remoção']=fmtV(moneyToNum(ed.vrem));
   if(ed.f_tipo)val['Frete']=ed.f_tipo;
-  if(ed.fmod)val['Modalidade Logistica']=ed.fmod;
+  if(ed.fmod)val['Modalidade Logística']=ed.fmod;
   if(ed.vfrete)val['Valor do Frete']=fmtV(moneyToNum(ed.vfrete));
-  if(ed.elevacoes)val['Elevacoes']=ed.elevacoes;
-  if(ed.elevacoes==='Sim'&&ed.elevs&&ed.elevs.length)val['Tipos de Elevacao']=ed.elevs.map(e=>e.tipo+': '+e.qtd+'un x '+e.dias+' diaria(s)').join(', ');
-  if(ed.velev)val['Valor das Elevacoes']=fmtV(moneyToNum(ed.velev));
-  if(ed.medicao)val['Medicao Tecnica']=ed.medicao;
-  if(ed.medicao==='Sim'&&ed.vmed)val['Valor da Medicao']=fmtV(moneyToNum(ed.vmed));
-  val['Valor Liquido do Pedido']=fmtV(liq);
+  if(ed.elevacoes)val['Elevações']=ed.elevacoes;
+  if(ed.elevacoes==='Sim'&&ed.elevs&&ed.elevs.length)val['Tipos de Elevação']=ed.elevs.map(e=>e.tipo+': '+e.qtd+'un x '+e.dias+' diária(s)').join(', ');
+  if(ed.velev)val['Valor das Elevações']=fmtV(moneyToNum(ed.velev));
+  if(ed.medicao)val['Medição Técnica']=ed.medicao;
+  if(ed.medicao==='Sim'&&ed.vmed)val['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
+  val['Valor Líquido do Pedido']=fmtV(liq);
   const pag={};
-  if(ed.tem_oc)pag['Tem Ordem de Compra']=ed.tem_oc;
+  if(ed.tem_oc)pag['10. Esse pedido tem Ordem de Compra do cliente?']=ed.tem_oc;
   if(ed.tem_ent==='Tem entrada'){
     if(ed.vent)pag['Valor de Entrada']=fmtV(moneyToNum(ed.vent));
     if(ed.dent)pag['Data da Entrada']=fmtD(ed.dent);
-    if(ed.fent)pag['Forma Pgto. Entrada']=ed.fent;
+    if(ed.fent)pag['Forma de Pgto. da Entrada']=ed.fent;
   }
-  if(ed.nparc&&ed.nparc!=='Sem parcelamento'){pag['Nro de Parcelas']=ed.nparc;if(ed.fparc)pag['Forma das Parcelas']=ed.fparc;}
-  if(ed.nf)pag['Emissao de NF']=ed.nf;
-  if(ed.obsfin)pag['Observacoes Financeiras']=ed.obsfin;
+  if(ed.nparc&&ed.nparc!=='Sem parcelamento'){pag['Nº de Parcelas']=ed.nparc;if(ed.fparc)pag['Forma das Parcelas']=ed.fparc;}
+  if(ed.nf)pag['Emissão de NF']=ed.nf;
+  if(ed.obsfin)pag['Observações Financeiras']=ed.obsfin;
   const inst={};
-  if(ed.iacomp)inst['Acompanhante da obra']=ed.iacomp;
+  if(ed.iacomp)inst['Acompanhante da Obra']=ed.iacomp;
   if(ed.itel)inst['Telefone']=ed.itel;
   const iend=[ed.ilog,ed.inum_e,ed.icomp,ed.ibairro,[ed.icidade,ed.iuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
-  if(iend)inst['Endereco de Instalacao']=iend;
-  if(ed.ihor)inst['Horario']=ed.ihor;
+  if(iend)inst['Endereço de Instalação']=iend;
+  if(ed.ihor)inst['Horário']=ed.ihor;
   if(ed.inum)inst['Instaladores']=ed.inum;
   if(ed.idias)inst['Estimativa']=ed.idias;
-  if(ed.iinteg)inst['Integracao na empresa']=ed.iinteg;
-  if(ed.iseg)inst['Seguro de obra']=ed.iseg;
+  if(ed.iinteg)inst['Integração na Empresa']=ed.iinteg;
+  if(ed.iseg)inst['Seguro de Obra']=ed.iseg;
   if(ed.vseg)inst['Valor do Seguro']=fmtV(moneyToNum(ed.vseg));
   const fr={};
   const fend=[ed.flog,ed.fnum_e,ed.fcomp,ed.fbairro,[ed.fcidade,ed.fuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
-  if(fend)fr['Endereco de Entrega']=fend;
-  if(ed.fie)fr['Inscricao Estadual']=ed.fie;
+  if(fend)fr['Endereço de Entrega']=fend;
+  if(ed.fie)fr['Inscrição Estadual']=ed.fie;
   if(ed.facomp)fr['Acompanhante da Descarga']=ed.facomp;
-  if(ed.ftel)fr['Telefone Descarga']=ed.ftel;
-  if(ed.fdist)fr['Distancia']=ed.fdist+' km';
+  if(ed.ftel)fr['Telefone da Descarga']=ed.ftel;
+  if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
   const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,responsavel:ed.resp,
     cliente:ed.cli,emails:ed.emails||[],job:ed.job,prazo:ed.prazo,etapa:ed.etapa||'Start Comercial',
@@ -1660,23 +1660,23 @@ async function submit(){
       const clientEmails=(ed.emails||[]).join(',');
       const fixedEmails=(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean).join(',');
       const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 16px">
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:40px 16px">
 <tr><td align="center">
-<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
 
   <!-- HEADER -->
-  <tr><td style="background:#ffffff;padding:0">
+  <tr><td style="background:#111827;padding:0">
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding:32px 40px 20px">
-        <img src="https://grandacv-web.github.io/gcoregranda/logo_granda.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
+      <tr><td align="center" style="padding:32px 40px 24px">
+        <img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
       </td></tr>
       <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
-      <tr><td style="padding:24px 40px 28px;background:#ffffff;border-bottom:1px solid #f3f4f6">
+      <tr><td style="padding:24px 40px 28px;background:#111827">
         <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">EMISSÃO DE PEDIDO</p>
-        <p style="margin:0 0 8px;color:#111827;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
+        <p style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="background:#f3f4f6;border-radius:20px;padding:5px 14px">
+          <td style="background:#1f2937;border-radius:20px;padding:5px 14px">
             <span style="color:#e91e63;font-size:12px;font-weight:700">OS Nº ${p.os}</span>
             <span style="color:#6b7280;font-size:12px">&nbsp;·&nbsp;${p.tipo}</span>
           </td>
@@ -1696,7 +1696,7 @@ async function submit(){
   </td></tr>
 
   <!-- BODY -->
-  <tr><td style="padding:32px 40px">
+  <tr><td style="padding:32px 40px;background:#ffffff">
     <table width="100%" cellpadding="0" cellspacing="0">
       ${p.obs?`
       <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
@@ -1705,8 +1705,20 @@ async function submit(){
       <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
       ${fmtSec('Valores',val)}
       ${fmtSec('Pagamento',pag)}
+      ${ed.arq_os_url?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">9. PDF da OS</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_os_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
+      </tr>`:''}
+      ${ed.arq_oc_url?`
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Arquivo da Ordem de Compra (PDF ou JPG)</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_oc_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
+      </tr>`:''}
       ${fmtSec('Instalação',inst)}
       ${fmtSec('Frete',fr)}
+      ${ed.arq_chumb_url?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">PDF do Pedido de Chumbador</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_chumb_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
+      </tr>`:''}
       ${ed.art?`
       <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
       <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
@@ -1720,21 +1732,13 @@ async function submit(){
         <p style="margin:0;font-size:13px;color:#5d4037;line-height:1.7;white-space:pre-line">${cfg.avisos}</p>
       </td></tr>
     </table>`:''}
-
-    ${pdfLinks.length?`
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:2px solid #e91e63">
-      <tr><td style="padding-top:16px">
-        ${pdfLinks.map(l=>`
-        <p style="margin:0 0 10px;font-size:13px;color:#374151"><strong style="color:#111827">${l.label}:</strong> <a href="${l.url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></p>`).join('')}
-      </td></tr>
-    </table>`:''}
   </td></tr>
 
   <!-- FOOTER -->
-  <tr><td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px">
+  <tr><td style="background:#111827;padding:20px 40px">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#9ca3af">GCore · Sistema Granda · E-mail automático</td>
-      <td align="right"><img src="https://grandacv-web.github.io/gcoregranda/logo_granda.png" height="22" alt="Granda" style="height:22px;opacity:.7"></td>
+      <td style="font-size:11px;color:#6b7280">GCore · Sistema Granda · E-mail automático</td>
+      <td align="right"><img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
     </tr></table>
   </td></tr>
 
