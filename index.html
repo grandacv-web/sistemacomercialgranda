@@ -275,7 +275,7 @@ select.fc{cursor:pointer}
     <div class="login-field">
       <label>Senha</label>
       <div style="position:relative">
-        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding:11px 40px 11px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:.9rem;font-family:inherit;outline:none">
+        <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding:11px 40px 11px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:.9rem;font-family:inherit;outline:none;text-transform:none">
         <button type="button" onclick="var i=document.getElementById('l-pass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem">👁</button>
       </div>
     </div>
