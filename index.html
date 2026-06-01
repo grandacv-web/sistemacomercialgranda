@@ -427,6 +427,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn" data-sec="cloud" onclick="setCfgSec('cloud',this)">☁️ Cloudinary</button>
       <button class="cfg-menu-btn" data-sec="frete" onclick="setCfgSec('frete',this)">🚚 Fretes</button>
       <button class="cfg-menu-btn" data-sec="avisos" onclick="setCfgSec('avisos',this)">📋 Avisos</button>
+      <button class="cfg-menu-btn" data-sec="kanban" onclick="setCfgSec('kanban',this)">📋 Kanban</button>
       <button class="cfg-menu-btn" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
     </div>
     <!-- Content -->
@@ -470,16 +471,31 @@ select.fc{cursor:pointer}
         <p style="font-size:.78rem;color:var(--ink3);margin-bottom:12px">Este texto aparece no rodapé do e-mail enviado ao cliente após a emissão do pedido.</p>
         <textarea class="fc" id="cav" rows="8" placeholder="• Aviso 1&#10;• Aviso 2" style="border:2px solid #f59e0b;background:#fffbeb;color:#92400e;font-weight:600;font-size:.85rem"></textarea>
       </div>
+      <!-- KANBAN -->
+      <div class="cfg-sec" id="cfg-sec-kanban" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Prazos das Etapas do Kanban</div>
+        <p style="font-size:.73rem;color:var(--ink4);margin-bottom:16px">Defina quantos dias úteis cada etapa tem para ser concluída. O prazo é contado a partir da data de emissão do pedido, acumulando etapa por etapa.</p>
+        <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#f1f5f9;border-radius:8px">📌 Etapas Fixas — aparecem em todos os pedidos</div>
+        <div id="cfg-kanban-fixas" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px"></div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#fef3c7;border-radius:8px">⚡ Etapas Variáveis — aparecem conforme o preenchimento do pedido</div>
+        <div id="cfg-kanban-variaveis" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+      </div>
       <!-- USUARIOS -->
       <div class="cfg-sec" id="cfg-sec-usuarios" style="display:none">
         <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Gerenciar Usuários</div>
+        <div id="cfg-nomes-preview" style="background:#e0f9fb;border:1.5px solid #00bac7;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+          <div style="font-size:.72rem;font-weight:700;color:#0f766e;margin-bottom:8px">🏷️ Usuários cadastrados</div>
+          <div id="cfg-nomes-lista" style="font-size:.78rem;color:#0f766e;line-height:1.8"></div>
+        </div>
+        <textarea class="fc no-upper" id="cfg-user-nomes" style="display:none"></textarea>
         <div id="user-list" style="margin-bottom:16px"><p style="font-size:.75rem;color:var(--ink4)">Carregando...</p></div>
         <div style="background:#f8fafc;border-radius:10px;padding:16px;border:1.5px solid var(--border)">
           <div style="font-size:.72rem;font-weight:700;color:var(--ink2);margin-bottom:12px">➕ Adicionar novo usuário</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
             <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">E-mail</label><input class="fc no-upper" id="nu-email" placeholder="usuario@empresa.com.br" type="email"></div>
             <div class="fg" style="margin:0"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Senha</label><input class="fc no-upper" id="nu-pass" placeholder="mínimo 6 caracteres" type="password"></div>
           </div>
+          <div class="fg" style="margin:0 0 10px"><label style="font-size:.7rem;font-weight:600;color:var(--ink2)">Nome completo</label><input class="fc" id="nu-nome" placeholder="Ex: GUILHERME CLABONDE"></div>
           <button class="btn-next" style="width:100%;padding:10px" onclick="addUser()" id="btn-add-user">+ Criar Usuário</button>
           <div id="nu-err" style="font-size:.75rem;color:var(--danger);margin-top:8px;display:none"></div>
         </div>
@@ -548,6 +564,94 @@ window._fbWatchCfg=(cb)=>onSnapshot(doc(db,'sistema','config'),snap=>{if(snap.ex
 const STAGES=['Start Comercial','Pedido','Solicitação de ART','Medição Técnica','RM','Projeto','Compras','Projeto de Instalação','Projeto de Expedição','Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Chegada de Compras','Receber Cortes Chapas Leves','Compra LM','Chegada LM','Receber Impressões Terceirizadas','Solic. Corte Chapas Pesadas','Receber Cortes Chapas Pesadas','Finalizar Produção','Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador','Finalizar Embalagem','Início do Frete','Início da Instalação','Pedido Entregue'];
 const PROD=new Set(['Projeto','Compras','Projeto de Instalação','Projeto de Expedição','Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Chegada de Compras','Receber Cortes Chapas Leves','Compra LM','Chegada LM','Receber Impressões Terceirizadas','Solic. Corte Chapas Pesadas','Receber Cortes Chapas Pesadas','Finalizar Produção','Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador','Finalizar Embalagem','Início do Frete','Início da Instalação']);
 const TC={'Venda':'tv','Garantia / Retrabalho':'tg','Amostra':'ta','Interno':'ti','Brinde':'tb2'};
+
+// Definição das etapas do Kanban
+const KANBAN_FIXAS=[
+  {id:'Pedido',label:'Pedido'},
+  {id:'RM',label:'RM'},
+  {id:'Projeto',label:'Projeto'},
+  {id:'Compras',label:'Compras'},
+  {id:'Lista de Material',label:'Lista de Material'},
+  {id:'Chegada de Compras',label:'Chegada de Compras'},
+  {id:'Compra LM',label:'Compra LM'},
+  {id:'Chegada LM',label:'Chegada LM'},
+  {id:'Finalizar Produção',label:'Finalizar Produção'},
+  {id:'Pedido Entregue',label:'Pedido Entregue'},
+];
+const KANBAN_VARIAVEIS=[
+  {id:'Solicitação de ART',label:'Solicitação de ART',cond:'art'},
+  {id:'Medição Técnica',label:'Medição Técnica',cond:'medicao'},
+  {id:'Projeto de Instalação',label:'Projeto de Instalação',cond:'inst_nossa'},
+  {id:'Projeto de Expedição',label:'Projeto de Expedição',cond:'tem_frete'},
+  {id:'Confirmar Data de Instalação',label:'Confirmar Data de Instalação',cond:'inst_nossa'},
+  {id:'Contratar Frete',label:'Contratar Frete',cond:'frete_nossa'},
+  {id:'Contratar Elevações',label:'Contratar Elevações',cond:'elevacoes'},
+  {id:'RAO com Instalador',label:'RAO com Instalador',cond:'inst_nossa'},
+  {id:'Finalizar Embalagem',label:'Finalizar Embalagem',cond:'tem_frete'},
+  {id:'Início do Frete',label:'Início do Frete',cond:'tem_frete'},
+  {id:'Início da Instalação',label:'Início da Instalação',cond:'inst_nossa'},
+];
+
+function renderCfgKanban(){
+  const prazos=cfg.kanbanPrazos||{};
+  const mkItem=(etapa)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+      <div style="flex:1;font-size:.76rem;font-weight:600;color:var(--ink2)">${etapa.label}</div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <input type="number" min="0" max="365" class="fc no-upper kanban-prazo-inp" data-etapa="${etapa.id}"
+          value="${prazos[etapa.id]||''}" placeholder="0"
+          style="width:52px;padding:5px 7px;font-size:.78rem;text-align:center">
+        <span style="font-size:.7rem;color:var(--ink4)">dias</span>
+      </div>
+    </div>`;
+  document.getElementById('cfg-kanban-fixas').innerHTML=KANBAN_FIXAS.map(mkItem).join('');
+  document.getElementById('cfg-kanban-variaveis').innerHTML=KANBAN_VARIAVEIS.map(mkItem).join('');
+}
+
+function getEtapasPedido(pedido){
+  // Retorna lista de etapas que este pedido vai ter no kanban
+  const fixas=KANBAN_FIXAS.map(e=>e.id);
+  const variaveis=[];
+  const p=pedido;
+  const art=p.projetos?.art==='Sim';
+  const med=p.valores?.['Medição Técnica']==='Sim'||p.instalacao?.['Medição Técnica']==='Sim';
+  const instNossa=(p.instalacao?.['Tipo de Instalação']||'').includes('nossa');
+  const temFrete=!!(p.frete&&(p.frete['Valor do Frete']||p.frete['Modalidade Logística']||p.frete['Endereço de Entrega']||p.valores?.['Modalidade do Frete']));
+  const freteNossa=(p.valores?.['Modalidade do Frete']||'').includes('nossa')||(p.frete?.['Modalidade Logística']||'')!=='';
+  const elevacoes=(p.valores?.['Elevações']==='Sim')||(p.elevacoes&&p.elevacoes.length>0);
+
+  KANBAN_VARIAVEIS.forEach(e=>{
+    const c=e.cond;
+    if(c==='art'&&art)variaveis.push(e.id);
+    else if(c==='medicao'&&med)variaveis.push(e.id);
+    else if(c==='inst_nossa'&&instNossa)variaveis.push(e.id);
+    else if(c==='tem_frete'&&temFrete)variaveis.push(e.id);
+    else if(c==='frete_nossa'&&freteNossa)variaveis.push(e.id);
+    else if(c==='elevacoes'&&elevacoes)variaveis.push(e.id);
+  });
+  // Intercala fixas e variáveis na ordem do STAGES original
+  return STAGES.filter(s=>fixas.includes(s)||variaveis.includes(s));
+}
+
+function calcPrazoEtapas(pedido){
+  // Calcula a data prazo de cada etapa acumulando dias úteis
+  const prazos=cfg.kanbanPrazos||{};
+  const etapas=getEtapasPedido(pedido);
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  function addDiasUteis(d,dias){
+    let r=new Date(d);let added=0;
+    while(added<dias){r.setDate(r.getDate()+1);const dw=r.getDay();if(dw!==0&&dw!==6)added++;}
+    return r;
+  }
+  const result={};
+  let acum=new Date(hoje);
+  etapas.forEach(etapa=>{
+    const dias=parseInt(prazos[etapa])||0;
+    if(dias>0)acum=addDiasUteis(acum,dias);
+    result[etapa]=acum.toISOString().slice(0,10);
+  });
+  return result;
+}
 
 let pedidos=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
 let view='kanban',sf='os',sa=true,vid=null,eid=null;
@@ -670,11 +774,22 @@ function renderKanban(){
 
 function cardH(p){
   const tc=TC[p.tipo]||'tv';
+  const prazoEtapa=p.prazosKanban&&p.prazosKanban[p.etapa]?p.prazosKanban[p.etapa]:null;
+  let prazoEtapaHtml='';
+  if(prazoEtapa){
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    const dp=new Date(prazoEtapa+'T00:00:00');
+    const diff=Math.round((dp-hoje)/(1000*60*60*24));
+    const cor=diff<0?'#dc2626':diff<=2?'#d97706':'#16a34a';
+    const txt=diff<0?`${Math.abs(diff)}d atrasado`:diff===0?'Vence hoje':`${diff}d restantes`;
+    prazoEtapaHtml=`<div style="font-size:.65rem;font-weight:700;color:${cor};margin-top:3px">⏱ ${txt} · ${fmtD(prazoEtapa)}</div>`;
+  }
   return `<div class="kcard" onclick="viewP('${p.id}')">
     <div class="kc-top"><span class="kc-num">#${p.os||'—'}</span><span class="kc-tipo ${tc}">${p.tipo}</span></div>
     <div class="kc-cli">${p.cliente}</div>
     ${p.job?`<div class="kc-job"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> JOB ${p.job}</div>`:''}
-    ${p.prazo?`<div class="kc-prazo">&#128197; Prazo: ${fmtD(p.prazo)}</div>`:''}
+    ${prazoEtapaHtml}
+    ${p.prazo?`<div class="kc-prazo">&#128197; Entrega: ${fmtD(p.prazo)}</div>`:''}
   </div>`;
 }
 
@@ -782,7 +897,7 @@ function openEmissao(eid2){
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:'',arq_chumb:'',os_chumb:'',
       facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
-    ed={tipo:'',resp:'',cli:'',emails:[],job:'',prazo:'',os:'',obs:'',etapa:'Start Comercial',
+    ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],job:'',prazo:'',os:'',obs:'',etapa:'Start Comercial',
       vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',
       elevacoes:'',elevs:[],velev:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
@@ -1148,7 +1263,11 @@ function renderStep(id){
       </div>
       <div class="g2">
         <div class="fg"><label>2. Responsável pelo Pedido</label>
-          <select class="fc" id="em-rsp"><option value="">Selecione...</option>${rs.map(r=>`<option ${ed.resp===r?'selected':''}>${r}</option>`).join('')}</select>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#f0fdfe;border:1.5px solid #00bac7;border-radius:10px">
+            <span style="font-size:1rem">👤</span>
+            <span id="em-rsp-nome" style="font-size:.88rem;font-weight:700;color:#0f172a">${ed.resp||(usuarioLogado?.nomeExibicao||'—')}</span>
+            <input type="hidden" id="em-rsp" value="${ed.resp||(usuarioLogado?.nomeExibicao||'')}">
+          </div>
         </div>
         <div class="fg"><label>5. JOB <span class="r">*</span></label><input class="fc" id="em-job" value="${ed.job||''}" placeholder="Ex: TOTEM"></div>
       </div>
@@ -1752,11 +1871,7 @@ async function submit(){
   const liq=calcLiq();
   const fmtV=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   const val={};
-  if(ed.vtotal)val['Valor Total']=fmtV(moneyToNum(ed.vtotal));
-  if(ed.f_tipo)val['Modalidade do Frete']=ed.f_tipo;
-  if(ed.remocao==='Sim'&&ed.vrem)val['Valor da Remoção']=fmtV(moneyToNum(ed.vrem));
-  if(ed.medicao)val['Medição Técnica']=ed.medicao;
-  if(ed.medicao==='Sim'&&ed.vmed)val['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
+  if(ed.vtotal)val['Valor Bruto']=fmtV(moneyToNum(ed.vtotal));
   val['Valor Líquido do Pedido']=fmtV(liq);
   const pag={};
   if(ed.tem_oc)pag['Ordem de Compra do Cliente']=ed.tem_oc;
@@ -1765,16 +1880,23 @@ async function submit(){
     if(ed.dent)pag['Data da Entrada']=fmtD(ed.dent);
     if(ed.fent)pag['Forma de Pgto. da Entrada']=ed.fent;
   }
-  if(ed.nparc&&ed.nparc!=='Sem parcelamento'){pag['Nº de Parcelas']=ed.nparc;if(ed.fparc)pag['Forma das Parcelas']=ed.fparc;}
+  if(ed.nparc&&ed.nparc!=='Sem parcelamento'){
+    pag['Nº de Parcelas']=ed.nparc;
+    if(ed.fparc)pag['Forma das Parcelas']=ed.fparc;
+    if(ed.pvals&&ed.pvals.length){ed.pvals.forEach((v,i)=>{if(v>0)pag['Parcela '+(i+1)+(ed.pdatas&&ed.pdatas[i]?' · '+fmtD(ed.pdatas[i]):'')]=fmtV(v);});}
+  }
   if(ed.nf)pag['Emissão de Nota Fiscal']=ed.nf;
   if(ed.obsfin)pag['Observações Financeiras']=ed.obsfin;
   const inst={};
   if(ed.i_tipo)inst['Tipo de Instalação']=ed.i_tipo;
   if(ed.vinst)inst['Valor da Instalação']=fmtV(moneyToNum(ed.vinst));
   if(ed.vmob)inst['Valor da Mobilização']=fmtV(moneyToNum(ed.vmob));
+  if(ed.remocao==='Sim'&&ed.vrem)inst['Valor da Remoção']=fmtV(moneyToNum(ed.vrem));
+  if(ed.medicao)inst['Medição Técnica']=ed.medicao;
+  if(ed.medicao==='Sim'&&ed.vmed)inst['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
   if(ed.iacomp)inst['Acompanhante da Obra']=ed.iacomp;
   if(ed.itel)inst['Telefone']=ed.itel;
-  const iend=[ed.ilog,ed.inum_e,ed.icomp,ed.ibairro,[ed.icidade,ed.iuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
+  const iend=[ed.icep?'CEP '+ed.icep:'',ed.ilog,ed.inum_e,ed.icomp,ed.ibairro,[ed.icidade,ed.iuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
   if(iend)inst['Endereço de Instalação']=iend;
   if(ed.ihor)inst['Horário']=ed.ihor;
   if(ed.inum)inst['Instaladores']=ed.inum;
@@ -1783,9 +1905,10 @@ async function submit(){
   if(ed.iseg)inst['Seguro de Obra']=ed.iseg;
   if(ed.vseg)inst['Valor do Seguro']=fmtV(moneyToNum(ed.vseg));
   const fr={};
+  if(ed.f_tipo)fr['Modalidade do Frete']=ed.f_tipo;
   if(ed.vfrete)fr['Valor do Frete']=fmtV(moneyToNum(ed.vfrete));
   if(ed.fmod)fr['Modalidade Logística']=ed.fmod;
-  const fend=[ed.flog,ed.fnum_e,ed.fcomp,ed.fbairro,[ed.fcidade,ed.fuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
+  const fend=[ed.fcep?'CEP '+ed.fcep:'',ed.flog,ed.fnum_e,ed.fcomp,ed.fbairro,[ed.fcidade,ed.fuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
   if(fend)fr['Endereço de Entrega']=fend;
   if(ed.fie)fr['Inscrição Estadual']=ed.fie;
   if(ed.facomp)fr['Acompanhante da Descarga']=ed.facomp;
@@ -1797,7 +1920,12 @@ async function submit(){
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
     elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
-    projetos:{art:ed.art,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig}};
+    projetos:{art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig}};
+  // Gera etapas e prazos do kanban
+  if(!editing){
+    p.etapasKanban=getEtapasPedido(p);
+    p.prazosKanban=calcPrazoEtapas(p);
+  }
   const wasEditing=editing;
   editing=null;
   // Fechar modal ANTES do save para não travar
@@ -1865,7 +1993,7 @@ async function submit(){
       <td style="font-size:12px;color:#6b7280">Responsável &nbsp;<strong style="color:#111827">${p.responsavel||'—'}</strong></td>
       <td align="center" style="font-size:12px;color:#dee2e6">|</td>
       <td style="font-size:12px;color:#6b7280">JOB &nbsp;<strong style="color:#111827">${p.job||'—'}</strong></td>
-      <td align="right" style="font-size:12px;color:#6b7280">Prazo &nbsp;<strong style="color:#e91e63">${fmtD(p.prazo)||'—'}</strong></td>
+      <td align="right" style="font-size:12px;color:#6b7280">Prazo de Finalização &nbsp;<strong style="color:#e91e63">${fmtD(p.prazo)||'—'}</strong></td>
     </tr></table>
   </td></tr>
 
@@ -1908,14 +2036,14 @@ async function submit(){
       </td></tr>
       ${ed.bases?`
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.bases}</td></tr>
-      ${ed.chumbador?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.chumbador}</td></tr>`:''}
+      ${ed.chumbador?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ ENVIADO CHUMBADOR</td></tr>`:''}
       ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
       ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_chumb_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td></tr>`:''}
       `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
 
       ${ed.art?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
-      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Emissão de ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>
+      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ EMITIDA ART</td></tr>
       ${ed.art==='Sim'&&ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${cldDownload(ed.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
       `:''}
     </table>
@@ -1940,7 +2068,7 @@ async function submit(){
 </table>
 </td></tr></table>
 </body></html>`;
-      await emailjs.send(sid,tid,{html_content,to_email:clientEmails||fixedEmails,cc:clientEmails?fixedEmails:'',to_name:p.cliente,os_numero:String(p.os),subject:`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'noreply@granda.ind.br'});
+      await emailjs.send(sid,tid,{html_content,to_email:clientEmails||fixedEmails,cc:clientEmails?fixedEmails:'',to_name:p.cliente,os_numero:String(p.os),subject:`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
       toast(`E-mail enviado para ${_destEmails.length} destinatário(s)!`,'tok');
     }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
   }
@@ -1962,6 +2090,17 @@ function saveCfg(){
   // Save frete table
   const ftinps=document.querySelectorAll('.frete-uf-inp');
   if(ftinps.length){const t={};ftinps.forEach(i=>{if(i.value)t[i.dataset.uf]=parseInt(i.value);});cfg.freteTabela=JSON.stringify(t);}
+  // Save kanban prazos
+  const kInps=document.querySelectorAll('.kanban-prazo-inp');
+  if(kInps.length){const kp={};kInps.forEach(i=>{if(i.value)kp[i.dataset.etapa]=parseInt(i.value);});cfg.kanbanPrazos=kp;}
+  // Save mapa email->nome
+  const nomesEl2=document.getElementById('cfg-user-nomes');
+  if(nomesEl2&&nomesEl2.value.trim()){
+    const nm={};nomesEl2.value.split('\n').forEach(l=>{const p=l.split('=');if(p.length===2)nm[p[0].trim().toLowerCase()]=p[1].trim().toUpperCase();});
+    cfg.usuarioNomes=nm;
+    // Atualiza o nome do usuário logado imediatamente
+    if(usuarioLogado){const n=nm[usuarioLogado.email.toLowerCase()];if(n)usuarioLogado.nomeExibicao=n;}
+  }
   // Salva no Firestore (compartilhado com toda a equipe) + localStorage como backup
   if(window._fbSaveCfg){
     window._fbSaveCfg(cfg)
@@ -1975,26 +2114,57 @@ function saveCfg(){
   closeCfg();
 }
 async function addUser(){
-  const em=document.getElementById('nu-email')?.value?.trim();
+  const em=document.getElementById('nu-email')?.value?.trim().toLowerCase();
   const pw=document.getElementById('nu-pass')?.value;
+  const nome=document.getElementById('nu-nome')?.value?.trim().toUpperCase();
   if(!em||!pw){toast('Preencha email e senha!','terr');return;}
+  if(!nome){toast('Preencha o nome do usuário!','terr');return;}
   if(pw.length<6){toast('Senha mínimo 6 caracteres!','terr');return;}
   const btn=document.getElementById('btn-add-user');
   if(btn)btn.textContent='Criando...';
   try{
     await window._fbCreateUser(em,pw);
-    toast('Usuário criado: '+em,'tok');
+    // Salva o nome no mapa cfg.usuarioNomes e sincroniza no Firestore
+    if(!cfg.usuarioNomes)cfg.usuarioNomes={};
+    cfg.usuarioNomes[em]=nome;
+    if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+    localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+    toast('Usuário criado: '+nome+' ('+em+')','tok');
     document.getElementById('nu-email').value='';
     document.getElementById('nu-pass').value='';
+    document.getElementById('nu-nome').value='';
     renderUserList();
   }catch(e){
     toast('Erro: '+(e.message||e),'terr');
   }finally{if(btn)btn.textContent='+ Criar Usuário';}
 }
 async function renderUserList(){
-  // Apenas exibe mensagem orientativa — listagem completa requer Admin SDK
   const el=document.getElementById('user-list');
   if(el)el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Use o Console do Firebase para listar/remover usuários.</p>';
+  const lista=document.getElementById('cfg-nomes-lista');
+  if(lista){
+    const nomes=cfg.usuarioNomes||{};
+    const entries=Object.entries(nomes);
+    if(entries.length){
+      lista.innerHTML=entries.map(([email,nome])=>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #b2ebf2">
+          <span><strong>${nome}</strong> <span style="color:#0891b2;font-size:.72rem">${email}</span></span>
+          <button onclick="removerNomeUsuario('${email}')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.8rem;padding:2px 6px" title="Remover">✕</button>
+        </div>`
+      ).join('');
+    } else {
+      lista.innerHTML='<span style="color:#0891b2;font-size:.75rem">Nenhum usuário cadastrado ainda.</span>';
+    }
+  }
+}
+
+function removerNomeUsuario(email){
+  if(!confirm('Remover '+email+' da lista?'))return;
+  if(cfg.usuarioNomes)delete cfg.usuarioNomes[email];
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderUserList();
+  toast('Usuário removido da lista','tok');
 }
 async function uploadLogoEmail(){toast('Funcionalidade disponível via Cloudinary configurado.','tinf')}
 
@@ -2062,6 +2232,7 @@ function openSettings(){
   document.getElementById('cp').value=c.cld_preset||'';
   document.getElementById('clogourl').value=c.cld_logo||'';
   const cav=document.getElementById('cav');if(cav)cav.value=c.avisos||'';
+  const nomesEl=document.getElementById('cfg-user-nomes');
   renderUserList();
   // Populate frete table
   const ftg=document.getElementById('frete-table-grid');
@@ -2080,6 +2251,7 @@ function setCfgSec(sec,btn){
   const el=document.getElementById('cfg-sec-'+sec);
   if(el)el.style.display='';
   if(btn)btn.classList.add('active');
+  if(sec==='kanban')renderCfgKanban();
 }
 function cio(e,id){if(e.target.id===id)closeM(id);}
 
@@ -2110,8 +2282,7 @@ function selTipo(el){
 }
 
 function togElev(chk){
-  const card=chk.closest('.elev-card');
-  const on=chk.checked;
+  const card=chk.closest('.elev-card');const on=chk.checked;
   card.classList.toggle('elev-on',on);
   card.style.border=on?'1.5px solid var(--brand)':'1.5px solid var(--border)';
   card.style.background=on?'var(--brand-lt)':'var(--surface)';
@@ -2121,14 +2292,25 @@ function togElev(chk){
 
 load();buildFiltro();
 
+let usuarioLogado=null;
+
 function initAuth(tries){
   if(window._fbOnAuth){
     window._fbOnAuth(function(user){
       const ls=document.getElementById('login-screen');
       if(user){
+        usuarioLogado=user;
         if(ls)ls.style.display='none';
         setupRealtimeSync();
+        load().then(()=>{
+          const nomeMap=cfg.usuarioNomes||{};
+          const nome=nomeMap[user.email.toLowerCase()]||nomeMap[user.email]||user.displayName||user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
+          usuarioLogado.nomeExibicao=nome;
+        }).catch(()=>{
+          usuarioLogado.nomeExibicao=user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
+        });
       } else {
+        usuarioLogado=null;
         if(ls)ls.style.display='flex';
       }
     });
