@@ -1576,16 +1576,8 @@ async function submit(){
   const fmtV=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   const val={};
   if(ed.vtotal)val['Valor Total']=fmtV(moneyToNum(ed.vtotal));
-  if(ed.i_tipo)val['Instalação']=ed.i_tipo;
-  if(ed.vinst)val['Valor da Instalação']=fmtV(moneyToNum(ed.vinst));
-  if(ed.vmob)val['Valor da Mobilização']=fmtV(moneyToNum(ed.vmob));
+  if(ed.f_tipo)val['Modalidade do Frete']=ed.f_tipo;
   if(ed.remocao==='Sim'&&ed.vrem)val['Valor da Remoção']=fmtV(moneyToNum(ed.vrem));
-  if(ed.f_tipo)val['Frete']=ed.f_tipo;
-  if(ed.fmod)val['Modalidade Logística']=ed.fmod;
-  if(ed.vfrete)val['Valor do Frete']=fmtV(moneyToNum(ed.vfrete));
-  if(ed.elevacoes)val['Elevações']=ed.elevacoes;
-  if(ed.elevacoes==='Sim'&&ed.elevs&&ed.elevs.length)val['Tipos de Elevação']=ed.elevs.map(e=>e.tipo+': '+e.qtd+'un x '+e.dias+' diária(s)').join(', ');
-  if(ed.velev)val['Valor das Elevações']=fmtV(moneyToNum(ed.velev));
   if(ed.medicao)val['Medição Técnica']=ed.medicao;
   if(ed.medicao==='Sim'&&ed.vmed)val['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
   val['Valor Líquido do Pedido']=fmtV(liq);
@@ -1600,6 +1592,9 @@ async function submit(){
   if(ed.nf)pag['Emissão de NF']=ed.nf;
   if(ed.obsfin)pag['Observações Financeiras']=ed.obsfin;
   const inst={};
+  if(ed.i_tipo)inst['Tipo de Instalação']=ed.i_tipo;
+  if(ed.vinst)inst['Valor da Instalação']=fmtV(moneyToNum(ed.vinst));
+  if(ed.vmob)inst['Valor da Mobilização']=fmtV(moneyToNum(ed.vmob));
   if(ed.iacomp)inst['Acompanhante da Obra']=ed.iacomp;
   if(ed.itel)inst['Telefone']=ed.itel;
   const iend=[ed.ilog,ed.inum_e,ed.icomp,ed.ibairro,[ed.icidade,ed.iuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
@@ -1611,6 +1606,8 @@ async function submit(){
   if(ed.iseg)inst['Seguro de Obra']=ed.iseg;
   if(ed.vseg)inst['Valor do Seguro']=fmtV(moneyToNum(ed.vseg));
   const fr={};
+  if(ed.vfrete)fr['Valor do Frete']=fmtV(moneyToNum(ed.vfrete));
+  if(ed.fmod)fr['Modalidade Logística']=ed.fmod;
   const fend=[ed.flog,ed.fnum_e,ed.fcomp,ed.fbairro,[ed.fcidade,ed.fuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
   if(fend)fr['Endereço de Entrega']=fend;
   if(ed.fie)fr['Inscrição Estadual']=ed.fie;
@@ -1706,22 +1703,41 @@ async function submit(){
       ${fmtSec('Valores',val)}
       ${fmtSec('Pagamento',pag)}
       ${ed.arq_os_url?`
-      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">9. PDF da OS</td>
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">9. PDF da OS</td>
         <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_os_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
       </tr>`:''}
       ${ed.arq_oc_url?`
-      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Arquivo da Ordem de Compra (PDF ou JPG)</td>
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Arquivo da Ordem de Compra (PDF ou JPG)</td>
         <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_oc_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
       </tr>`:''}
+
+      <!-- ELEVAÇÕES -->
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Elevações</span>
+      </td></tr>
+      ${ed.elevacoes==='Sim'&&ed.elevs&&ed.elevs.length?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Equipamentos</td>
+        <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.elevs.map(e=>e.tipo+': '+e.qtd+'un × '+e.dias+' diária(s)').join('<br>')}</td>
+      </tr>
+      ${ed.velev?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Valor das Elevações</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">R$ ${moneyToNum(ed.velev).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`:''}
+      `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem elevações neste pedido.</td></tr>`}
+
       ${fmtSec('Instalação',inst)}
       ${fmtSec('Frete',fr)}
-      ${ed.arq_chumb_url?`
-      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">PDF do Pedido de Chumbador</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_chumb_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
-      </tr>`:''}
+
+      <!-- BASES E FUNDAÇÕES -->
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Bases e Fundações</span>
+      </td></tr>
+      ${ed.bases?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.bases}</td></tr>
+      ${ed.chumbador?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.chumbador}</td></tr>`:''}
+      ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Nº da OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
+      ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">PDF do Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_chumb_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td></tr>`:''}
+      `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
+
       ${ed.art?`
-      <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
-      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
       <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>`:''}
     </table>
 
