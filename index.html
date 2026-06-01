@@ -538,6 +538,10 @@ window._fbSavePedido=(p)=>setDoc(doc(db,'pedidos',String(p.id)),p);
 window._fbDeletePedido=(id)=>deleteDoc(doc(db,'pedidos',String(id)));
 window._fbLoadPedidos=()=>getDocs(collection(db,'pedidos'));
 window._fbWatchPedidos=(cb)=>onSnapshot(collection(db,'pedidos'),cb);
+// Config global (compartilhada entre todos os usuários)
+window._fbSaveCfg=(data)=>setDoc(doc(db,'sistema','config'),data);
+window._fbLoadCfg=()=>getDocs(collection(db,'sistema')).then(snap=>{const d=snap.docs.find(x=>x.id==='config');return d?d.data():null;});
+window._fbWatchCfg=(cb)=>onSnapshot(doc(db,'sistema','config'),snap=>{if(snap.exists())cb(snap.data());});
 </script>
 
 <script>
@@ -598,10 +602,23 @@ function fmtMoney(el){
   el.value=(n/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
-function load(){
-  // Carrega config local (EmailJS, Cloudinary etc.)
-  const cfg2=localStorage.getItem('gcore_cfg');
-  if(cfg2) cfg=Object.assign(cfg,JSON.parse(cfg2));
+async function load(){
+  // Carrega config do Firestore (compartilhada entre todos os usuários)
+  if(window._fbLoadCfg){
+    try{
+      const remoteCfg=await window._fbLoadCfg();
+      if(remoteCfg) cfg=Object.assign(cfg,remoteCfg);
+      // Listener em tempo real: se alguém mudar as configs, todos atualizam automaticamente
+      window._fbWatchCfg(data=>{cfg=Object.assign(cfg,data);if(cfg.k)try{emailjs.init(cfg.k)}catch(e){}});
+    }catch(e){
+      // Fallback para localStorage se Firestore não responder
+      const cfg2=localStorage.getItem('gcore_cfg');
+      if(cfg2) cfg=Object.assign(cfg,JSON.parse(cfg2));
+    }
+  } else {
+    const cfg2=localStorage.getItem('gcore_cfg');
+    if(cfg2) cfg=Object.assign(cfg,JSON.parse(cfg2));
+  }
   if(cfg.k) try{emailjs.init(cfg.k)}catch(e){}
   // Pedidos vêm do Firestore via listener em tempo real (configurado após login)
 }
@@ -756,7 +773,7 @@ function openEmissao(eid2){
       medicao:v['Medição Técnica']||'Não',
       tem_oc:pg['Tem Ordem de Compra']||'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
       nparc:'Sem parcelamento',fparc:'',pdatas:[],nf:pg['Emissão de NF']||'',obsfin:'',
-      art:'',iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
+      art:'',cnpj_art:'',cnpj_art_url:'',iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
       iend:inst['Endereço de Instalação']||'',ihor:inst['Horário']||'Comercial',
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
@@ -769,7 +786,7 @@ function openEmissao(eid2){
       vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',
       elevacoes:'',elevs:[],velev:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
-      nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',arq_prod:'',layout_inst:'',fotos_orig:'',
+      nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',
       iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',
       minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:''};
   }
@@ -878,6 +895,7 @@ function saveSt(){
     ed.pvals=[...document.querySelectorAll('.pd-val')].map(i=>parseFloat((i.dataset.raw)||0)||parseFloat((i.value||'0').replace(/\./g,'').replace(',','.'))||0);
   }else if(id==='projetos'){
     ed.art=gon('tg_art');
+    // cnpj_art é salvo via uploadCnpjArt() ao fazer o upload do arquivo
     const gRad=n=>document.querySelector(`input[name="${n}"]:checked`)?.value||ed[n]||'';
     ed.arq_prod=gRad('arq_prod');ed.layout_inst=gRad('layout_inst');ed.fotos_orig=gRad('fotos_orig');
   }else if(id==='instalacao'){
@@ -1018,6 +1036,7 @@ function updCond(){
   const ocUpload=document.getElementById('oc-upload');if(ocUpload)ocUpload.style.display=ed.tem_oc==='Sim'?'':'none';
   const vsegR=document.getElementById('vseg-row');if(vsegR)vsegR.style.display=ed.iseg==='Sim'?'':'none';
   const chumbR=document.getElementById('chumb-row');if(chumbR)chumbR.style.display=ed.chumbador==='Sim'?'':'none';
+  const cnpjArt=document.getElementById('fg-cnpj-art');if(cnpjArt)cnpjArt.style.display=ed.art==='Sim'?'block':'none';
   const vmedR=document.getElementById('vmed-row');if(vmedR)vmedR.style.display=ed.medicao==='Sim'?'':'none';
   const velevR=document.getElementById('velev-row');if(velevR)velevR.style.display=ed.elevacoes==='Sim'?'':'none';
   const es=document.getElementById('elev-s');if(es)es.style.display=ed.elevacoes==='Sim'?'':'none';
@@ -1214,6 +1233,16 @@ function renderStep(id){
       <div class="fg"><label>Emissão de ART</label>
         <div class="tg-grp">${rTG('tg_art','Sim','Sim',ed.art,true)}${rTG('tg_art','Não','Não',ed.art,false)}</div>
       </div>
+      <div class="fg" id="fg-cnpj-art" style="display:${ed.art==='Sim'?'block':'none'};margin-top:10px">
+        <label>Cartão CNPJ da Obra <span class="r">*</span></label>
+        <div class="upload-zone${ed.cnpj_art?' has-file':''}" id="uz-cnpj-art" onclick="document.getElementById('em-cnpj-art-file').click()">
+          <span class="uz-icon">${ed.cnpj_art?'✅':'📄'}</span>
+          <div class="uz-title">${ed.cnpj_art?'Cartão CNPJ anexado':'Clique para anexar o Cartão CNPJ da Obra'}</div>
+          <div class="uz-sub">PDF ou JPG · Máx. 10MB</div>
+          ${ed.cnpj_art?`<div class="uz-file">✓ Arquivo enviado &nbsp;<a href="${ed.cnpj_art_url||''}" target="_blank" style="color:var(--brand);font-size:.7rem">[abrir]</a></div>`:''}
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="em-cnpj-art-file" style="display:none" onchange="uploadCnpjArt(this)">
+        </div>
+      </div>
       <div class="fg" style="margin-top:14px"><label>Arquivos de produção <span class="r">*</span></label>
         ${rRadio('arq_prod',['Salvos na pasta padrão','Cliente padrão (arquivos são salvos pelo setor projetos)','Não necessita de arquivo'],ed.arq_prod)}
       </div>
@@ -1387,6 +1416,38 @@ function fmtTel(el){
   else el.value=v;
 }
 
+async function uploadCnpjArt(input){
+  const f=input.files[0];if(!f)return;
+  const z=document.getElementById('uz-cnpj-art');
+  const icon=z.querySelector('.uz-icon');const title=z.querySelector('.uz-title');
+  if(icon)icon.textContent='⏳';if(title)title.textContent='Enviando...';
+  let url='';
+  if(cfg.cld_cloud&&cfg.cld_preset){
+    try{
+      const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
+      const d=await r.json();url=d.secure_url||'';
+    }catch(e){console.error('Cloudinary upload error',e);}
+  }
+  ed.cnpj_art=f.name;ed.cnpj_art_url=url;
+  if(icon)icon.textContent='✅';
+  if(title)title.textContent='Cartão CNPJ anexado';
+  z.classList.add('has-file');
+  let nm=z.querySelector('.uz-file');
+  if(!nm){nm=document.createElement('div');nm.className='uz-file';z.appendChild(nm);}
+  nm.innerHTML=url?`✓ ${f.name} &nbsp;<a href="${url}" target="_blank" style="color:var(--brand);font-size:.7rem">[abrir]</a>`:`✓ ${f.name}`;
+  nm.style.display='flex';
+}
+function fmtCNPJ(el){
+  let v=el.value.replace(/\D/g,'');
+  if(v.length>12)v=v.slice(0,14);
+  if(v.length>12)el.value=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5,8)+'/'+v.slice(8,12)+'-'+v.slice(12);
+  else if(v.length>8)el.value=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5,8)+'/'+v.slice(8);
+  else if(v.length>5)el.value=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
+  else if(v.length>2)el.value=v.slice(0,2)+'.'+v.slice(2);
+  else el.value=v;
+}
 function fmtCep(el){
   let v=el.value.replace(/\D/g,'');
   if(v.length>5)el.value=v.slice(0,5)+'-'+v.slice(5,8);
@@ -1556,22 +1617,59 @@ function addRem(){
 
 async function submit(){
   saveSt();
-  if(!ed.cli){toast('Informe o cliente!','terr');goStep(0);return}
-  if(!ed.tipo){toast('Selecione o tipo do pedido!','terr');goStep(0);return}
-  const idxVal=getTabs().findIndex(t=>t.id==='valores');
-  if(!ed.elevacoes){toast('Informe se o pedido tem elevacoes!','terr');goStep(idxVal);return}
-  if(ed.elevacoes==='Sim'&&!ed.velev){toast('Informe o valor das elevacoes!','terr');goStep(idxVal);return}
-  if(ed.medicao==='Sim'&&!ed.vmed){toast('Informe o valor da Medicao Tecnica!','terr');goStep(idxVal);return}
-  const idxPag=getTabs().findIndex(t=>t.id==='pagamento');
-  if(ed.tem_oc==='Sim'&&!ed.arq_oc){toast('Faca upload do arquivo da Ordem de Compra!','terr');goStep(idxPag);return}
-  const idxInst=getTabs().findIndex(t=>t.id==='instalacao');
-  if(ed.itel&&!validaTel(ed.itel)){toast('Telefone da instalacao invalido!','terr');goStep(idxInst);return}
-  const idxFrt=getTabs().findIndex(t=>t.id==='frete');
-  if(ed.ftel&&!validaTel(ed.ftel)){toast('Telefone da descarga invalido!','terr');goStep(idxFrt);return}
-  const idxProj=getTabs().findIndex(t=>t.id==='projetos');
-  if(!ed.arq_prod){toast('Selecione Arquivos de producao!','terr');goStep(idxProj);return}
-  if(!ed.layout_inst){toast('Selecione Layout de instalacao!','terr');goStep(idxProj);return}
-  if(!ed.fotos_orig){toast('Selecione Fotos originais!','terr');goStep(idxProj);return}
+  const tabs=getTabs();
+  const idx=id=>tabs.findIndex(t=>t.id===id);
+  // Coleta todos os erros antes de bloquear
+  const erros=[];
+  // Aba 0 - Dados gerais
+  if(!ed.cli)erros.push({msg:'Cliente não informado',aba:0,label:'Dados Gerais'});
+  if(!ed.tipo)erros.push({msg:'Tipo do pedido não selecionado',aba:0,label:'Dados Gerais'});
+  if(!ed.resp)erros.push({msg:'Responsável não informado',aba:0,label:'Dados Gerais'});
+  if(!ed.job)erros.push({msg:'Nome do job não informado',aba:0,label:'Dados Gerais'});
+  if(!ed.prazo)erros.push({msg:'Prazo de entrega não informado',aba:0,label:'Dados Gerais'});
+  // Aba valores
+  const idxVal=idx('valores');
+  if(!ed.vtotal)erros.push({msg:'Valor total do pedido não informado',aba:idxVal,label:'Valores'});
+  if(!ed.i_tipo)erros.push({msg:'Instalação não selecionada',aba:idxVal,label:'Valores'});
+  if(ed.i_tipo==='Por nossa conta'&&!ed.vinst)erros.push({msg:'Valor da instalação não informado',aba:idxVal,label:'Valores'});
+  if(ed.i_tipo==='Por nossa conta'&&!ed.vmob)erros.push({msg:'Valor da mobilização não informado',aba:idxVal,label:'Valores'});
+  if(ed.i_tipo==='Por nossa conta'&&!ed.remocao)erros.push({msg:'Informe se tem remoção de produtos',aba:idxVal,label:'Valores'});
+  if(!ed.f_tipo)erros.push({msg:'Frete não selecionado',aba:idxVal,label:'Valores'});
+  if(!ed.elevacoes)erros.push({msg:'Informe se o pedido tem elevações',aba:idxVal,label:'Valores'});
+  if(ed.elevacoes==='Sim'&&!ed.velev)erros.push({msg:'Valor das elevações não informado',aba:idxVal,label:'Valores'});
+  if(!ed.medicao)erros.push({msg:'Informe se tem medição técnica',aba:idxVal,label:'Valores'});
+  if(ed.medicao==='Sim'&&!ed.vmed)erros.push({msg:'Valor da medição técnica não informado',aba:idxVal,label:'Valores'});
+  // Aba pagamento
+  const idxPag=idx('pagamento');
+  if(!ed.os)erros.push({msg:'Nº da Ordem de Serviço não informado',aba:idxPag,label:'Pagamento'});
+  if(!ed.tem_oc)erros.push({msg:'Informe se tem Ordem de Compra',aba:idxPag,label:'Pagamento'});
+  if(ed.tem_oc==='Sim'&&!ed.arq_oc)erros.push({msg:'Faça upload do arquivo da Ordem de Compra',aba:idxPag,label:'Pagamento'});
+  if(!ed.tem_ent)erros.push({msg:'Informe se o pedido tem entrada',aba:idxPag,label:'Pagamento'});
+  if(!ed.nf)erros.push({msg:'Informe a Emissão de NF',aba:idxPag,label:'Pagamento'});
+  // Aba projetos
+  const idxProj=idx('projetos');
+  if(!ed.art)erros.push({msg:'Informe se há Emissão de ART',aba:idxProj,label:'Projetos'});
+  if(ed.art==='Sim'&&!ed.cnpj_art)erros.push({msg:'Anexe o Cartão CNPJ da Obra para emissão de ART',aba:idxProj,label:'Projetos'});
+  if(!ed.arq_prod)erros.push({msg:'Selecione os arquivos de produção',aba:idxProj,label:'Projetos'});
+  if(!ed.layout_inst)erros.push({msg:'Selecione o layout de instalação',aba:idxProj,label:'Projetos'});
+  if(!ed.fotos_orig)erros.push({msg:'Selecione as fotos originais',aba:idxProj,label:'Projetos'});
+  // Aba instalação
+  const idxInst=idx('instalacao');
+  if(ed.itel&&!validaTel(ed.itel))erros.push({msg:'Telefone da instalação inválido',aba:idxInst,label:'Instalação'});
+  // Aba frete
+  const idxFrt=idx('frete');
+  if(ed.ftel&&!validaTel(ed.ftel))erros.push({msg:'Telefone da descarga inválido',aba:idxFrt,label:'Frete'});
+  if(erros.length>0){
+    // Agrupa por aba
+    const porAba={};
+    erros.forEach(e=>{if(!porAba[e.label])porAba[e.label]=[];porAba[e.label].push(e.msg);});
+    const html=Object.entries(porAba).map(([aba,msgs])=>
+      `<div style="margin-bottom:12px"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#e91e63;margin-bottom:6px">📋 ${aba}</div>`+
+      msgs.map(m=>`<div style="font-size:.82rem;color:#374151;padding:4px 0 4px 12px;border-left:2px solid #fca5a5">• ${m}</div>`).join('')+`</div>`
+    ).join('');
+    showErrosModal(html,erros[0].aba);
+    return;
+  }
   const liq=calcLiq();
   const fmtV=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   const val={};
@@ -1738,7 +1836,9 @@ async function submit(){
 
       ${ed.art?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
-      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>`:''}
+      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>
+      ${ed.art==='Sim'&&ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${ed.cnpj_art_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
+      `:''}
     </table>
 
     ${cfg.avisos?`
@@ -1783,9 +1883,17 @@ function saveCfg(){
   // Save frete table
   const ftinps=document.querySelectorAll('.frete-uf-inp');
   if(ftinps.length){const t={};ftinps.forEach(i=>{if(i.value)t[i.dataset.uf]=parseInt(i.value);});cfg.freteTabela=JSON.stringify(t);}
+  // Salva no Firestore (compartilhado com toda a equipe) + localStorage como backup
+  if(window._fbSaveCfg){
+    window._fbSaveCfg(cfg)
+      .then(()=>toast('Configurações salvas para toda a equipe! ✅','tok'))
+      .catch(e=>{toast('Erro ao salvar configurações: '+e.message,'terr');console.error(e);});
+  } else {
+    toast('Configurações salvas!','tok');
+  }
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   if(cfg.k)try{emailjs.init(cfg.k)}catch(e){}
-  toast('Configurações salvas!','tok');closeCfg();
+  closeCfg();
 }
 async function addUser(){
   const em=document.getElementById('nu-email')?.value?.trim();
@@ -1818,6 +1926,30 @@ function toast(msg,cls='tinf'){
   const colors={tok:'#16a34a',terr:'#dc2626',tinf:'#0284c7',twar:'#d97706'};
   t.style.background=colors[cls]||colors.tinf;t.style.color='#fff';t.style.opacity='1';t.textContent=msg;
   clearTimeout(t._tm);t._tm=setTimeout(()=>t.style.opacity='0',3200);
+}
+
+function showErrosModal(html,primeiraAba){
+  let m=document.getElementById('mo-erros');
+  if(!m){
+    m=document.createElement('div');m.id='mo-erros';
+    m.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(3px)';
+    m.innerHTML=`<div style="background:#fff;border-radius:18px;padding:28px 28px 22px;max-width:480px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:inherit">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">⚠️</div>
+        <div><div style="font-size:.95rem;font-weight:800;color:#111">Campos obrigatórios pendentes</div><div style="font-size:.75rem;color:#6b7280;margin-top:2px">Preencha os itens abaixo para emitir o pedido</div></div>
+      </div>
+      <div id="mo-erros-body"></div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button onclick="document.getElementById('mo-erros').style.display='none'" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;font-size:.82rem;font-weight:700;cursor:pointer;color:#374151">Fechar</button>
+        <button id="mo-erros-ir" style="flex:1;padding:10px;border-radius:10px;border:none;background:#e91e63;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer">Ir para o primeiro erro →</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('mo-erros-body').innerHTML=html;
+  document.getElementById('mo-erros-ir').onclick=()=>{document.getElementById('mo-erros').style.display='none';goStep(primeiraAba);};
+  m.style.display='flex';
+  m.onclick=e=>{if(e.target===m)m.style.display='none'};
 }
 
 // MODAIS
