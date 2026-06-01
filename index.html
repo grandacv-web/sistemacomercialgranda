@@ -2068,7 +2068,11 @@ async function submit(){
 </table>
 </td></tr></table>
 </body></html>`;
-      await emailjs.send(sid,tid,{html_content,to_email:clientEmails||fixedEmails,cc:clientEmails?fixedEmails:'',to_name:p.cliente,os_numero:String(p.os),subject:`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente}`,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
+      const _cidade=(ed.icidade||ed.fcidade||'').toUpperCase();
+      const _uf=(ed.iuf||ed.fuf||'').toUpperCase();
+      const _locStr=_cidade&&_uf?` - ${_cidade}/${_uf}`:_cidade?` - ${_cidade}`:_uf?` - ${_uf}`:'';
+      const _subject=`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente} - ${p.job||''}${_locStr}`.replace(/\s+-\s*$/,'').replace(/\s{2,}/g,' ');
+      await emailjs.send(sid,tid,{html_content,to_email:clientEmails||fixedEmails,cc:clientEmails?fixedEmails:'',to_name:p.cliente,os_numero:String(p.os),subject:_subject,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
       toast(`E-mail enviado para ${_destEmails.length} destinatário(s)!`,'tok');
     }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
   }
