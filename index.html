@@ -565,7 +565,8 @@ async function setUpload(zoneId,nameId,input,edKey){
   if(cfg.cld_cloud&&cfg.cld_preset){
     try{
       const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
-      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/upload`,{method:'POST',body:fd});
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
     }catch(e){console.error('Cloudinary upload error',e);}
@@ -1659,23 +1660,23 @@ async function submit(){
       const clientEmails=(ed.emails||[]).join(',');
       const fixedEmails=(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean).join(',');
       const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#1a1a2e;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a1a2e;padding:40px 16px">
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:40px 16px">
 <tr><td align="center">
-<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
 
   <!-- HEADER -->
-  <tr><td style="background:#111827;padding:0">
+  <tr><td style="background:#ffffff;padding:0">
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding:36px 40px 28px">
-        <img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="56" alt="Granda Comunicação Visual" style="height:56px;display:block;margin:0 auto">
+      <tr><td align="center" style="padding:32px 40px 20px">
+        <img src="https://grandacv-web.github.io/gcoregranda/logo_granda.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
       </td></tr>
       <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
-      <tr><td style="padding:24px 40px 32px;background:#111827">
+      <tr><td style="padding:24px 40px 28px;background:#ffffff;border-bottom:1px solid #f3f4f6">
         <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">EMISSÃO DE PEDIDO</p>
-        <p style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
+        <p style="margin:0 0 8px;color:#111827;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="background:#1f2937;border-radius:20px;padding:5px 14px">
+          <td style="background:#f3f4f6;border-radius:20px;padding:5px 14px">
             <span style="color:#e91e63;font-size:12px;font-weight:700">OS Nº ${p.os}</span>
             <span style="color:#6b7280;font-size:12px">&nbsp;·&nbsp;${p.tipo}</span>
           </td>
@@ -1721,20 +1722,19 @@ async function submit(){
     </table>`:''}
 
     ${pdfLinks.length?`
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid #e9ecef">
-      <tr><td style="padding-top:20px 0 12px">
-        <p style="margin:0 0 12px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#6b7280">Documentos Anexos</p>
-        <table cellpadding="0" cellspacing="4"><tr>${pdfLinks.map(l=>`
-          <td style="padding-right:8px"><a href="${l.url}" target="_blank" style="display:inline-block;background:#e91e63;color:#fff;text-decoration:none;font-size:12px;font-weight:700;padding:10px 20px;border-radius:6px">${l.label} ↗</a></td>`).join('')}</tr></table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:2px solid #e91e63">
+      <tr><td style="padding-top:16px">
+        ${pdfLinks.map(l=>`
+        <p style="margin:0 0 10px;font-size:13px;color:#374151"><strong style="color:#111827">${l.label}:</strong> <a href="${l.url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></p>`).join('')}
       </td></tr>
     </table>`:''}
   </td></tr>
 
   <!-- FOOTER -->
-  <tr><td style="background:#111827;padding:20px 40px">
+  <tr><td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:20px 40px">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#6b7280">GCore · Sistema Granda · E-mail automático</td>
-      <td align="right"><img src="https://gcoregranda.netlify.app/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+      <td style="font-size:11px;color:#9ca3af">GCore · Sistema Granda · E-mail automático</td>
+      <td align="right"><img src="https://grandacv-web.github.io/gcoregranda/logo_granda.png" height="22" alt="Granda" style="height:22px;opacity:.7"></td>
     </tr></table>
   </td></tr>
 
