@@ -807,35 +807,98 @@ function renderEM(){
 }
 
 function goStep(i){saveSt();step=i;renderEM()}
+function validarAba(id){
+  // Retorna lista de erros da aba atual
+  const erros=[];
+  if(id==='geral'){
+    if(!ed.cli)erros.push('Cliente não informado');
+    if(!ed.tipo)erros.push('Tipo do pedido não selecionado');
+    if(!ed.resp)erros.push('Responsável não informado');
+    if(!ed.job)erros.push('Nome do job não informado');
+    if(!ed.prazo)erros.push('Prazo de entrega não informado');
+  }
+  if(id==='valores'){
+    if(!ed.vtotal)erros.push('Valor total do pedido não informado');
+    if(!ed.i_tipo)erros.push('Instalação não selecionada');
+    if(ed.i_tipo==='Por nossa conta'&&!ed.vinst)erros.push('Valor da instalação não informado');
+    if(ed.i_tipo==='Por nossa conta'&&!ed.vmob)erros.push('Valor da mobilização não informado');
+    if(ed.i_tipo==='Por nossa conta'&&!ed.remocao)erros.push('Informe se tem remoção de produtos');
+    if(!ed.f_tipo)erros.push('Frete não selecionado');
+    if(!ed.elevacoes)erros.push('Informe se o pedido tem elevações');
+    if(ed.elevacoes==='Sim'&&!ed.velev)erros.push('Valor das elevações não informado');
+    if(!ed.medicao)erros.push('Informe se tem medição técnica');
+    if(ed.medicao==='Sim'&&!ed.vmed)erros.push('Valor da medição técnica não informado');
+  }
+  if(id==='pagamento'){
+    if(!ed.os)erros.push('Nº da Ordem de Serviço não informado');
+    if(!ed.tem_oc)erros.push('Informe se tem Ordem de Compra');
+    if(ed.tem_oc==='Sim'&&!ed.arq_oc)erros.push('Faça upload do arquivo da Ordem de Compra');
+    if(!ed.tem_ent)erros.push('Informe se o pedido tem entrada');
+    if(!ed.nf)erros.push('Informe a Emissão de Nota Fiscal');
+  }
+  if(id==='projetos'){
+    if(!ed.art)erros.push('Informe se há Emissão de ART');
+    if(ed.art==='Sim'&&!ed.cnpj_art)erros.push('Anexe o Cartão CNPJ da Obra');
+    if(!ed.arq_prod)erros.push('Selecione os arquivos de produção');
+    if(!ed.layout_inst)erros.push('Selecione o layout de instalação');
+    if(!ed.fotos_orig)erros.push('Selecione as fotos originais');
+  }
+  if(id==='instalacao'){
+    if(ed.itel&&!validaTel(ed.itel))erros.push('Telefone da instalação inválido');
+  }
+  if(id==='frete'){
+    if(ed.ftel&&!validaTel(ed.ftel))erros.push('Telefone da descarga inválido');
+  }
+  return erros;
+}
+
+function mostrarErrosAba(erros){
+  const html=erros.map(m=>`<div style="font-size:.82rem;color:#374151;padding:5px 0 5px 12px;border-left:2px solid #fca5a5">• ${m}</div>`).join('');
+  showErrosModal(`<div style="margin-bottom:4px"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#e91e63;margin-bottom:8px">📋 Preencha os campos obrigatórios desta aba antes de avançar</div>${html}</div>`,null);
+}
+
 function stepNext(){
   saveSt();
   const tabs=getTabs();
   const id=tabs[step].id;
-  // Validações da aba pagamento antes de avançar
+  // Validação dos campos obrigatórios da aba atual
+  const errosAba=validarAba(id);
+  if(errosAba.length>0){mostrarErrosAba(errosAba);return;}
+  // Validações de datas da aba pagamento
   if(id==='pagamento'){
     const N=s=>parseFloat((s||'0').toString().replace(/\./g,'').replace(',','.'))||0;
     const hoje=new Date();hoje.setHours(0,0,0,0);
-    if(ed.tem_ent==='Tem entrada'&&ed.dent){
+    const d30=new Date(hoje);d30.setDate(d30.getDate()+30);
+    const temEnt2=ed.tem_ent==='Tem entrada';
+    // Validações da entrada
+    if(temEnt2&&ed.dent){
       const de=new Date(ed.dent+'T00:00:00');
-      if(de<hoje){toast('A data da entrada não pode ser retroativa!','terr');return;}
+      if(de<hoje){toast('❌ A data da entrada não pode ser retroativa! Corrija antes de continuar.','terr');return;}
+      if(de>d30){toast('❌ A data da entrada não pode ultrapassar 30 dias a partir de hoje — caso contrário não é considerada entrada. Corrija antes de continuar.','terr');return;}
     }
+    // Validações das parcelas
     const datas=ed.pdatas.filter(d=>d);
-    if(ed.dent&&datas.length){
+    // Parcelas retroativas
+    for(let i=0;i<datas.length;i++){
+      const dp=new Date(datas[i]+'T00:00:00');
+      if(dp<hoje){toast(`❌ A data da Parcela ${i+1} não pode ser retroativa! Corrija antes de continuar.`,'terr');return;}
+    }
+    // Parcelas iguais entre si
+    const datasUnicas=new Set(datas);
+    if(datasUnicas.size<datas.length){toast('❌ Existem parcelas com a mesma data! Cada parcela deve ter uma data diferente. Corrija antes de continuar.','terr');return;}
+    // Parcelas devem ser depois da entrada
+    if(temEnt2&&ed.dent&&datas.length){
       const de=new Date(ed.dent+'T00:00:00');
       for(let i=0;i<datas.length;i++){
         const dp=new Date(datas[i]+'T00:00:00');
-        if(dp<=de){toast(`A Parcela ${i+1} não pode ser antes ou igual à data de entrada!`,'terr');return;}
-        if(i>0){
-          const prev=new Date(datas[i-1]+'T00:00:00');
-          if(dp<=prev){toast(`A Parcela ${i+1} não pode ser antes da Parcela ${i}!`,'terr');return;}
-        }
+        if(dp<=de){toast(`❌ A Parcela ${i+1} não pode ter data igual ou anterior à entrada! Corrija antes de continuar.`,'terr');return;}
       }
-    } else if(datas.length>1){
-      for(let i=1;i<datas.length;i++){
-        const cur=new Date(datas[i]+'T00:00:00');
-        const prev=new Date(datas[i-1]+'T00:00:00');
-        if(cur<=prev){toast(`A Parcela ${i+1} não pode ser antes da Parcela ${i}!`,'terr');return;}
-      }
+    }
+    // Parcelas em ordem crescente
+    for(let i=1;i<datas.length;i++){
+      const cur=new Date(datas[i]+'T00:00:00');
+      const prev=new Date(datas[i-1]+'T00:00:00');
+      if(cur<=prev){toast(`❌ A Parcela ${i+1} não pode ser igual ou anterior à Parcela ${i}! As parcelas precisam estar em ordem crescente de data. Corrija antes de continuar.`,'terr');return;}
     }
     // Validação: entrada + parcelas devem bater com VALOR TOTAL DO PEDIDO
     const vtotalEd=moneyToNum(ed.vtotal);
@@ -928,6 +991,18 @@ function saveSt(){
     ed.fie=gv('em-fi');ed.facomp=gv('em-fc');ed.ftel=gv('em-ft2');}
 }
 
+function cldDownload(url){
+  // Adiciona fl_attachment na URL do Cloudinary para forçar download em vez de abrir inline
+  if(!url)return url;
+  try{
+    const u=new URL(url);
+    if(u.hostname.includes('cloudinary.com')){
+      // Insere fl_attachment após /upload/
+      return url.replace('/upload/','/upload/fl_attachment/');
+    }
+  }catch(e){}
+  return url;
+}
 function moneyToNum(s){
   // aceita "1.500,00" ou "1500.00" ou "1500" ou number
   if(!s)return 0;
@@ -1002,7 +1077,11 @@ function updParc(){
   const n=parseInt(document.getElementById('em-np')?.value)||0;
   if(!n){c.innerHTML='';return}
   const todayStr=new Date().toISOString().slice(0,10);
-  c.innerHTML=[...Array(n)].map((_, i)=>`<div class="parc-r"><span style="font-weight:700;color:#1a1f36;font-size:.78rem">Parcela ${i+1}/${n}</span><input type="text" placeholder="R$ 0,00" class="fc pd-val" style="font-size:.78rem" oninput="fmtMoney(this);updPagCheck()"><input type="date" class="fc pd-date" min="${todayStr}" value="${ed.pdatas[i]||''}" style="font-size:.78rem"></div>`).join('');
+  c.innerHTML=[...Array(n)].map((_,i)=>{
+    const vRaw=ed.pvals&&ed.pvals[i]?ed.pvals[i]:0;
+    const vFmt=vRaw>0?vRaw.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+    return`<div class="parc-r"><span style="font-weight:700;color:#1a1f36;font-size:.78rem">Parcela ${i+1}/${n}</span><input type="text" placeholder="R$ 0,00" class="fc pd-val" style="font-size:.78rem" value="${vFmt}" data-raw="${vRaw||''}" oninput="fmtMoney(this);updPagCheck()"><input type="date" class="fc pd-date" min="${todayStr}" value="${ed.pdatas[i]||''}" style="font-size:.78rem"></div>`;
+  }).join('');
   updPagCheck();
 }
 
@@ -1802,11 +1881,11 @@ async function submit(){
       ${fmtSec('Pagamento',pag)}
       ${ed.arq_os_url?`
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_os_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_os_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td>
       </tr>`:''}
       ${ed.arq_oc_url?`
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Compra</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_oc_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_oc_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td>
       </tr>`:''}
 
       <!-- ELEVAÇÕES -->
@@ -1831,13 +1910,13 @@ async function submit(){
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.bases}</td></tr>
       ${ed.chumbador?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.chumbador}</td></tr>`:''}
       ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
-      ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${ed.arq_chumb_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ou baixar ↗</a></td></tr>`:''}
+      ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_chumb_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td></tr>`:''}
       `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
 
       ${ed.art?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
       <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Emissão de ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.art}</td></tr>
-      ${ed.art==='Sim'&&ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${ed.cnpj_art_url}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para visualizar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
+      ${ed.art==='Sim'&&ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${cldDownload(ed.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
       `:''}
     </table>
 
@@ -1947,7 +2026,13 @@ function showErrosModal(html,primeiraAba){
     document.body.appendChild(m);
   }
   document.getElementById('mo-erros-body').innerHTML=html;
-  document.getElementById('mo-erros-ir').onclick=()=>{document.getElementById('mo-erros').style.display='none';goStep(primeiraAba);};
+  const btnIr=document.getElementById('mo-erros-ir');
+  if(primeiraAba!=null){
+    btnIr.style.display='';
+    btnIr.onclick=()=>{document.getElementById('mo-erros').style.display='none';goStep(primeiraAba);};
+  } else {
+    btnIr.style.display='none';
+  }
   m.style.display='flex';
   m.onclick=e=>{if(e.target===m)m.style.display='none'};
 }
