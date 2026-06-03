@@ -312,9 +312,13 @@ select.fc{cursor:pointer}
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
   <div class="sb-nav">
-    <button class="sb-btn active" id="sb-k" onclick="setView('kanban')" title="Kanban">
+    <button class="sb-btn" id="sb-k" onclick="setView('kanban')" title="Visão Geral">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
-      <span class="sb-btn-label">Kanban</span>
+      <span class="sb-btn-label">Visão Geral</span>
+    </button>
+    <button class="sb-btn active" id="sb-mk" onclick="setView('mykanban')" title="Meu Kanban">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><line x1="16" y1="3" x2="16" y2="9"/><line x1="19" y1="6" x2="13" y2="6"/></svg>
+      <span class="sb-btn-label">Meu Kanban</span>
     </button>
     <button class="sb-btn" id="sb-l" onclick="setView('list')" title="Lista">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -345,7 +349,7 @@ select.fc{cursor:pointer}
       <button onclick="openTesteKanban()" id="btn-teste-kanban" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,.08);color:#9ca3af;border:1px solid rgba(255,255,255,.12);padding:8px 14px;border-radius:8px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">
         🧪 Teste Kanban
       </button>
-      <button class="btn-novo" onclick="openEmissao()">
+      <button class="btn-novo" id="btn-novo-pedido" onclick="openEmissao()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Pedido
       </button>
@@ -379,7 +383,8 @@ select.fc{cursor:pointer}
       <option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option><option>Brinde</option>
     </select>
     <div class="vt" style="margin-left:0">
-      <button class="vbtn active" id="vbk" onclick="setView('kanban')">Kanban</button>
+      <button class="vbtn" id="vbk" onclick="setView('kanban')">Geral</button>
+      <button class="vbtn active" id="vbmk" onclick="setView('mykanban')">Meu Kanban</button>
       <button class="vbtn" id="vbl" onclick="setView('list')">Lista</button>
     </div>
   </div>
@@ -408,12 +413,23 @@ select.fc{cursor:pointer}
     <button onclick="closeM('mo-teste')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem">✕</button>
   </div>
   <div style="padding:24px">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="fg"><label>Cliente (teste)</label><input class="fc" id="tk-cli" value="CLIENTE TESTE" placeholder="Nome do cliente"></div>
       <div class="fg"><label>JOB</label><input class="fc" id="tk-job" value="JOB TESTE" placeholder="Nome do job"></div>
     </div>
-    <div class="fg" style="margin-bottom:16px"><label>Tipo</label>
-      <select class="fc" id="tk-tipo"><option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option></select>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="fg"><label>Tipo</label>
+        <select class="fc" id="tk-tipo"><option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option></select>
+      </div>
+      <div class="fg"><label>Data final do pedido</label><input class="fc no-upper" type="date" id="tk-prazo" min=""></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="fg"><label>CEP de instalação <span style="font-size:.65rem;color:var(--ink4)">(se houver)</span></label>
+        <input class="fc no-upper" id="tk-cep-inst" placeholder="00000-000" maxlength="9" oninput="fmtCep(this)">
+      </div>
+      <div class="fg"><label>CEP de frete <span style="font-size:.65rem;color:var(--ink4)">(se houver)</span></label>
+        <input class="fc no-upper" id="tk-cep-frete" placeholder="00000-000" maxlength="9" oninput="fmtCep(this)">
+      </div>
     </div>
     <div style="font-size:.72rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Etapas que este pedido teste terá:</div>
     <div style="background:#f8fafc;border-radius:12px;padding:14px;margin-bottom:8px">
@@ -560,12 +576,22 @@ select.fc{cursor:pointer}
       </div>
       <!-- KANBAN -->
       <div class="cfg-sec" id="cfg-sec-kanban" style="display:none">
-        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Prazos das Etapas do Kanban</div>
-        <p style="font-size:.73rem;color:var(--ink4);margin-bottom:16px">Defina quantos dias úteis cada etapa tem para ser concluída. O prazo é contado a partir da data de emissão do pedido, acumulando etapa por etapa.</p>
-        <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#f1f5f9;border-radius:8px">📌 Etapas Fixas — aparecem em todos os pedidos</div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Prazos das Etapas</div>
+        <p style="font-size:.73rem;color:var(--ink4);margin-bottom:16px">Dias úteis por etapa, acumulados a partir da emissão.</p>
+        <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#f1f5f9;border-radius:8px">📌 Etapas Fixas</div>
         <div id="cfg-kanban-fixas" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px"></div>
-        <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#fef3c7;border-radius:8px">⚡ Etapas Variáveis — aparecem conforme o preenchimento do pedido</div>
-        <div id="cfg-kanban-variaveis" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+        <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#fef3c7;border-radius:8px">⚡ Etapas Variáveis</div>
+        <div id="cfg-kanban-variaveis" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:24px"></div>
+        <div style="border-top:1.5px solid var(--border);padding-top:20px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Etapas por Categoria</div>
+          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">Defina quais etapas cada área visualiza e pode movimentar no <strong>Meu Kanban</strong>.</p>
+          <div id="cfg-kanban-cats"></div>
+        </div>
+        <div style="border-top:1.5px solid var(--border);padding-top:20px;margin-top:8px">
+          <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Permissões por Categoria</div>
+          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">Marque quais categorias podem emitir novos pedidos.</p>
+          <div id="cfg-kanban-perms" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+        </div>
       </div>
       <!-- USUARIOS -->
       <div class="cfg-sec" id="cfg-sec-usuarios" style="display:none">
@@ -654,7 +680,7 @@ window._fbWatchCfg=(cb)=>onSnapshot(doc(db,'sistema','config'),snap=>{if(snap.ex
 </script>
 
 <script>
-const STAGES=['Start Comercial','Pedido','Solicitação de ART','Medição Técnica','RM','Projeto','Compras','Projeto de Instalação','Projeto de Expedição','Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Chegada de Compras','Receber Cortes Chapas Leves','Compra LM','Chegada LM','Receber Impressões Terceirizadas','Solic. Corte Chapas Pesadas','Receber Cortes Chapas Pesadas','Finalizar Produção','Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador','Finalizar Embalagem','Início do Frete','Início da Instalação','Pedido Entregue'];
+const STAGES=['Pedido','Solicitação de ART','Medição Técnica','RM','Projeto','Compras','Projeto de Instalação','Projeto de Expedição','Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Chegada de Compras','Receber Cortes Chapas Leves','Compra LM','Chegada LM','Receber Impressões Terceirizadas','Solic. Corte Chapas Pesadas','Receber Cortes Chapas Pesadas','Finalizar Produção','Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador','Finalizar Embalagem','Início do Frete','Início da Instalação','Pedido Entregue'];
 const PROD=new Set(['Projeto','Compras','Projeto de Instalação','Projeto de Expedição','Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Chegada de Compras','Receber Cortes Chapas Leves','Compra LM','Chegada LM','Receber Impressões Terceirizadas','Solic. Corte Chapas Pesadas','Receber Cortes Chapas Pesadas','Finalizar Produção','Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador','Finalizar Embalagem','Início do Frete','Início da Instalação']);
 const TC={'Venda':'tv','Garantia / Retrabalho':'tg','Amostra':'ta','Interno':'ti','Brinde':'tb2'};
 
@@ -685,20 +711,50 @@ const KANBAN_VARIAVEIS=[
   {id:'Início da Instalação',label:'Início da Instalação',cond:'inst_nossa'},
 ];
 
+const CATEGORIAS_USUARIOS=['ADMINISTRADOR','COMERCIAL','RH','FINANCEIRO','COMPRAS','PCP','PRODUÇÃO','QUALIDADE','PLANEJAMENTO','PROJETOS'];
+
 function renderCfgKanban(){
   const prazos=cfg.kanbanPrazos||{};
-  const mkItem=(etapa)=>`
-    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px">
-      <div style="flex:1;font-size:.76rem;font-weight:600;color:var(--ink2)">${etapa.label}</div>
-      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <input type="number" min="0" max="365" class="fc no-upper kanban-prazo-inp" data-etapa="${etapa.id}"
-          value="${prazos[etapa.id]||''}" placeholder="0"
-          style="width:52px;padding:5px 7px;font-size:.78rem;text-align:center">
-        <span style="font-size:.7rem;color:var(--ink4)">dias</span>
-      </div>
-    </div>`;
+  const kanbanCats=cfg.kanbanCategorias||{};
+  const mkItem=(etapa)=>'<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px">'+
+    '<div style="flex:1;font-size:.76rem;font-weight:600;color:var(--ink2)">'+etapa.label+'</div>'+
+    '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'+
+    '<input type="number" min="0" max="365" class="fc no-upper kanban-prazo-inp" data-etapa="'+etapa.id+'"'+
+    ' value="'+(prazos[etapa.id]||'')+'" placeholder="0" style="width:52px;padding:5px 7px;font-size:.78rem;text-align:center">'+
+    '<span style="font-size:.7rem;color:var(--ink4)">dias</span></div></div>';
   document.getElementById('cfg-kanban-fixas').innerHTML=KANBAN_FIXAS.map(mkItem).join('');
   document.getElementById('cfg-kanban-variaveis').innerHTML=KANBAN_VARIAVEIS.map(mkItem).join('');
+  // Renderizar tabela de categorias
+  const catsEl=document.getElementById('cfg-kanban-cats');
+  if(!catsEl)return;
+  const todasEtapas=[...KANBAN_FIXAS,...KANBAN_VARIAVEIS];
+  let html='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.72rem">';
+  html+='<thead><tr><th style="text-align:left;padding:6px 8px;background:#f1f5f9;border:1px solid #e5e7eb;font-weight:700;color:#374151;min-width:140px">Etapa</th>';
+  CATEGORIAS_USUARIOS.filter(cat=>cat!=='ADMINISTRADOR').forEach(cat=>{
+    html+='<th style="text-align:center;padding:6px 4px;background:#f1f5f9;border:1px solid #e5e7eb;font-weight:700;color:#374151;font-size:.62rem;writing-mode:vertical-lr;transform:rotate(180deg);height:80px">'+cat+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  todasEtapas.forEach((etapa,ri)=>{
+    const bg=ri%2===0?'#fff':'#f8fafc';
+    html+='<tr style="background:'+bg+'"><td style="padding:6px 8px;border:1px solid #e5e7eb;font-weight:600;color:#374151">'+etapa.label+'</td>';
+    CATEGORIAS_USUARIOS.filter(cat=>cat!=='ADMINISTRADOR').forEach(cat=>{
+      const checked=(kanbanCats[cat]||[]).includes(etapa.id)?'checked':'';
+      html+='<td style="text-align:center;border:1px solid #e5e7eb;padding:4px"><input type="checkbox" class="kcat-chk" data-cat="'+cat+'" data-etapa="'+etapa.id+'" '+checked+' style="accent-color:#e91e63;width:14px;height:14px"></td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  catsEl.innerHTML=html;
+  // Permissões
+  const permsEl=document.getElementById('cfg-kanban-perms');
+  if(permsEl){
+    const perms=cfg.kanbanPerms||{};
+    permsEl.innerHTML=CATEGORIAS_USUARIOS.filter(cat=>cat!=='ADMINISTRADOR').map(cat=>{
+      const checked=(perms[cat]&&perms[cat].includes('novo_pedido'))?'checked':'';
+      return '<label style="display:flex;align-items:center;gap:7px;font-size:.8rem;font-weight:600;color:#374151;padding:7px 12px;background:#fff;border-radius:8px;border:1px solid #e5e7eb;cursor:pointer">'+
+        '<input type="checkbox" class="kperm-chk" data-cat="'+cat+'" data-perm="novo_pedido" '+checked+' style="accent-color:#e91e63;width:14px;height:14px"> '+cat+'</label>';
+    }).join('');
+  }
 }
 
 function getEtapasPedido(pedido){
@@ -747,7 +803,7 @@ function calcPrazoEtapas(pedido){
 }
 
 let pedidos=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
-let view='kanban',sf='os',sa=true,vid=null,eid=null;
+let view='mykanban',sf='os',sa=true,vid=null,eid=null;
 let step=0,ed={},editing=null;
 
 const uid=()=>'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
@@ -806,7 +862,7 @@ async function load(){
       const remoteCfg=await window._fbLoadCfg();
       if(remoteCfg) cfg=Object.assign(cfg,remoteCfg);
       // Listener em tempo real: se alguém mudar as configs, todos atualizam automaticamente
-      window._fbWatchCfg(data=>{cfg=Object.assign(cfg,data);if(cfg.k)try{emailjs.init(cfg.k)}catch(e){}});
+      window._fbWatchCfg(data=>{cfg=Object.assign(cfg,data);if(cfg.k)try{emailjs.init(cfg.k)}catch(e){}atualizarBotaoNovoPedido();});
     }catch(e){
       // Fallback para localStorage se Firestore não responder
       const cfg2=localStorage.getItem('gcore_cfg');
@@ -853,19 +909,42 @@ function renderStats(){
   document.getElementById('s-ok').textContent=pedidos.filter(p=>p.etapa==='Pedido Entregue').length;
 }
 
+function getEtapasParaView(){
+  if(view==='mykanban'){
+    const cat=usuarioLogado?.categoria||'';
+    const catStages=cfg.kanbanCategorias&&cfg.kanbanCategorias[cat];
+    if(catStages&&catStages.length)return STAGES.filter(s=>catStages.includes(s));
+  }
+  return STAGES;
+}
+
 function renderKanban(){
   const f=filt(),board=document.getElementById('kb');
   board.innerHTML='';
-  STAGES.forEach(st=>{
+  const etapas=getEtapasParaView();
+  const isMeu=view==='mykanban';
+  // Banner informativo
+  const wrap=document.getElementById('kw-wrap');
+  let banner=document.getElementById('kb-banner');
+  if(!banner){banner=document.createElement('div');banner.id='kb-banner';banner.style.cssText='padding:8px 28px 0;font-size:.73rem;font-weight:600';wrap.prepend(banner);}
+  if(isMeu){
+    const cat=usuarioLogado?.categoria||'SEM CATEGORIA';
+    banner.innerHTML='<span style="color:#e91e63">📋 Meu Kanban · '+cat+'</span> <span style="color:#6b7280;font-weight:400">— Você pode mover cards entre as etapas do seu setor</span>';
+    banner.style.display='block';
+  } else {
+    banner.innerHTML='<span style="color:#6b7280">👁 Visão Geral · somente leitura</span>';
+    banner.style.display='block';
+  }
+  etapas.forEach(st=>{
     const cards=f.filter(p=>p.etapa===st);
     const col=document.createElement('div');col.className='kcol';
-    col.innerHTML=`<div class="khdr"><span class="khdr-name">${st}</span><span class="khdr-cnt${cards.length?' has':''}">${cards.length}</span></div>
-    <div class="kbody">${cards.length?cards.map(cardH).join(''):'<div class="kempty">Vazio</div>'}</div>`;
+    col.innerHTML='<div class="khdr"><span class="khdr-name">'+st+'</span><span class="khdr-cnt'+(cards.length?' has':'')+'">'+cards.length+'</span></div>'+
+    '<div class="kbody">'+(cards.length?cards.map(p=>cardH(p,isMeu)).join(''):'<div class="kempty">Vazio</div>')+'</div>';
     board.appendChild(col);
   });
 }
 
-function cardH(p){
+function cardH(p,canMove){
   const tc=TC[p.tipo]||'tv';
   const prazoEtapa=p.prazosKanban&&p.prazosKanban[p.etapa]?p.prazosKanban[p.etapa]:null;
   let prazoEtapaHtml='';
@@ -877,12 +956,14 @@ function cardH(p){
     const txt=diff<0?`${Math.abs(diff)}d atrasado`:diff===0?'Vence hoje':`${diff}d restantes`;
     prazoEtapaHtml=`<div style="font-size:.65rem;font-weight:700;color:${cor};margin-top:3px">⏱ ${txt} · ${fmtD(prazoEtapa)}</div>`;
   }
+  const moveBtn=canMove?`<button onclick="event.stopPropagation();avancarEtapa('${p.id}')" style="margin-top:6px;width:100%;padding:4px 8px;background:#e91e63;color:#fff;border:none;border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer">Avançar etapa →</button>`:'';
   return `<div class="kcard" onclick="viewP('${p.id}')">
     <div class="kc-top"><span class="kc-num">#${p.os||'—'}</span><span class="kc-tipo ${tc}">${p.tipo}</span></div>
     <div class="kc-cli">${p.cliente}</div>
     ${p.job?`<div class="kc-job"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> JOB ${p.job}</div>`:''}
     ${prazoEtapaHtml}
     ${p.prazo?`<div class="kc-prazo">&#128197; Entrega: ${fmtD(p.prazo)}</div>`:''}
+    ${moveBtn}
   </div>`;
 }
 
@@ -898,14 +979,17 @@ function renderList(){
 }
 function srt(f){if(sf===f)sa=!sa;else{sf=f;sa=true}renderList()}
 
-function renderAll(){renderStats();view==='kanban'?renderKanban():renderList()}
+function renderAll(){renderStats();(view==='kanban'||view==='mykanban')?renderKanban():renderList()}
 function setView(v){
   view=v;
-  document.getElementById('kw-wrap').style.display=v==='kanban'?'':'none';
+  const isKanban=v==='kanban'||v==='mykanban';
+  document.getElementById('kw-wrap').style.display=isKanban?'':'none';
   document.getElementById('lv').style.display=v==='list'?'block':'none';
   document.getElementById('vbk').classList.toggle('active',v==='kanban');
+  const vbmk=document.getElementById('vbmk');if(vbmk)vbmk.classList.toggle('active',v==='mykanban');
   document.getElementById('vbl').classList.toggle('active',v==='list');
   document.getElementById('sb-k').classList.toggle('active',v==='kanban');
+  const sbmk=document.getElementById('sb-mk');if(sbmk)sbmk.classList.toggle('active',v==='mykanban');
   document.getElementById('sb-l').classList.toggle('active',v==='list');
   renderAll();
 }
@@ -913,6 +997,8 @@ function setView(v){
 function buildFiltro(){const s=document.getElementById('f-etapa');STAGES.forEach(st=>{const o=document.createElement('option');o.value=st;o.textContent=st;s.appendChild(o)})}
 
 function openTesteKanban(){
+  const prazoEl=document.getElementById('tk-prazo');
+  if(prazoEl)prazoEl.min=new Date().toISOString().slice(0,10);
   const fixasEl=document.getElementById('tk-fixas');
   const varEl=document.getElementById('tk-variaveis');
   if(fixasEl)fixasEl.innerHTML=KANBAN_FIXAS.map(e=>
@@ -928,21 +1014,46 @@ async function criarPedidoTeste(){
   const cli=document.getElementById('tk-cli')?.value?.trim()||'CLIENTE TESTE';
   const job=document.getElementById('tk-job')?.value?.trim()||'JOB TESTE';
   const tipo=document.getElementById('tk-tipo')?.value||'Venda';
+  const prazo=document.getElementById('tk-prazo')?.value||'';
+  const cepInst=(document.getElementById('tk-cep-inst')?.value||'').replace(/\D/g,'');
+  const cepFrete=(document.getElementById('tk-cep-frete')?.value||'').replace(/\D/g,'');
   const varsSelec=[...document.querySelectorAll('.tk-var-chk:checked')].map(i=>i.value);
   const etapasFixas=KANBAN_FIXAS.map(e=>e.id);
   const todasEtapas=STAGES.filter(s=>etapasFixas.includes(s)||varsSelec.includes(s));
   const prazos=cfg.kanbanPrazos||{};
   const hoje=new Date();hoje.setHours(0,0,0,0);
   function addDU(d,dias){let r=new Date(d);let a=0;while(a<dias){r.setDate(r.getDate()+1);const dw=r.getDay();if(dw!==0&&dw!==6)a++;}return r;}
+  // Calcular prazo de entrega via tabela de frete se tiver CEP
+  let diasFrete=0;
+  const cepRef=cepFrete||cepInst;
+  if(cepRef.length===8){
+    try{
+      const res=await fetch('https://viacep.com.br/ws/'+cepRef+'/json/');
+      const data=await res.json();
+      if(data&&data.uf){
+        const tabela=getFreteTable();
+        diasFrete=tabela[data.uf.toUpperCase()]||0;
+      }
+    }catch(e){}
+  }
   const rp={};let acum=new Date(hoje);
-  todasEtapas.forEach(etapa=>{const dias=parseInt(prazos[etapa])||0;if(dias>0)acum=addDU(acum,dias);rp[etapa]=acum.toISOString().slice(0,10);});
-  const p={id:'teste_'+Date.now(),os:'T'+Math.floor(Math.random()*9000+1000),tipo,cliente:'[TESTE] '+cli,job,
-    responsavel:usuarioLogado?.nomeExibicao||'TESTE',etapa:'Pedido',prazo:'',obs:'',emails:[],
-    valores:{},pagamento:{},instalacao:{},frete:{},bases:'',elevacoes:[],remocoes:[],projetos:{},
+  todasEtapas.forEach(etapa=>{
+    let dias=parseInt(prazos[etapa])||0;
+    // Para "Início do Frete" e "Início da Instalação", adicionar dias de frete
+    if((etapa==='Início do Frete'||etapa==='Início da Instalação')&&diasFrete>0)dias+=diasFrete;
+    if(dias>0)acum=addDU(acum,dias);
+    rp[etapa]=acum.toISOString().slice(0,10);
+  });
+  const instObj=cepInst?{cep:cepInst.replace(/(\d{5})(\d{3})/,'$1-$2')}:{};
+  const freteObj=cepFrete?{cep:cepFrete.replace(/(\d{5})(\d{3})/,'$1-$2')}:{};
+  const p={id:'teste_'+Date.now(),os:'T'+Math.floor(Math.random()*9000+1000),tipo,
+    cliente:'[TESTE] '+cli,job,prazo,
+    responsavel:usuarioLogado?.nomeExibicao||'TESTE',etapa:'Pedido',obs:'',emails:[],
+    valores:{},pagamento:{},instalacao:instObj,frete:freteObj,bases:'',elevacoes:[],remocoes:[],projetos:{},
     _teste:true,etapasKanban:todasEtapas,prazosKanban:rp};
   await savePedidoFS(p);
   closeM('mo-teste');
-  toast('Pedido de teste criado! ✅ Aparece no Kanban em [TESTE] '+cli,'tok');
+  toast('Pedido de teste criado! ✅','tok');
 }
 
 function atualizarBotaoTeste(){
@@ -953,6 +1064,19 @@ function atualizarBotaoTeste(){
     const isAdm=cat==='ADMINISTRADOR'||ADMINS.includes(email);
     const btn=document.getElementById('btn-teste-kanban');
     if(btn)btn.style.display=isAdm?'flex':'none';
+  }catch(e){}
+}
+
+function atualizarBotaoNovoPedido(){
+  try{
+    const email=(usuarioLogado?.email||'').toLowerCase();
+    const ADMINS=['guilherme.clabonde@granda.ind.br','gviniciusclabonde@gmail.com'];
+    const cat=usuarioLogado?.categoria||(cfg.usuarioCats&&cfg.usuarioCats[email])||'';
+    const isAdm=cat==='ADMINISTRADOR'||ADMINS.includes(email);
+    const perms=cfg.kanbanPerms||{};
+    const temPerm=isAdm||(perms[cat]&&perms[cat].includes('novo_pedido'));
+    const btn=document.getElementById('btn-novo-pedido');
+    if(btn)btn.style.display=temPerm?'flex':'none';
   }catch(e){}
 }
 
@@ -1024,6 +1148,18 @@ function openMv(){
 }
 async function mvTo(s){const p=pedidos.find(x=>x.id===vid);if(p){p.etapa=s;await savePedidoFS(p);toast('Movido para: '+s,'tinf')}closeM('mo-mv');closeM('mo-vp')}
 
+async function avancarEtapa(id){
+  const p=pedidos.find(x=>x.id===id);
+  if(!p)return;
+  const etapas=getEtapasParaView();
+  const idx=etapas.indexOf(p.etapa);
+  if(idx===-1||idx>=etapas.length-1){toast('Já está na última etapa do seu kanban','tinf');return;}
+  const prox=etapas[idx+1];
+  p.etapa=prox;
+  await savePedidoFS(p);
+  toast('Avançado para: '+prox,'tok');
+}
+
 // EMISSÃO
 const resps=()=>cfg.r.split('\n').map(r=>r.trim()).filter(Boolean);
 function getTabs(){
@@ -1060,7 +1196,7 @@ function openEmissao(eid2){
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:'',arq_chumb:'',os_chumb:'',
       facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
-    ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],job:'',prazo:'',os:'',obs:'',etapa:'Start Comercial',
+    ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],job:'',prazo:'',os:'',obs:'',etapa:'Pedido',
       vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',
       elevacoes:'',elevs:[],velev:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
@@ -2079,7 +2215,7 @@ async function submit(){
   if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
   const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,responsavel:ed.resp,
-    cliente:ed.cli,emails:ed.emails||[],job:ed.job,prazo:ed.prazo,etapa:ed.etapa||'Start Comercial',
+    cliente:ed.cli,emails:ed.emails||[],job:ed.job,prazo:ed.prazo,etapa:ed.etapa||'Pedido',
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
     elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
@@ -2260,6 +2396,26 @@ function saveCfg(){
   // Save kanban prazos
   const kInps=document.querySelectorAll('.kanban-prazo-inp');
   if(kInps.length){const kp={};kInps.forEach(i=>{if(i.value)kp[i.dataset.etapa]=parseInt(i.value);});cfg.kanbanPrazos=kp;}
+  // Salvar etapas por categoria
+  const kCatChks=document.querySelectorAll('.kcat-chk');
+  if(kCatChks.length){
+    const kc={};
+    kCatChks.forEach(chk=>{
+      if(!kc[chk.dataset.cat])kc[chk.dataset.cat]=[];
+      if(chk.checked)kc[chk.dataset.cat].push(chk.dataset.etapa);
+    });
+    cfg.kanbanCategorias=kc;
+  }
+  // Salvar permissões por categoria
+  const kPermChks=document.querySelectorAll('.kperm-chk');
+  if(kPermChks.length){
+    const kp={};
+    kPermChks.forEach(chk=>{
+      if(!kp[chk.dataset.cat])kp[chk.dataset.cat]=[];
+      if(chk.checked)kp[chk.dataset.cat].push(chk.dataset.perm);
+    });
+    cfg.kanbanPerms=kp;
+  }
   // Save mapa email->nome
   const nomesEl2=document.getElementById('cfg-user-nomes');
   if(nomesEl2&&nomesEl2.value.trim()){
@@ -2410,7 +2566,7 @@ function openSettings(){
   const isAdmin=catAtual==='ADMINISTRADOR'||ADMIN_EMAILS.includes(emailAtual);
   if(isAdmin&&usuarioLogado)usuarioLogado.categoria='ADMINISTRADOR';
   document.querySelectorAll('.admin-only').forEach(el=>el.style.display=isAdmin?'':'none');
-  atualizarBotaoTeste();
+  atualizarBotaoTeste();atualizarBotaoNovoPedido();
   const avatarEl=document.getElementById('cfg-conta-avatar');
   const nomeEl=document.getElementById('cfg-conta-nome');
   const emailEl=document.getElementById('cfg-conta-email');
@@ -2581,7 +2737,7 @@ function initAuth(tries){
           usuarioLogado.nomeExibicao=nome;
           usuarioLogado.categoria=catMap[user.email.toLowerCase()]||catMap[user.email]||'';
           // Mostra/esconde botão teste baseado na categoria
-          atualizarBotaoTeste();
+          atualizarBotaoTeste();atualizarBotaoNovoPedido();
         }).catch(()=>{
           usuarioLogado.nomeExibicao=user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
         });
