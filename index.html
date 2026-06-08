@@ -49,7 +49,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .main{margin-left:64px;background:#f4f6f8;min-height:100vh;flex:1;display:flex;flex-direction:column;min-height:100vh}
 
 /* ── HEADER ── */
-.hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;flex-shrink:0}
+.hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;flex-shrink:0;position:sticky;top:0;z-index:40}
 .hdr-l{display:flex;align-items:center;gap:14px}
 .hdr-divider{width:1px;height:28px;background:rgba(255,255,255,.15)}
 .hdr-l h2{font-size:1rem;font-weight:700;color:#fff;letter-spacing:-.2px}
@@ -60,19 +60,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .btn-novo:active{transform:none}
 
 /* ── STATS ── */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:20px 28px 4px}
-.stat{background:#fff;border-radius:var(--radius-lg);padding:18px 20px;display:flex;align-items:center;gap:14px;border:1px solid #e5e7eb;border-left:4px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:box-shadow .2s,transform .2s}
-.stat:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
-.stat:nth-child(1){border-left-color:#00bac7}
-.stat:nth-child(2){border-left-color:#1565c0}
-.stat:nth-child(3){border-left-color:#e65100}
-.stat:nth-child(4){border-left-color:#2e7d32}
-.stat-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.stat-ic.c1{background:#e0f9fb} .stat-ic.c2{background:#dbeafe}
-.stat-ic.c3{background:#fff3e0} .stat-ic.c4{background:#dcfce7}
-.stat-ic svg{width:20px;height:20px}
-.stat-n{font-size:1.9rem;font-weight:800;color:#111827;line-height:1;letter-spacing:-.5px}
-.stat-l{font-size:.67rem;color:#6b7280;margin-top:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.hdr-stat{display:flex;flex-direction:column;align-items:center;min-width:44px}
+.hdr-stat-n{font-size:1.1rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-.5px}
+.hdr-stat-l{font-size:.55rem;color:#9ca3af;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.hdr-stat-div{width:1px;height:28px;background:rgba(255,255,255,.12);margin:0 4px}
 
 /* ── TOOLBAR ── */
 .toolbar{padding:16px 28px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -311,19 +302,14 @@ select.fc{cursor:pointer}
   <button class="sb-toggle" onclick="toggleSidebar()" title="Expandir menu">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
-  <div class="sb-nav">
-    <button class="sb-btn" id="sb-k" onclick="setView('kanban')" title="Visão Geral">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
-      <span class="sb-btn-label">Visão Geral</span>
+  <div class="sb-nav" id="sb-nav">
+    <!-- GERAL -->
+    <button class="sb-btn active" id="sb-geral" onclick="setSection('geral')" title="Geral">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="sb-btn-label">Geral</span>
     </button>
-    <button class="sb-btn active" id="sb-mk" onclick="setView('mykanban')" title="Meu Kanban">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><line x1="16" y1="3" x2="16" y2="9"/><line x1="19" y1="6" x2="13" y2="6"/></svg>
-      <span class="sb-btn-label">Meu Kanban</span>
-    </button>
-    <button class="sb-btn" id="sb-l" onclick="setView('list')" title="Lista">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-      <span class="sb-btn-label">Lista</span>
-    </button>
+    <!-- Categorias geradas dinamicamente -->
+    <div id="sb-cats"></div>
   </div>
   <div class="sb-bottom">
     <button class="sb-btn" onclick="openSettings()" title="Configurações">
@@ -339,40 +325,24 @@ select.fc{cursor:pointer}
 
 <!-- MAIN -->
 <div class="main">
+<div id="sec-geral">
   <div class="hdr">
     <div class="hdr-l">
       <img src="logo_granda_branca.png" style="height:32px;object-fit:contain;flex-shrink:0">
       <div class="hdr-divider"></div>
       <div><h2>Painel de Pedidos</h2><p>Acompanhe todos os pedidos e etapas em tempo real</p></div>
+      <div class="hdr-divider"></div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="hdr-stat"><span class="hdr-stat-n" id="s-tot">0</span><span class="hdr-stat-l">Total</span></div>
+        <div class="hdr-stat-div"></div>
+        <div class="hdr-stat"><span class="hdr-stat-n" style="color:#60a5fa" id="s-atv">0</span><span class="hdr-stat-l">Ativos</span></div>
+        <div class="hdr-stat-div"></div>
+        <div class="hdr-stat"><span class="hdr-stat-n" style="color:#fb923c" id="s-prd">0</span><span class="hdr-stat-l">Produção</span></div>
+        <div class="hdr-stat-div"></div>
+        <div class="hdr-stat"><span class="hdr-stat-n" style="color:#4ade80" id="s-ok">0</span><span class="hdr-stat-l">Entregues</span></div>
+      </div>
     </div>
-    <div class="hdr-r">
-      <button onclick="openTesteKanban()" id="btn-teste-kanban" style="display:none;align-items:center;gap:6px;background:rgba(255,255,255,.08);color:#9ca3af;border:1px solid rgba(255,255,255,.12);padding:8px 14px;border-radius:8px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.14)'" onmouseout="this.style.background='rgba(255,255,255,.08)'">
-        🧪 Teste Kanban
-      </button>
-      <button class="btn-novo" id="btn-novo-pedido" onclick="openEmissao()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Novo Pedido
-      </button>
-    </div>
-  </div>
-
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-ic c1"><svg viewBox="0 0 24 24" fill="none" stroke="#00bac7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-      <div><div class="stat-n" id="s-tot">0</div><div class="stat-l">Total Pedidos</div></div>
-    </div>
-    <div class="stat">
-      <div class="stat-ic c2"><svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-      <div><div class="stat-n" id="s-atv">0</div><div class="stat-l">Cards Ativos</div></div>
-    </div>
-    <div class="stat">
-      <div class="stat-ic c3"><svg viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
-      <div><div class="stat-n" id="s-prd">0</div><div class="stat-l">Em Produção</div></div>
-    </div>
-    <div class="stat">
-      <div class="stat-ic c4"><svg viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <div><div class="stat-n" id="s-ok">0</div><div class="stat-l">Entregues</div></div>
-    </div>
+    <div class="hdr-r"></div>
   </div>
 
   <div class="toolbar">
@@ -382,6 +352,7 @@ select.fc{cursor:pointer}
       <option value="">Todos os tipos</option>
       <option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option><option>Brinde</option>
     </select>
+    <select id="f-cat" onchange="renderAll()"><option value="">Todas as categorias</option></select>
     <div class="vt" style="margin-left:0">
       <button class="vbtn" id="vbk" onclick="setView('kanban')">Geral</button>
       <button class="vbtn active" id="vbmk" onclick="setView('mykanban')">Meu Kanban</button>
@@ -423,11 +394,14 @@ select.fc{cursor:pointer}
       </div>
       <div class="fg"><label>Data final do pedido</label><input class="fc no-upper" type="date" id="tk-prazo" min=""></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div class="fg"><label>CEP de instalação <span style="font-size:.65rem;color:var(--ink4)">(se houver)</span></label>
-        <input class="fc no-upper" id="tk-cep-inst" placeholder="00000-000" maxlength="9" oninput="fmtCep(this)">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="fg"><label>Dias de instalação</label>
+        <input class="fc" type="number" id="tk-dias-inst" placeholder="Ex: 2" min="0" style="text-align:center">
       </div>
-      <div class="fg"><label>CEP de frete <span style="font-size:.65rem;color:var(--ink4)">(se houver)</span></label>
+      <div class="fg"><label>Modalidade do Frete</label>
+        <select class="fc" id="tk-fmod"><option value="Fracionado">Fracionado (tabela UF)</option><option value="Dedicado">Dedicado (km / 800)</option></select>
+      </div>
+      <div class="fg"><label>CEP de entrega <span style="font-size:.65rem;color:var(--ink4)">(UF ou distância)</span></label>
         <input class="fc no-upper" id="tk-cep-frete" placeholder="00000-000" maxlength="9" oninput="fmtCep(this)">
       </div>
     </div>
@@ -441,11 +415,44 @@ select.fc{cursor:pointer}
       <div id="tk-variaveis" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
     </div>
     <button onclick="criarPedidoTeste()" style="width:100%;padding:12px;background:#e91e63;color:#fff;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit">
-      🚀 Criar Pedido de Teste no Kanban
+      🚀 Criar Cards de Teste em Todas as Etapas
     </button>
-    <p style="font-size:.7rem;color:#9ca3af;text-align:center;margin-top:8px">O pedido de teste será marcado com ⚙️ TESTE e pode ser excluído normalmente depois.</p>
+    <button onclick="limparTestes()" style="width:100%;padding:10px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px">
+      🗑 Limpar Todos os Testes
+    </button>
+    <p style="font-size:.7rem;color:#9ca3af;text-align:center;margin-top:8px">Cada etapa receberá 1 card de teste. Use "Limpar" para remover todos de uma vez.</p>
   </div>
 </div>
+</div>
+
+</div><!-- /sec-geral -->
+<div id="sec-cat" style="display:none;padding:28px;flex:1">
+  <!-- COMERCIAL -->
+  <div id="sec-cat-COMERCIAL" style="display:none">
+    <div style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:20px">💼 Comercial</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px">
+      <button class="btn-novo" id="btn-novo-pedido" onclick="openEmissao()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Pedido
+      </button>
+      <button onclick="openTesteKanban()" id="btn-teste-kanban" style="display:none;align-items:center;gap:6px;background:#f1f5f9;color:#374151;border:1.5px solid #e5e7eb;padding:9px 18px;border-radius:10px;font-size:.83rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s">
+        🧪 Teste Kanban
+      </button>
+    </div>
+    <div id="sec-cat-COMERCIAL-content" style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
+      <div style="font-size:2rem;margin-bottom:12px">🚧</div>
+      <div style="font-size:.9rem;font-weight:600">Mais funcionalidades em breve</div>
+    </div>
+  </div>
+  <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
+  <div id="sec-cat-generic">
+    <div id="sec-cat-title" style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:20px"></div>
+    <div style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
+      <div style="font-size:2rem;margin-bottom:12px">🚧</div>
+      <div style="font-size:.9rem;font-weight:600">Área reservada para esta categoria</div>
+      <div style="font-size:.78rem;margin-top:6px">Funcionalidades específicas serão adicionadas aqui.</div>
+    </div>
+  </div>
 </div>
 
 <!-- EMISSÃO MODAL -->
@@ -576,8 +583,9 @@ select.fc{cursor:pointer}
       </div>
       <!-- KANBAN -->
       <div class="cfg-sec" id="cfg-sec-kanban" style="display:none">
-        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Prazos das Etapas</div>
-        <p style="font-size:.73rem;color:var(--ink4);margin-bottom:16px">Dias úteis por etapa, acumulados a partir da emissão.</p>
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Prazos das Etapas Kanban</div>
+        <p style="font-size:.73rem;color:var(--ink4);margin-bottom:4px">Configure quantos dias cada etapa tem a partir de sua âncora base. Os valores abaixo são os padrões da planilha.</p>
+        <div style="font-size:.7rem;color:var(--ink3);background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:16px;line-height:1.7">📅 <b>+N dias após emissão</b> — etapas iniciais &nbsp;|&nbsp; 🔨 <b>-N dias antes instalação</b> — contratuais &nbsp;|&nbsp; 🚚 <b>-N dias antes frete</b> — produção/embalagem</div>
         <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#f1f5f9;border-radius:8px">📌 Etapas Fixas</div>
         <div id="cfg-kanban-fixas" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px"></div>
         <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:6px 10px;background:#fef3c7;border-radius:8px">⚡ Etapas Variáveis</div>
@@ -703,6 +711,7 @@ const KANBAN_VARIAVEIS=[
   {id:'Projeto de Instalação',label:'Projeto de Instalação',cond:'inst_nossa'},
   {id:'Projeto de Expedição',label:'Projeto de Expedição',cond:'tem_frete'},
   {id:'Confirmar Data de Instalação',label:'Confirmar Data de Instalação',cond:'inst_nossa'},
+  {id:'Contratar Instalador',label:'Contratar Instalador',cond:'inst_nossa'},
   {id:'Contratar Frete',label:'Contratar Frete',cond:'frete_nossa'},
   {id:'Contratar Elevações',label:'Contratar Elevações',cond:'elevacoes'},
   {id:'RAO com Instalador',label:'RAO com Instalador',cond:'inst_nossa'},
@@ -711,17 +720,54 @@ const KANBAN_VARIAVEIS=[
   {id:'Início da Instalação',label:'Início da Instalação',cond:'inst_nossa'},
 ];
 
-const CATEGORIAS_USUARIOS=['ADMINISTRADOR','COMERCIAL','RH','FINANCEIRO','COMPRAS','PCP','PRODUÇÃO','QUALIDADE','PLANEJAMENTO','PROJETOS'];
+// Defaults da planilha — sobrescrevíveis via cfg.kanbanPrazos
+const KANBAN_PRAZOS_DEFAULT={
+  'Pedido':5,'Solicitação de ART':5,'Medição Técnica':7,'RM':10,'Projeto':10,
+  'Projeto de Instalação':10,'Projeto de Expedição':10,'Lista de Material':10,
+  'Solic. Corte Chapas Leves':15,'Solic. Impressões Terceirizadas':15,'Solic. Corte Chapas Pesadas':15,
+  'Compras':15,'Compra LM':15,
+  'Chegada de Compras':25,'Receber Cortes Chapas Leves':25,'Chegada LM':25,
+  'Receber Impressões Terceirizadas':25,'Receber Cortes Chapas Pesadas':25,
+  'Confirmar Data de Instalação':10,'Contratar Instalador':10,'Contratar Frete':10,
+  'Contratar Elevações':10,'RAO com Instalador':5,
+  'Finalizar Produção':4,'Finalizar Embalagem':1,
+};
+const KANBAN_BASE={
+  'Pedido':'emissao','Solicitação de ART':'emissao','Medição Técnica':'emissao','RM':'emissao',
+  'Projeto':'emissao','Projeto de Instalação':'emissao','Projeto de Expedição':'emissao','Lista de Material':'emissao',
+  'Solic. Corte Chapas Leves':'emissao','Solic. Impressões Terceirizadas':'emissao','Solic. Corte Chapas Pesadas':'emissao',
+  'Compras':'emissao','Compra LM':'emissao',
+  'Chegada de Compras':'emissao','Receber Cortes Chapas Leves':'emissao','Chegada LM':'emissao',
+  'Receber Impressões Terceirizadas':'emissao','Receber Cortes Chapas Pesadas':'emissao',
+  'Confirmar Data de Instalação':'inicioInst','Contratar Instalador':'inicioInst',
+  'Contratar Frete':'inicioInst','Contratar Elevações':'inicioInst','RAO com Instalador':'inicioInst',
+  'Finalizar Produção':'inicioFrete','Finalizar Embalagem':'inicioFrete',
+  'Início do Frete':'calc_frete','Início da Instalação':'calc_inst','Pedido Entregue':'prazo',
+};
+const KANBAN_BASE_LABEL={'emissao':'📅 +N dias após emissão','inicioInst':'🔨 -N dias antes instalação','inicioFrete':'🚚 -N dias antes frete','calc_frete':'= instalação − frete (variável)','calc_inst':'= entrega − dias instalação (variável)','prazo':'🏁 = data de entrega'};
+
+const CATEGORIAS_USUARIOS=['ADMINISTRADOR','COMERCIAL','PROJETOS','COMPRAS','PRODUÇÃO','PCP','QUALIDADE','PLANEJAMENTO','RH','FINANCEIRO'];
 
 function renderCfgKanban(){
   const prazos=cfg.kanbanPrazos||{};
   const kanbanCats=cfg.kanbanCategorias||{};
-  const mkItem=(etapa)=>'<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px">'+
-    '<div style="flex:1;font-size:.76rem;font-weight:600;color:var(--ink2)">'+etapa.label+'</div>'+
-    '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'+
-    '<input type="number" min="0" max="365" class="fc no-upper kanban-prazo-inp" data-etapa="'+etapa.id+'"'+
-    ' value="'+(prazos[etapa.id]||'')+'" placeholder="0" style="width:52px;padding:5px 7px;font-size:.78rem;text-align:center">'+
-    '<span style="font-size:.7rem;color:var(--ink4)">dias</span></div></div>';
+  const mkItem=(etapa)=>{
+    const base=KANBAN_BASE[etapa.id]||'emissao';
+    const baseLabel=KANBAN_BASE_LABEL[base]||'';
+    const def=KANBAN_PRAZOS_DEFAULT[etapa.id]??'';
+    const val=(etapa.id in prazos)?prazos[etapa.id]:def;
+    const isFixed=(base==='calc_frete'||base==='calc_inst'||base==='prazo');
+    return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 10px">'+
+      '<div style="flex:1">'+
+        '<div style="font-size:.76rem;font-weight:600;color:var(--ink2)">'+etapa.label+'</div>'+
+        '<div style="font-size:.6rem;color:var(--ink4);margin-top:1px">'+baseLabel+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">'+
+      (isFixed
+        ? '<span style="font-size:.7rem;color:var(--ink4);font-style:italic">automático</span>'
+        : '<input type="number" min="0" max="365" class="fc no-upper kanban-prazo-inp" data-etapa="'+etapa.id+'" value="'+val+'" placeholder="'+def+'" style="width:52px;padding:5px 7px;font-size:.78rem;text-align:center"><span style="font-size:.7rem;color:var(--ink4)">dias</span>'
+      )+'</div></div>';
+  };
   document.getElementById('cfg-kanban-fixas').innerHTML=KANBAN_FIXAS.map(mkItem).join('');
   document.getElementById('cfg-kanban-variaveis').innerHTML=KANBAN_VARIAVEIS.map(mkItem).join('');
   // Renderizar tabela de categorias
@@ -783,22 +829,35 @@ function getEtapasPedido(pedido){
 }
 
 function calcPrazoEtapas(pedido){
-  // Calcula a data prazo de cada etapa acumulando dias úteis
-  const prazos=cfg.kanbanPrazos||{};
-  const etapas=getEtapasPedido(pedido);
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  function addDiasUteis(d,dias){
-    let r=new Date(d);let added=0;
-    while(added<dias){r.setDate(r.getDate()+1);const dw=r.getDay();if(dw!==0&&dw!==6)added++;}
-    return r;
-  }
-  const result={};
-  let acum=new Date(hoje);
-  etapas.forEach(etapa=>{
-    const dias=parseInt(prazos[etapa])||0;
-    if(dias>0)acum=addDiasUteis(acum,dias);
-    result[etapa]=acum.toISOString().slice(0,10);
-  });
+  let em=pedido.emissaoEm;
+  if(!em&&pedido.id){const ts=parseInt(String(pedido.id).replace('p_','').split('_')[0]);if(!isNaN(ts))em=new Date(ts).toISOString().slice(0,10);}
+  const prazo=pedido.prazo;
+  function _pd(str){if(!str)return 0;const n=parseInt(String(str).replace(/[^0-9]/g,''));return isNaN(n)?0:n;}
+  function _ad(ds,dias){if(!ds)return null;const d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+dias);return d.toISOString().slice(0,10);}
+  const diasInst=_pd((pedido.instalacao||{})['Estimativa']||(pedido.instalacao||{})['Estimativa de Instalação']);
+  const diasFrete=_pd((pedido.frete||{})['Prazo Estimado de Entrega']);
+  const inicioInst=prazo?(diasInst>0?_ad(prazo,-diasInst):prazo):null;
+  const inicioFrete=inicioInst?_ad(inicioInst,-(diasFrete||1)):null;
+  // Dias configuráveis: cfg.kanbanPrazos sobrescreve KANBAN_PRAZOS_DEFAULT
+  const ov=cfg.kanbanPrazos||{};
+  function gd(e){return(e in ov)?ov[e]:(KANBAN_PRAZOS_DEFAULT[e]??0);}
+  const map={};
+  // Grupo A: da emissão (+N dias)
+  ['Pedido','Solicitação de ART','Medição Técnica','RM','Projeto','Projeto de Instalação','Projeto de Expedição',
+   'Lista de Material','Solic. Corte Chapas Leves','Solic. Impressões Terceirizadas','Solic. Corte Chapas Pesadas',
+   'Compras','Compra LM','Chegada de Compras','Receber Cortes Chapas Leves','Chegada LM',
+   'Receber Impressões Terceirizadas','Receber Cortes Chapas Pesadas'].forEach(e=>map[e]=_ad(em,gd(e)));
+  // Grupo B: antes da instalação (-N dias)
+  ['Confirmar Data de Instalação','Contratar Instalador','Contratar Frete','Contratar Elevações','RAO com Instalador']
+    .forEach(e=>map[e]=inicioInst?_ad(inicioInst,-gd(e)):null);
+  // Grupo C: antes do frete (-N dias)
+  ['Finalizar Produção','Finalizar Embalagem'].forEach(e=>map[e]=inicioFrete?_ad(inicioFrete,-gd(e)):null);
+  // Calculados
+  map['Início do Frete']=inicioFrete;
+  map['Início da Instalação']=inicioInst;
+  map['Pedido Entregue']=prazo;
+  const etapas=pedido.etapasKanban||getEtapasPedido(pedido);
+  const result={};etapas.forEach(e=>{if(map[e])result[e]=map[e];});
   return result;
 }
 
@@ -915,6 +974,12 @@ function getEtapasParaView(){
     const catStages=cfg.kanbanCategorias&&cfg.kanbanCategorias[cat];
     if(catStages&&catStages.length)return STAGES.filter(s=>catStages.includes(s));
   }
+  if(view==='kanban'){
+    const catFiltro=document.getElementById('f-cat')?.value||'';
+    if(catFiltro&&cfg.kanbanCategorias&&cfg.kanbanCategorias[catFiltro]){
+      return STAGES.filter(s=>cfg.kanbanCategorias[catFiltro].includes(s));
+    }
+  }
   return STAGES;
 }
 
@@ -932,7 +997,10 @@ function renderKanban(){
     banner.innerHTML='<span style="color:#e91e63">📋 Meu Kanban · '+cat+'</span> <span style="color:#6b7280;font-weight:400">— Você pode mover cards entre as etapas do seu setor</span>';
     banner.style.display='block';
   } else {
-    banner.innerHTML='<span style="color:#6b7280">👁 Visão Geral · somente leitura</span>';
+    const catFiltro=document.getElementById('f-cat')?.value||'';
+    banner.innerHTML=catFiltro
+      ?'<span style="color:#e91e63">👁 Visão Geral · '+catFiltro+'</span> <span style="color:#6b7280;font-weight:400">— somente leitura</span>'
+      :'<span style="color:#6b7280">👁 Visão Geral · todas as categorias · somente leitura</span>';
     banner.style.display='block';
   }
   etapas.forEach(st=>{
@@ -953,16 +1021,26 @@ function cardH(p,canMove){
     const dp=new Date(prazoEtapa+'T00:00:00');
     const diff=Math.round((dp-hoje)/(1000*60*60*24));
     const cor=diff<0?'#dc2626':diff<=2?'#d97706':'#16a34a';
-    const txt=diff<0?`${Math.abs(diff)}d atrasado`:diff===0?'Vence hoje':`${diff}d restantes`;
-    prazoEtapaHtml=`<div style="font-size:.65rem;font-weight:700;color:${cor};margin-top:3px">⏱ ${txt} · ${fmtD(prazoEtapa)}</div>`;
+    const badge=diff<0?` <span style="font-size:.6rem;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;font-weight:700">${Math.abs(diff)}d ATRASADO</span>`:diff===0?` <span style="font-size:.6rem;background:#fef3c7;color:#d97706;padding:1px 5px;border-radius:4px;font-weight:700">HOJE</span>`:``;
+    prazoEtapaHtml=`<div style="font-size:.62rem;color:#6b7280;margin-top:4px;line-height:1.6">DIA FINAL DESSA ETAPA<br><span style="font-size:.72rem;font-weight:700;color:${cor}">${fmtD(prazoEtapa)}${badge}</span></div>`;
+  }
+  // Info extra por etapa
+  let extraInfo='';
+  if(p.etapa==='Início da Instalação'){
+    const diasInst=(p.instalacao||{})['Estimativa']||(p.instalacao||{})['Estimativa de Instalação']||'';
+    if(diasInst)extraInfo=`<div style="font-size:.62rem;background:#e0f9fb;color:#0e7490;border-radius:5px;padding:3px 7px;margin-top:4px;font-weight:700">🔨 Instalação: ${diasInst}</div>`;
+  } else if(p.etapa==='Início do Frete'){
+    const diasFrete=(p.frete||{})['Prazo Estimado de Entrega']||'';
+    if(diasFrete)extraInfo=`<div style="font-size:.62rem;background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 7px;margin-top:4px;font-weight:700">🚚 Frete: ${diasFrete}</div>`;
   }
   const moveBtn=canMove?`<button onclick="event.stopPropagation();avancarEtapa('${p.id}')" style="margin-top:6px;width:100%;padding:4px 8px;background:#e91e63;color:#fff;border:none;border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer">Avançar etapa →</button>`:'';
   return `<div class="kcard" onclick="viewP('${p.id}')">
     <div class="kc-top"><span class="kc-num">#${p.os||'—'}</span><span class="kc-tipo ${tc}">${p.tipo}</span></div>
     <div class="kc-cli">${p.cliente}</div>
     ${p.job?`<div class="kc-job"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> JOB ${p.job}</div>`:''}
+    ${extraInfo}
     ${prazoEtapaHtml}
-    ${p.prazo?`<div class="kc-prazo">&#128197; Entrega: ${fmtD(p.prazo)}</div>`:''}
+    ${p.prazo?`<div style="font-size:.62rem;color:#6b7280;margin-top:3px;line-height:1.6">ENTREGA FINAL DESTE PEDIDO<br><span style="font-size:.72rem;font-weight:700;color:#374151">${fmtD(p.prazo)}</span></div>`:''}
     ${moveBtn}
   </div>`;
 }
@@ -984,6 +1062,8 @@ function setView(v){
   view=v;
   const isKanban=v==='kanban'||v==='mykanban';
   document.getElementById('kw-wrap').style.display=isKanban?'':'none';
+  const fcEl=document.getElementById('f-cat');
+  if(fcEl)fcEl.style.display=v==='kanban'?'':'none';
   document.getElementById('lv').style.display=v==='list'?'block':'none';
   document.getElementById('vbk').classList.toggle('active',v==='kanban');
   const vbmk=document.getElementById('vbmk');if(vbmk)vbmk.classList.toggle('active',v==='mykanban');
@@ -994,7 +1074,21 @@ function setView(v){
   renderAll();
 }
 
-function buildFiltro(){const s=document.getElementById('f-etapa');STAGES.forEach(st=>{const o=document.createElement('option');o.value=st;o.textContent=st;s.appendChild(o)})}
+function buildFiltro(){
+  const s=document.getElementById('f-etapa');
+  STAGES.forEach(st=>{const o=document.createElement('option');o.value=st;o.textContent=st;s.appendChild(o)});
+  buildFiltroCat();
+}
+function buildFiltroCat(){
+  const fc=document.getElementById('f-cat');
+  if(!fc)return;
+  const prev=fc.value;
+  fc.innerHTML='<option value="">Todas as categorias</option>';
+  const cats=cfg.kanbanCategorias?Object.keys(cfg.kanbanCategorias).filter(c=>c!=='ADMINISTRADOR'):CATEGORIAS_USUARIOS.filter(c=>c!=='ADMINISTRADOR');
+  cats.forEach(cat=>{const o=document.createElement('option');o.value=cat;o.textContent=cat;fc.appendChild(o);});
+  if(prev)fc.value=prev;
+  fc.style.display=view==='kanban'?'':'none';
+}
 
 function openTesteKanban(){
   const prazoEl=document.getElementById('tk-prazo');
@@ -1015,45 +1109,66 @@ async function criarPedidoTeste(){
   const job=document.getElementById('tk-job')?.value?.trim()||'JOB TESTE';
   const tipo=document.getElementById('tk-tipo')?.value||'Venda';
   const prazo=document.getElementById('tk-prazo')?.value||'';
-  const cepInst=(document.getElementById('tk-cep-inst')?.value||'').replace(/\D/g,'');
+  const diasInstInput=parseInt(document.getElementById('tk-dias-inst')?.value||'0')||0;
+  const fmod=document.getElementById('tk-fmod')?.value||'Fracionado';
   const cepFrete=(document.getElementById('tk-cep-frete')?.value||'').replace(/\D/g,'');
   const varsSelec=[...document.querySelectorAll('.tk-var-chk:checked')].map(i=>i.value);
   const etapasFixas=KANBAN_FIXAS.map(e=>e.id);
   const todasEtapas=STAGES.filter(s=>etapasFixas.includes(s)||varsSelec.includes(s));
-  const prazos=cfg.kanbanPrazos||{};
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  function addDU(d,dias){let r=new Date(d);let a=0;while(a<dias){r.setDate(r.getDate()+1);const dw=r.getDay();if(dw!==0&&dw!==6)a++;}return r;}
-  // Calcular prazo de entrega via tabela de frete se tiver CEP
-  let diasFrete=0;
-  const cepRef=cepFrete||cepInst;
-  if(cepRef.length===8){
+  // Calcular dias de frete conforme modalidade
+  let diasFrete=0;let prazo_frete_txt='';
+  if(cepFrete.length===8){
     try{
-      const res=await fetch('https://viacep.com.br/ws/'+cepRef+'/json/');
+      const res=await fetch('https://viacep.com.br/ws/'+cepFrete+'/json/');
       const data=await res.json();
-      if(data&&data.uf){
-        const tabela=getFreteTable();
-        diasFrete=tabela[data.uf.toUpperCase()]||0;
+      if(data&&!data.erro){
+        if(fmod==='Dedicado'){
+          const dist=DIST_PG_NORM[norm(data.localidade)]||0;
+          if(dist>0){diasFrete=Math.ceil(dist/800);prazo_frete_txt=diasFrete+' dia'+(diasFrete>1?'s':'')+' corrido'+(diasFrete>1?'s':'');}
+        } else {
+          const tabela=getFreteTable();
+          diasFrete=tabela[(data.uf||'').toUpperCase()]||0;
+          if(diasFrete>0)prazo_frete_txt=diasFrete+' dia'+(diasFrete>1?'s':'')+' útei'+(diasFrete>1?'s':'l');
+        }
       }
     }catch(e){}
   }
-  const rp={};let acum=new Date(hoje);
-  todasEtapas.forEach(etapa=>{
-    let dias=parseInt(prazos[etapa])||0;
-    // Para "Início do Frete" e "Início da Instalação", adicionar dias de frete
-    if((etapa==='Início do Frete'||etapa==='Início da Instalação')&&diasFrete>0)dias+=diasFrete;
-    if(dias>0)acum=addDU(acum,dias);
-    rp[etapa]=acum.toISOString().slice(0,10);
+  const instObj={};
+  if(diasInstInput>0)instObj['Estimativa']=diasInstInput+' DIAS';
+  const freteObj={};
+  if(prazo_frete_txt)freteObj['Prazo Estimado de Entrega']=prazo_frete_txt;
+  if(cepFrete)freteObj['CEP']=cepFrete.replace(/(\d{5})(\d{3})/,'$1-$2');
+  // Validar: prazo é obrigatório para calcular etapas "antes da instalação"
+  if(!prazo){toast('Preencha a Data Final do Pedido para calcular as datas das etapas.','terr');return;}
+  const grupoId='tg_'+Date.now();
+  const osBase='T'+Math.floor(Math.random()*9000+1000);
+  const emissaoEm=new Date().toISOString().slice(0,10);
+  // Cria 1 pedido por etapa para preencher todas as colunas do Kanban
+  const saves=todasEtapas.map(etapa=>{
+    const p={id:'teste_'+grupoId+'_'+etapa.replace(/[^a-zA-Z0-9]/g,'_'),
+      os:osBase,tipo,emissaoEm,
+      cliente:'[TESTE] '+cli,job,prazo,
+      responsavel:usuarioLogado?.nomeExibicao||'TESTE',
+      etapa,obs:'',emails:[],
+      valores:{},pagamento:{},instalacao:instObj,frete:freteObj,
+      bases:'',elevacoes:[],remocoes:[],projetos:{},
+      _teste:true,_grupoTeste:grupoId,etapasKanban:todasEtapas};
+    p.prazosKanban=calcPrazoEtapas(p);
+    return savePedidoFS(p);
   });
-  const instObj=cepInst?{cep:cepInst.replace(/(\d{5})(\d{3})/,'$1-$2')}:{};
-  const freteObj=cepFrete?{cep:cepFrete.replace(/(\d{5})(\d{3})/,'$1-$2')}:{};
-  const p={id:'teste_'+Date.now(),os:'T'+Math.floor(Math.random()*9000+1000),tipo,
-    cliente:'[TESTE] '+cli,job,prazo,
-    responsavel:usuarioLogado?.nomeExibicao||'TESTE',etapa:'Pedido',obs:'',emails:[],
-    valores:{},pagamento:{},instalacao:instObj,frete:freteObj,bases:'',elevacoes:[],remocoes:[],projetos:{},
-    _teste:true,etapasKanban:todasEtapas,prazosKanban:rp};
-  await savePedidoFS(p);
+  await Promise.all(saves);
   closeM('mo-teste');
-  toast('Pedido de teste criado! ✅','tok');
+  toast(todasEtapas.length+' cards de teste criados! ✅','tok');
+}
+
+async function limparTestes(){
+  const testes=pedidos.filter(p=>p._teste);
+  if(!testes.length){toast('Nenhum pedido de teste encontrado','tinf');return;}
+  if(!confirm('Excluir todos os '+testes.length+' pedidos de teste?'))return;
+  try{
+    await Promise.all(testes.map(p=>window._fbDeletePedido(p.id)));
+    toast('Testes removidos ✅','tok');
+  }catch(e){toast('Erro ao remover: '+e.message,'terr');}
 }
 
 function atualizarBotaoTeste(){
@@ -1078,6 +1193,41 @@ function atualizarBotaoNovoPedido(){
     const btn=document.getElementById('btn-novo-pedido');
     if(btn)btn.style.display=temPerm?'flex':'none';
   }catch(e){}
+}
+
+function buildSidebarCats(){
+  const container=document.getElementById('sb-cats');
+  if(!container)return;
+  const cats=CATEGORIAS_USUARIOS.filter(c=>c!=='ADMINISTRADOR');
+  const catIcons={'COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+  container.innerHTML=cats.map(cat=>`
+    <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${cat}" style="font-size:.7rem">
+      <span style="font-size:1rem;flex-shrink:0;width:18px;text-align:center">${catIcons[cat]||'📁'}</span>
+      <span class="sb-btn-label">${cat}</span>
+    </button>`).join('');
+}
+
+let currentSection='geral';
+function setSection(sec){
+  currentSection=sec;
+  const isGeral=sec==='geral';
+  document.getElementById('sec-geral').style.display=isGeral?'':'none';
+  document.getElementById('sec-cat').style.display=isGeral?'none':'';
+  if(!isGeral){
+    const cat=sec.replace('cat:','');
+    const isCom=cat==='COMERCIAL';
+    document.getElementById('sec-cat-COMERCIAL').style.display=isCom?'':'none';
+    document.getElementById('sec-cat-generic').style.display=isCom?'none':'';
+    if(!isCom){const t=document.getElementById('sec-cat-title');if(t){const icons={'RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};t.textContent=(icons[cat]||'📁')+' '+cat;}}
+    if(isCom){atualizarBotaoNovoPedido();atualizarBotaoTeste();}
+  }
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
+  if(isGeral){
+    document.getElementById('sb-geral')?.classList.add('active');
+  } else {
+    const cat=sec.replace('cat:','').replace(/\s/g,'_');
+    document.getElementById('sb-cat-'+cat)?.classList.add('active');
+  }
 }
 
 function toggleSidebar(){
@@ -2214,17 +2364,17 @@ async function submit(){
   if(ed.ftel)fr['Telefone da Descarga']=ed.ftel;
   if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
+  const _emissaoExistente=editing?(pedidos.find(x=>x.id===editing)||{}).emissaoEm:null;
   const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,responsavel:ed.resp,
     cliente:ed.cli,emails:ed.emails||[],job:ed.job,prazo:ed.prazo,etapa:ed.etapa||'Pedido',
+    emissaoEm:_emissaoExistente||new Date().toISOString().slice(0,10),
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
     elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
     projetos:{art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig}};
-  // Gera etapas e prazos do kanban
-  if(!editing){
-    p.etapasKanban=getEtapasPedido(p);
-    p.prazosKanban=calcPrazoEtapas(p);
-  }
+  // Gera etapas e prazos do kanban (sempre, inclusive ao editar)
+  p.etapasKanban=getEtapasPedido(p);
+  p.prazosKanban=calcPrazoEtapas(p);
   const wasEditing=editing;
   editing=null;
   // Fechar modal ANTES do save para não travar
@@ -2718,7 +2868,7 @@ function togElev(chk){
   card.querySelectorAll('input[type=number]').forEach(i=>{i.disabled=!on;i.closest('div').style.opacity=on?'1':'.4';});
 }
 
-load().then(()=>atualizarBotaoTeste()).catch(()=>{});buildFiltro();
+load().then(()=>{atualizarBotaoTeste();buildFiltroCat();buildSidebarCats();}).catch(()=>{});buildFiltro();
 
 let usuarioLogado=null;
 
