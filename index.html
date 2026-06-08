@@ -21,7 +21,7 @@
   --radius-sm:8px;--radius:12px;--radius-lg:16px;--radius-xl:20px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink);min-height:100vh;display:flex;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
 
 /* ── SIDEBAR ── */
 .sidebar{width:64px;background:#ffffff;display:flex;flex-direction:column;align-items:stretch;padding:0;flex-shrink:0;position:fixed;left:0;top:0;bottom:0;z-index:50;border-right:1px solid #e5e7eb;transition:width .25s cubic-bezier(.4,0,.2,1);overflow:hidden}
@@ -46,7 +46,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .sb-bottom{padding:10px 0;border-top:1px solid #e5e7eb;display:flex;flex-direction:column;gap:1px;flex-shrink:0}
 
 /* ── MAIN ── */
-.main{margin-left:64px;background:#f4f6f8;min-height:100vh;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.main{margin-left:64px;background:#f4f6f8;min-height:100vh;width:calc(100% - 64px)}
 
 /* ── HEADER ── */
 .hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;flex-shrink:0;position:sticky;top:0;z-index:40}
@@ -64,6 +64,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .hdr-stat-n{font-size:1.1rem;font-weight:800;color:#fff;line-height:1;letter-spacing:-.5px}
 .hdr-stat-l{font-size:.55rem;color:#9ca3af;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 .hdr-stat-div{width:1px;height:28px;background:rgba(255,255,255,.12);margin:0 4px}
+
+/* ── CATEGORY SECTION ── */
+#sec-cat{display:none;position:fixed;top:0;left:64px;right:0;bottom:0;background:#f4f6f8;z-index:30;overflow-y:auto}
+.cat-hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;position:sticky;top:0;z-index:31;width:100%;box-sizing:border-box}
+.cat-content{padding:28px}
 
 /* ── TOOLBAR ── */
 .toolbar{padding:16px 28px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -426,11 +431,15 @@ select.fc{cursor:pointer}
 </div>
 
 </div><!-- /sec-geral -->
-<div id="sec-cat" style="display:none;padding:28px;flex:1">
-  <!-- COMERCIAL -->
-  <div id="sec-cat-COMERCIAL" style="display:none">
-    <div style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:20px">💼 Comercial</div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px">
+<div id="sec-cat">
+  <!-- Header da seção de categoria (espelha o .hdr do sec-geral) -->
+  <div class="cat-hdr">
+    <div class="hdr-l">
+      <img src="logo_granda_branca.png" style="height:32px;object-fit:contain;flex-shrink:0">
+      <div class="hdr-divider"></div>
+      <div><h2 id="cat-hdr-name">Comercial</h2><p id="cat-hdr-desc" style="font-size:.67rem;color:#9ca3af;margin-top:1px;font-weight:400"></p></div>
+    </div>
+    <div class="hdr-r">
       <button class="btn-novo" id="btn-novo-pedido" onclick="openEmissao()" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Pedido
@@ -439,18 +448,23 @@ select.fc{cursor:pointer}
         🧪 Teste Kanban
       </button>
     </div>
-    <div id="sec-cat-COMERCIAL-content" style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
-      <div style="font-size:2rem;margin-bottom:12px">🚧</div>
-      <div style="font-size:.9rem;font-weight:600">Mais funcionalidades em breve</div>
-    </div>
   </div>
-  <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
-  <div id="sec-cat-generic">
-    <div id="sec-cat-title" style="font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:20px"></div>
-    <div style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
-      <div style="font-size:2rem;margin-bottom:12px">🚧</div>
-      <div style="font-size:.9rem;font-weight:600">Área reservada para esta categoria</div>
-      <div style="font-size:.78rem;margin-top:6px">Funcionalidades específicas serão adicionadas aqui.</div>
+  <!-- Conteúdo da categoria -->
+  <div class="cat-content">
+    <!-- COMERCIAL -->
+    <div id="sec-cat-COMERCIAL" style="display:none">
+      <div id="sec-cat-COMERCIAL-content" style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
+        <div style="font-size:2rem;margin-bottom:12px">🚧</div>
+        <div style="font-size:.9rem;font-weight:600">Mais funcionalidades em breve</div>
+      </div>
+    </div>
+    <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
+    <div id="sec-cat-generic" style="display:none">
+      <div style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
+        <div style="font-size:2rem;margin-bottom:12px">🚧</div>
+        <div style="font-size:.9rem;font-weight:600">Área reservada para esta categoria</div>
+        <div style="font-size:.78rem;margin-top:6px">Funcionalidades específicas serão adicionadas aqui.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1208,18 +1222,41 @@ function buildSidebarCats(){
 }
 
 let currentSection='geral';
+const _ADMINS=['guilherme.clabonde@granda.ind.br','gviniciusclabonde@gmail.com'];
+function _getUserCat(){
+  const email=(usuarioLogado?.email||'').toLowerCase();
+  return {cat:usuarioLogado?.categoria||(cfg.usuarioCats&&cfg.usuarioCats[email])||'',email,isAdm:(usuarioLogado?.categoria==='ADMINISTRADOR'||_ADMINS.includes(email))};
+}
 function setSection(sec){
   currentSection=sec;
   const isGeral=sec==='geral';
-  document.getElementById('sec-geral').style.display=isGeral?'':'none';
-  document.getElementById('sec-cat').style.display=isGeral?'none':'';
+
+document.getElementById('sec-geral').style.display=isGeral?'':'none';
+  const secCat=document.getElementById('sec-cat');
+  secCat.style.display=isGeral?'none':'block';
+  if(!isGeral){const sbExp=document.getElementById('sidebar')?.classList.contains('expanded');secCat.style.left=sbExp?'220px':'64px';}
   if(!isGeral){
     const cat=sec.replace('cat:','');
     const isCom=cat==='COMERCIAL';
+    // Atualiza header da seção
+    const catIcons={'COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+    const catDescs={'COMERCIAL':'Pedidos e processos comerciais','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Planejamento estratégico','PROJETOS':'Gestão de projetos'};
+    const nameEl=document.getElementById('cat-hdr-name');
+    const descEl=document.getElementById('cat-hdr-desc');
+    if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+cat.charAt(0)+cat.slice(1).toLowerCase();
+    if(descEl)descEl.textContent=catDescs[cat]||'';
     document.getElementById('sec-cat-COMERCIAL').style.display=isCom?'':'none';
     document.getElementById('sec-cat-generic').style.display=isCom?'none':'';
-    if(!isCom){const t=document.getElementById('sec-cat-title');if(t){const icons={'RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};t.textContent=(icons[cat]||'📁')+' '+cat;}}
-    if(isCom){atualizarBotaoNovoPedido();atualizarBotaoTeste();}
+    // Botões só aparecem na seção COMERCIAL
+    const btnNovo=document.getElementById('btn-novo-pedido');
+    const btnTeste=document.getElementById('btn-teste-kanban');
+    if(!isCom){
+      if(btnNovo)btnNovo.style.display='none';
+      if(btnTeste)btnTeste.style.display='none';
+    } else {
+      atualizarBotaoNovoPedido();
+      atualizarBotaoTeste();
+    }
   }
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
   if(isGeral){
@@ -1233,8 +1270,10 @@ function setSection(sec){
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
   const main=document.querySelector('.main');
+  const sc=document.getElementById('sec-cat');
   const expanded=sb.classList.toggle('expanded');
-  if(main)main.style.marginLeft=expanded?'220px':'64px';
+  if(main){main.style.marginLeft=expanded?'220px':'64px';main.style.width=expanded?'calc(100% - 220px)':'calc(100% - 64px)';}
+  if(sc)sc.style.left=expanded?'220px':'64px';
   const hdrLogo=document.getElementById('hdr-logo');
   const hdrDiv=document.getElementById('hdr-divider');
   if(hdrLogo)hdrLogo.style.display=expanded?'block':'none';
@@ -1247,7 +1286,12 @@ function toggleSidebar(){
     if(localStorage.getItem('sb_expanded')==='1'){
       const sb=document.getElementById('sidebar');
       const main=document.querySelector('.main');
-      if(sb){sb.classList.add('expanded');if(main)main.style.marginLeft='220px';}
+      const sc=document.getElementById('sec-cat');
+      if(sb){
+        sb.classList.add('expanded');
+        if(main){main.style.marginLeft='220px';main.style.width='calc(100% - 220px)';}
+        if(sc&&sc.style.display!=='none')sc.style.left='220px';
+      }
       const hdrLogo=document.getElementById('hdr-logo');
       const hdrDiv=document.getElementById('hdr-divider');
       if(hdrLogo)hdrLogo.style.display='block';
