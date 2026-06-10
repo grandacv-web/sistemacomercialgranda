@@ -70,6 +70,69 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .cat-hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;position:sticky;top:0;z-index:31;width:100%;box-sizing:border-box}
 .cat-content{padding:28px}
 
+/* ── DASHBOARD COMERCIAL ── */
+.dash-tabs{display:flex;gap:4px;margin-bottom:20px;background:#e5e7eb;padding:4px;border-radius:10px}
+.dash-tab{flex:1;padding:9px;border:none;border-radius:7px;background:transparent;font-size:.78rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .2s}
+.dash-tab.active{background:#fff;color:#111827;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.dash-card{background:#fff;border-radius:12px;padding:18px 20px;border:1px solid #e5e7eb;margin-bottom:16px}
+.dash-mes-nav{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.dash-mes-nav button{width:32px;height:32px;border:1.5px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.dash-mes-nav button:hover{background:#f1f5f9}
+.dash-mes-label{font-size:1rem;font-weight:700;color:#111827;min-width:180px;text-align:center}
+.dash-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.dash-table th{padding:10px 14px;text-align:left;background:#f8fafc;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:1.5px solid #e5e7eb;white-space:nowrap}
+.dash-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;color:#1e293b;vertical-align:middle}
+.dash-table tfoot td{padding:10px 14px;font-weight:700;background:#f8fafc;border-top:1.5px solid #e5e7eb}
+.dash-table tr:last-child td{border-bottom:none}
+.dash-meta-inp{width:140px;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;font-family:inherit;text-align:right;transition:border .2s}
+.dash-meta-inp:focus{outline:none;border-color:#e91e63}
+.dash-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.dash-badge.ok{background:#dcfce7;color:#16a34a}
+.dash-badge.no{background:#fee2e2;color:#dc2626}
+.dash-badge.pend{background:#fef3c7;color:#d97706}
+.dash-btn-conf{padding:5px 12px;border-radius:7px;border:none;background:#16a34a;color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.dash-btn-conf:hover{background:#15803d}
+.dash-btn-adiar{padding:5px 12px;border-radius:7px;border:1.5px solid #d97706;background:transparent;color:#d97706;font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;margin-left:4px}
+.dash-btn-adiar:hover{background:#fffbeb}
+/* ── GRÁFICOS COMERCIAL ── */
+.gc-krow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.gc-krow-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.gc-kp{border-radius:12px;padding:14px 16px;border:1.5px solid var(--border)}
+.gc-kp.az{background:#1a2b5e;border-color:#2d4180}
+.gc-kp.ro{background:#e0245e;border-color:#c01a4e}
+.gc-kp.vd{background:#dcfce7;border-color:#bbf7d0}
+.gc-kp.wn{background:#fef3c7;border-color:#fde68a}
+.gc-kp.dk{background:#0d1628;border-color:#1e3a5f}
+.gc-kl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:4px}
+.gc-kp.vd .gc-kl{color:#166534}
+.gc-kp.wn .gc-kl{color:#92400e}
+.gc-kv{font-size:1.2rem;font-weight:800;color:#fff;letter-spacing:-.5px}
+.gc-kp.vd .gc-kv{color:#166534}
+.gc-kp.wn .gc-kv{color:#92400e}
+.gc-ks{font-size:.68rem;color:rgba(255,255,255,.5);margin-top:2px}
+.gc-kp.vd .gc-ks{color:#166534}
+.gc-kp.wn .gc-ks{color:#92400e}
+.gc-g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.gc-chart-card{background:#fff;border-radius:12px;padding:16px 18px;border:1.5px solid var(--border);margin-bottom:14px}
+.gc-chart-title{font-size:.78rem;font-weight:700;color:#1e293b;margin-bottom:2px}
+.gc-chart-sub{font-size:.68rem;color:var(--ink4);margin-bottom:12px}
+.gc-prog-bar{background:#f1f5f9;border-radius:99px;height:12px;overflow:hidden;margin:6px 0}
+.gc-prog-fill{height:100%;border-radius:99px;transition:width .4s}
+.gc-br{margin-bottom:6px}
+.gc-brh{display:flex;justify-content:space-between;font-size:.72rem;color:#64748b;margin-bottom:3px}
+.gc-brt{height:7px;background:#f1f5f9;border-radius:99px;overflow:hidden}
+.gc-brf{height:100%;border-radius:99px;transition:width .4s}
+.gc-leg{display:flex;gap:12px;margin-bottom:8px;font-size:.72rem;color:#64748b}
+.gc-li{display:flex;align-items:center;gap:5px}
+.gc-lsq{width:10px;height:10px;border-radius:3px}
+.gc-vend-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.gc-vend-tab{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:.74rem;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .2s;font-family:inherit}
+.gc-vend-tab.active{background:#111827;color:#fff;border-color:#111827}
+.q-tabs{display:flex;gap:6px;margin-bottom:16px}
+.q-tab{padding:8px 20px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:.78rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .2s}
+.q-tab.active{background:#111827;color:#fff;border-color:#111827}
+.dash-sec-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#64748b;margin-bottom:14px}
+
 /* ── TOOLBAR ── */
 .toolbar{padding:16px 28px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .toolbar input{padding:9px 14px 9px 38px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;font-size:.83rem;min-width:240px;color:var(--ink);transition:border .2s;font-family:inherit;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
@@ -453,9 +516,155 @@ select.fc{cursor:pointer}
   <div class="cat-content">
     <!-- COMERCIAL -->
     <div id="sec-cat-COMERCIAL" style="display:none">
-      <div id="sec-cat-COMERCIAL-content" style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
-        <div style="font-size:2rem;margin-bottom:12px">🚧</div>
-        <div style="font-size:.9rem;font-weight:600">Mais funcionalidades em breve</div>
+      <div id="dash-comercial">
+        <div class="dash-tabs">
+          <button class="dash-tab active" id="dtab-metas" onclick="dashTab('metas',this)">🎯 Metas & Comissões</button>
+          <button class="dash-tab" id="dtab-vendas" onclick="dashTab('vendas',this)">📊 Vendas do Ano</button>
+          <button class="dash-tab" id="dtab-graficos" onclick="dashTab('graficos',this)">📈 Gráficos</button>
+        </div>
+        <!-- TAB METAS -->
+        <div id="dash-tab-metas">
+          <div class="dash-mes-nav">
+            <button onclick="dashMov(-1)">◀</button>
+            <div class="dash-mes-label" id="dash-mes-lbl">—</div>
+            <button onclick="dashMov(1)">▶</button>
+          </div>
+          <div id="dash-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
+          <div class="dash-card">
+            <div class="dash-sec-title">🎯 Metas do Mês</div>
+            <div style="overflow-x:auto">
+              <table class="dash-table"><thead><tr><th>Vendedor</th><th>Meta do Mês</th><th>Total Vendas</th><th>Status</th><th>% Config</th><th>% Comissão</th></tr></thead><tbody id="dash-metas-body"></tbody></table>
+            </div>
+            <div id="dash-empresa-row" style="margin-top:14px;padding:12px 16px;background:#f5f3ff;border-radius:10px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:.82rem;border:1px solid #ede9fe"></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-sec-title">💰 Recebimentos & Comissões</div>
+            <div id="dash-comissoes"></div>
+          </div>
+        </div>
+        <!-- TAB GRÁFICOS -->
+        <div id="dash-tab-graficos" style="display:none">
+          <!-- Nav de mês -->
+          <div class="dash-mes-nav" style="margin-bottom:14px">
+            <button onclick="gcMovMes(-1)">◀</button>
+            <div class="dash-mes-label" id="gc-mes-lbl">—</div>
+            <button onclick="gcMovMes(1)">▶</button>
+          </div>
+          <!-- Tabs de vendedor -->
+          <div class="gc-vend-tabs" id="gc-vend-tabs"></div>
+
+          <!-- ═══ PAINEL GERAL ═══ -->
+          <div id="gc-painel-geral">
+            <!-- KPIs geral topo -->
+            <div class="gc-krow" id="gc-kpis-top"></div>
+            <div class="gc-krow-2" id="gc-kpis-bot"></div>
+            <!-- Evolução mensal time -->
+            <div class="gc-chart-card">
+              <div class="gc-chart-title">Evolução Mensal — Time Completo</div>
+              <div class="gc-chart-sub" id="gc-ev-sub">Vendas líquidas vs meta</div>
+              <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>Realizado</div><div class="gc-li"><div class="gc-lsq" style="background:#e0245e;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta</div></div>
+              <div style="position:relative;height:200px"><canvas id="gc-cEv"></canvas></div>
+            </div>
+            <!-- Grid 2: contribuição + progresso -->
+            <div class="gc-g2">
+              <div class="gc-chart-card" style="margin-bottom:0">
+                <div class="gc-chart-title">Contribuição por Vendedor</div>
+                <div class="gc-chart-sub">% vendas líquidas do mês</div>
+                <div style="position:relative;height:180px"><canvas id="gc-cContrib"></canvas></div>
+                <div id="gc-contrib-leg" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.68rem;color:var(--ink4)"></div>
+              </div>
+              <div class="gc-chart-card" style="margin-bottom:0">
+                <div class="gc-chart-title">Progresso para Meta do Mês</div>
+                <div class="gc-chart-sub" id="gc-prog-sub">Time completo — Líquidas vs meta</div>
+                <div id="gc-prog-bars" style="margin-top:8px"></div>
+                <div id="gc-prog-alerta" style="margin-top:10px;font-size:.74rem;font-weight:600"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:14px"></div>
+            <!-- Comparativo anual bruto vs líquido -->
+            <div class="gc-chart-card">
+              <div class="gc-chart-title">Comparativo Anual — Bruto vs Líquido</div>
+              <div class="gc-chart-sub" id="gc-comp-sub">Todos os meses do ano</div>
+              <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:rgba(26,43,94,.7)"></div>Bruto</div><div class="gc-li"><div class="gc-lsq" style="background:rgba(224,36,94,.7)"></div>Líquido</div></div>
+              <div style="position:relative;height:200px"><canvas id="gc-cComp"></canvas></div>
+            </div>
+          </div>
+
+          <!-- ═══ PAINEL POR VENDEDOR ═══ -->
+          <div id="gc-painel-vend" style="display:none">
+            <!-- Input fields para dados manuais (orc, cv, pd) -->
+            <div class="gc-chart-card" style="background:var(--surface2,#f8fafc)">
+              <div class="gc-chart-title" id="gc-vend-titulo">Vendedor</div>
+              <div class="gc-chart-sub" id="gc-vend-sub2">Dados do mês selecionado</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+                <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Orçamentos em aberto (R$)</div>
+                  <input id="gc-inp-orc" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+                <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Taxa de conversão (%)</div>
+                  <input id="gc-inp-cv" type="number" placeholder="0" step="0.1" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+                <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Negócios perdidos (R$)</div>
+                  <input id="gc-inp-pd" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+              </div>
+            </div>
+            <!-- KPIs do vendedor -->
+            <div class="gc-krow" id="gc-vend-kpis-top"></div>
+            <div class="gc-krow-2" id="gc-vend-kpis-bot"></div>
+            <!-- Grid 2: evolução anual + projeção×meta -->
+            <div class="gc-g2">
+              <div class="gc-chart-card" style="margin-bottom:0">
+                <div class="gc-chart-title">Evolução Anual — Líquidas</div>
+                <div class="gc-chart-sub" id="gc-ev-vend-sub">Vendedor — evolução anual</div>
+                <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>Realizado</div><div class="gc-li"><div class="gc-lsq" style="background:#e0245e;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta</div></div>
+                <div style="position:relative;height:190px"><canvas id="gc-cVend"></canvas></div>
+              </div>
+              <div class="gc-chart-card" style="margin-bottom:0">
+                <div class="gc-chart-title">Projeção × Meta</div>
+                <div class="gc-chart-sub">Tendência de fechamento do mês</div>
+                <div id="gc-proj-barras" style="margin-top:8px"></div>
+                <div id="gc-proj-alerta" style="margin-top:10px;font-size:.74rem"></div>
+              </div>
+            </div>
+            <div style="margin-bottom:14px"></div>
+            <!-- Grid 2: doughnut conversão + análise perdidos -->
+            <div class="gc-g2">
+              <div class="gc-chart-card" style="margin-bottom:0">
+                <div class="gc-chart-title">Conversão e Perdas</div>
+                <div class="gc-chart-sub">Composição dos orçamentos</div>
+                <div style="position:relative;height:185px"><canvas id="gc-cDn"></canvas></div>
+                <div id="gc-conv-alerta" style="margin-top:8px;font-size:.72rem"></div>
+              </div>
+              <div class="gc-chart-card" style="margin-bottom:0">
+                <div class="gc-chart-title">Comparativo Anual — Vendedor</div>
+                <div class="gc-chart-sub" id="gc-comp-vend-sub">Bruto vs Líquido por mês</div>
+                <div style="position:relative;height:185px"><canvas id="gc-cVendComp"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- TAB VENDAS -->
+        <div id="dash-tab-vendas" style="display:none">
+          <div class="dash-card">
+            <div class="dash-sec-title">📊 Lista de Vendas</div>
+            <!-- Filtros -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+              <select id="vnd-fil-mes" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
+                <option value="">Todos os meses</option>
+                <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
+                <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
+                <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
+              </select>
+              <select id="vnd-fil-vend" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
+                <option value="">Todos os vendedores</option>
+              </select>
+              <select id="vnd-fil-cat" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
+                <option value="">Todas as categorias</option>
+              </select>
+            </div>
+            <!-- Totalizadores -->
+            <div id="vnd-totais" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+            <!-- Tabela -->
+            <div id="dash-vendas-content"></div>
+          </div>
+        </div>
       </div>
     </div>
     <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
@@ -534,6 +743,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="avisos" onclick="setCfgSec('avisos',this)">📋 Avisos</button>
       <button class="cfg-menu-btn admin-only" data-sec="kanban" onclick="setCfgSec('kanban',this)">📋 Kanban</button>
       <button class="cfg-menu-btn admin-only" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
+      <button class="cfg-menu-btn admin-only" data-sec="tipospedido" onclick="setCfgSec('tipospedido',this)">🏷️ Categoria de Pedido</button>
     </div>
     <!-- Content -->
     <div style="flex:1;overflow-y:auto;padding:20px 24px">
@@ -554,6 +764,11 @@ select.fc{cursor:pointer}
           <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">🔑 Mudar minha senha</div>
           <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">Você receberá um e-mail com o link para redefinir sua senha.</p>
           <button onclick="enviarResetSenha()" class="btn-next" style="padding:10px 20px">Enviar link de redefinição</button>
+        </div>
+        <div class="admin-only" style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid var(--border);margin-top:16px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">🔒 PIN do painel de Metas/Comissões</div>
+          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">PIN usado para desbloquear o painel de Metas e Comissões. Padrão: 1234.</p>
+          <div class="fg" style="max-width:160px"><label>PIN (4 dígitos)</label><input class="fc no-upper" id="cfg-dash-pin" maxlength="8" placeholder="1234"></div>
         </div>
       </div>
       <!-- EMAIL -->
@@ -641,6 +856,15 @@ select.fc{cursor:pointer}
         </div>
         <p style="font-size:.68rem;color:var(--ink4);margin-top:10px">🔐 Autenticação via Google Firebase. Seguro e criptografado.</p>
       </div>
+      <div class="cfg-sec" id="cfg-sec-tipospedido" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Categoria de Pedido</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Categorias usadas na emissão para análise de vendas por tipo no painel Comercial. As categorias da planilha já vêm pré-configuradas — adicione mais se precisar.</p>
+        <div id="cfg-tipos-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="fc" id="cfg-novo-tipo" placeholder="Ex: FACHADA" style="flex:1;text-transform:uppercase" onkeydown="if(event.key==='Enter')addTipoPedido()">
+          <button class="btn-next" onclick="addTipoPedido()" style="white-space:nowrap;padding:9px 16px">+ Adicionar</button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Footer -->
@@ -654,6 +878,9 @@ select.fc{cursor:pointer}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <!-- Firebase Auth -->
 <script type="module">
@@ -1256,6 +1483,16 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     } else {
       atualizarBotaoNovoPedido();
       atualizarBotaoTeste();
+      // Aba Metas & Comissões só visível para administrador
+      const _isAdmDash=getInfoUser().isAdm;
+      const _dtabMetas=document.getElementById('dtab-metas');
+      if(_dtabMetas)_dtabMetas.style.display=_isAdmDash?'':'none';
+      // Se não for admin, ativa a aba Vendas como padrão
+      if(!_isAdmDash){
+        const _dtabVendas=document.getElementById('dtab-vendas');
+        if(_dtabVendas){_dtabVendas.click();}
+      }
+      setTimeout(initDashComercial,120);
     }
   }
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
@@ -1373,7 +1610,7 @@ function openEmissao(eid2){
     const p=pedidos.find(x=>x.id===eid2);
     const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{};
     ed={tipo:p.tipo,resp:p.responsavel,cli:p.cliente,emails:[...(p.emails||[])],job:p.job,prazo:p.prazo,os:p.os,obs:p.obs,
-      etapa:p.etapa,vtotal:(v['Valor Total']||'').replace('R$ ','').replace(/\./g,'').replace(',','.'),vmed:'',
+      etapa:p.etapa,tipoPedido:p.tipoPedido||'',vtotal:(v['Valor Total']||'').replace('R$ ','').replace(/\./g,'').replace(',','.'),vmed:'',
       i_tipo:v['Instalação']||'Não tem instalação',vinst:'',vmob:'',vrem:'',remocao:'',
       f_tipo:v['Frete']||'Por nossa conta',fmod:v['Modalidade Logística']||'',vfrete:'',
       elevacoes:v['Elevações']||'Não',elevs:[...(p.elevacoes||[])],velev:'',
@@ -1775,6 +2012,12 @@ function renderStep(id){
         </div>
       </div>
       <div class="fg"><label>7. Observações</label><textarea class="fc" id="em-obs">${ed.obs||''}</textarea></div>
+      <div class="fg"><label>8. Tipo de Pedido <span class="r">*</span></label>
+        <select class="fc" id="em-tped" onchange="ed.tipoPedido=this.value">
+          <option value="">Selecione o tipo...</option>
+          ${getTiposPedido().map(t=>`<option ${ed.tipoPedido===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
     </div>`;
   }else if(id==='valores'){
     const si=ed.i_tipo==='Por nossa conta',sf=ed.f_tipo==='Por nossa conta';
@@ -2409,9 +2652,10 @@ async function submit(){
   if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
   const _emissaoExistente=editing?(pedidos.find(x=>x.id===editing)||{}).emissaoEm:null;
-  const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,responsavel:ed.resp,
+  const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,tipoPedido:ed.tipoPedido||'',responsavel:ed.resp,
     cliente:ed.cli,emails:ed.emails||[],job:ed.job,prazo:ed.prazo,etapa:ed.etapa||'Pedido',
     emissaoEm:_emissaoExistente||new Date().toISOString().slice(0,10),
+    origemComercial:((cfg.usuarioCats||({}))[(usuarioLogado?.email||'').toLowerCase()]==='COMERCIAL')||undefined,
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
     elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
@@ -2584,6 +2828,8 @@ function saveCfg(){
   cfg.cld_cloud=document.getElementById('cfg-cld')?.value||cfg.cld_cloud;
   cfg.cld_preset=document.getElementById('cfg-pre')?.value||cfg.cld_preset;
   cfg.avisos=document.getElementById('cav')?.value??cfg.avisos;
+  const pinInp=document.getElementById('cfg-dash-pin');
+  if(pinInp&&pinInp.value.trim())cfg.dashMetasPin=pinInp.value.trim();
   // Save frete table
   const ftinps=document.querySelectorAll('.frete-uf-inp');
   if(ftinps.length){const t={};ftinps.forEach(i=>{if(i.value)t[i.dataset.uf]=parseInt(i.value);});cfg.freteTabela=JSON.stringify(t);}
@@ -2732,6 +2978,8 @@ function closeM(id){const m=document.getElementById(id);if(m)m.classList.remove(
 // LOGOUT
 async function doLogout(){
   if(!confirm('Deseja sair do sistema?'))return;
+  dashMetasUnlocked=false;
+  document.getElementById('dash-pin-modal')?.remove();
   try{await window._fbSignOut();}catch(e){}
   const ls=document.getElementById('login-screen');
   if(ls)ls.style.display='flex';
@@ -2750,6 +2998,7 @@ function openSettings(){
   document.getElementById('cp').value=c.cld_preset||'';
   document.getElementById('clogourl').value=c.cld_logo||'';
   const cav=document.getElementById('cav');if(cav)cav.value=c.avisos||'';
+  const cdpin=document.getElementById('cfg-dash-pin');if(cdpin)cdpin.value=c.dashMetasPin||'1234';
   const nomesEl=document.getElementById('cfg-user-nomes');
   renderUserList();
   // Preenche dados da conta do usuário logado
@@ -2773,9 +3022,7 @@ function openSettings(){
     const cc=catColors[usuarioLogado.categoria]||'#6b7280';
     catEl.innerHTML='<span style="background:'+cc+'22;color:'+cc+';font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase">'+usuarioLogado.categoria+'</span>';
   }
-  // Abre na aba Minha Conta por padrão
   setCfgSec('conta',document.querySelector('[data-sec="conta"]'));
-  // Populate frete table
   const ftg=document.getElementById('frete-table-grid');
   if(ftg){
     const UFS=['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
@@ -2793,6 +3040,7 @@ function setCfgSec(sec,btn){
   if(el)el.style.display='';
   if(btn)btn.classList.add('active');
   if(sec==='kanban')renderCfgKanban();
+  if(sec==='tipospedido')renderTiposPedido();
 }
 
 async function enviarResetSenha(){
@@ -2804,13 +3052,6 @@ async function enviarResetSenha(){
   }catch(e){toast('Erro: '+(e.message||e),'terr');}
 }
 function cio(e,id){if(e.target.id===id)closeM(id);}
-
-async function doLogout(){
-  if(!confirm('Deseja sair do sistema?'))return;
-  try{await window._fbSignOut();}catch(e){}
-  const ls=document.getElementById('login-screen');
-  if(ls)ls.style.display='flex';
-}
 
 async function doLogin(){
   const email=document.getElementById('l-email')?.value?.trim();
@@ -2826,67 +3067,6 @@ async function doLogin(){
   }
 }
 
-async function addUser(){
-  const em=document.getElementById('nu-email')?.value?.trim().toLowerCase();
-  const pw=document.getElementById('nu-pass')?.value;
-  const nome=document.getElementById('nu-nome')?.value?.trim().toUpperCase();
-  const cat=document.getElementById('nu-cat')?.value;
-  if(!em||!pw){toast('Preencha e-mail e senha!','terr');return;}
-  if(!nome){toast('Preencha o nome!','terr');return;}
-  if(!cat){toast('Selecione a categoria!','terr');return;}
-  if(pw.length<6){toast('Senha mínimo 6 caracteres!','terr');return;}
-  const btn=document.getElementById('btn-add-user');
-  if(btn){btn.textContent='Criando...';btn.disabled=true;}
-  try{
-    await window._fbCreateUser(em,pw);
-    if(!cfg.usuarioNomes)cfg.usuarioNomes={};
-    cfg.usuarioNomes[em]=nome;
-    if(!cfg.usuarioCats)cfg.usuarioCats={};
-    cfg.usuarioCats[em]=cat;
-    if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
-    localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
-    toast('Usuário criado: '+nome,'tok');
-    document.getElementById('nu-email').value='';
-    document.getElementById('nu-pass').value='';
-    document.getElementById('nu-nome').value='';
-    document.getElementById('nu-cat').value='';
-    renderUserList();
-  }catch(e){
-    toast('Erro: '+(e.message||e),'terr');
-  }finally{if(btn){btn.textContent='+ Criar Usuário';btn.disabled=false;}}
-}
-
-async function renderUserList(){
-  const el=document.getElementById('user-list');
-  if(el)el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Use o Console do Firebase para listar/remover usuários.</p>';
-  const lista=document.getElementById('cfg-nomes-lista');
-  if(lista){
-    const nomes=cfg.usuarioNomes||{};
-    const entries=Object.entries(nomes);
-    if(entries.length){
-      lista.innerHTML=entries.map(([email,nome])=>
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #b2ebf2">'+
-        '<span><strong>'+nome+'</strong> <span style="color:#0891b2;font-size:.72rem">'+email+'</span></span>'+
-        '<button onclick="removerNomeUsuario(\''+email+'\')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.8rem;padding:2px 6px" title="Remover">✕</button>'+
-        '</div>'
-      ).join('');
-    } else {
-      lista.innerHTML='<span style="color:#0891b2;font-size:.75rem">Nenhum usuário cadastrado ainda.</span>';
-    }
-  }
-}
-
-function removerNomeUsuario(email){
-  if(!confirm('Remover '+email+' da lista?'))return;
-  if(cfg.usuarioNomes)delete cfg.usuarioNomes[email];
-  if(cfg.usuarioCats)delete cfg.usuarioCats[email];
-  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
-  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
-  renderUserList();
-  toast('Usuário removido','tok');
-}
-
-async function uploadLogoEmail(){document.getElementById('logo-upload-input')?.click();}
 async function fazerUploadLogo(input){
   const f=input.files[0];if(!f)return;
   if(!cfg.cld_cloud||!cfg.cld_preset){toast('Configure o Cloudinary primeiro!','terr');return;}
@@ -2894,25 +3074,11 @@ async function fazerUploadLogo(input){
     const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);
     const r=await fetch('https://api.cloudinary.com/v1_1/'+cfg.cld_cloud+'/image/upload',{method:'POST',body:fd});
     const d=await r.json();
-    if(d.secure_url){cfg.cld_logo=d.secure_url;document.getElementById('clogourl').value=d.secure_url;toast('Logo enviada!','tok');}
+    if(d.secure_url){cfg.cld_logo=d.secure_url;const el=document.getElementById('clogourl');if(el)el.value=d.secure_url;toast('Logo enviada!','tok');}
   }catch(e){toast('Erro no upload: '+e.message,'terr');}
 }
 
-function selTipo(el){
-  document.querySelectorAll('#em-bd .rc-list .rc').forEach(e=>{e.style.borderColor='';e.style.background='';e.querySelector('input').checked=false});
-  el.style.borderColor='#00bac7';el.style.background='#e0f7fa';el.querySelector('input').checked=true;ed.tipo=el.dataset.val;
-}
-
-function togElev(chk){
-  const card=chk.closest('.elev-card');const on=chk.checked;
-  card.classList.toggle('elev-on',on);
-  card.style.border=on?'1.5px solid var(--brand)':'1.5px solid var(--border)';
-  card.style.background=on?'var(--brand-lt)':'var(--surface)';
-  card.dataset.tipo=chk.value;
-  card.querySelectorAll('input[type=number]').forEach(i=>{i.disabled=!on;i.closest('div').style.opacity=on?'1':'.4';});
-}
-
-load().then(()=>{atualizarBotaoTeste();buildFiltroCat();buildSidebarCats();}).catch(()=>{});buildFiltro();
+load().then(()=>atualizarBotaoTeste()).catch(()=>{});buildFiltro();
 
 let usuarioLogado=null;
 
@@ -2930,8 +3096,8 @@ function initAuth(tries){
           const nome=nomeMap[user.email.toLowerCase()]||nomeMap[user.email]||user.displayName||user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
           usuarioLogado.nomeExibicao=nome;
           usuarioLogado.categoria=catMap[user.email.toLowerCase()]||catMap[user.email]||'';
-          // Mostra/esconde botão teste baseado na categoria
           atualizarBotaoTeste();atualizarBotaoNovoPedido();
+          buildSidebarCats();
         }).catch(()=>{
           usuarioLogado.nomeExibicao=user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
         });
@@ -2945,6 +3111,1205 @@ function initAuth(tries){
   }
 }
 initAuth();
+
+// ══════════════════════════════════════════════
+//  DASHBOARD COMERCIAL
+// ══════════════════════════════════════════════
+const MESES_PT=['','JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+let dashMesAtual={y:new Date().getFullYear(),m:new Date().getMonth()+1};
+
+function initDashComercial(){
+  dashMesAtual={y:new Date().getFullYear(),m:new Date().getMonth()+1};
+  // Admin desbloqueia automaticamente ao entrar
+  if(getInfoUser().isAdm)dashMetasUnlocked=true;
+  renderDashMetas();
+  renderDashComissoes();
+}
+let dashQuinzena='I';
+let dashComissaoVendFil='';
+let dashMetasUnlocked=false;
+
+function dashLockMetas(){
+  dashMetasUnlocked=false;
+}
+function dashTryUnlock(){
+  const pin=(document.getElementById('dash-pin-inp')?.value||'').trim();
+  const correct=cfg.dashMetasPin||'1234';
+  if(pin===correct){
+    dashMetasUnlocked=true;
+    document.getElementById('dash-pin-modal')?.remove();
+    setTimeout(()=>{renderDashMetas();renderDashComissoes();},80);
+  } else {
+    const err=document.getElementById('dash-pin-err');
+    if(err){err.textContent='PIN incorreto. Tente novamente.';err.style.display='';}
+    const inp=document.getElementById('dash-pin-inp');if(inp){inp.value='';inp.focus();}
+  }
+}
+
+function $mDash(s){
+  const str=String(s||'').trim();
+  if(!str||str==='0')return 0;
+  // Plain number with English decimal (e.g. "4900.0", "12850.5")
+  if(/^\d+(\.\d+)?$/.test(str))return parseFloat(str)||0;
+  // pt-BR format (e.g. "R$ 12.850,00" or "12.850,00")
+  return parseFloat(str.replace(/[R$\s]/g,'').replace(/\./g,'').replace(',','.'))||0;
+}
+function fmtR(v){return 'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function dasKey(y,m){return `${y}-${String(m).padStart(2,'0')}`;}
+
+function getTiposPedido(){
+  return cfg.tiposPedido&&cfg.tiposPedido.length?cfg.tiposPedido:[
+    'MANUTENÇÃO','QUIOSQUE BASIC','QUIOSQUE STANDARD','QUIOSQUE ESPECIAL','LOJA','LOJA NOVA ZAMP','LOJA HÍBRIDA','LOJA SHOPPING',
+    'LETRAS CAIXA','TOTEM','TOTEM E INTERNOS','CONCESSIONÁRIO','RETROFIT CONCESSIONÁRIO','BK É FOGO','COROAS KIDS',
+    'REFORMA UNIDADE','PAINÉIS DE LONA','EXTERNOS','REVEST. BALCÃO','FRANQUEADO SHOPPING','HÍBRIDO RUA'
+  ];
+}
+
+function renderTiposPedido(){
+  const el=document.getElementById('cfg-tipos-list');if(!el)return;
+  const tipos=getTiposPedido();
+  if(!tipos.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhuma categoria cadastrada.</p>';return;}
+  el.innerHTML=tipos.map(t=>{
+    const tEsc=t.replace(/'/g,"\\'");
+    return `<span style="display:inline-flex;align-items:center;gap:6px;background:#f1f5f9;border:1.5px solid #e5e7eb;border-radius:20px;padding:6px 8px 6px 14px;font-size:.78rem;font-weight:600;color:#374151">
+      ${t}
+      <button onclick="removeTipoPedido('${tEsc}')" title="Remover" style="background:#fff;border:1px solid #e5e7eb;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;color:#dc2626;padding:0;line-height:1">✕</button>
+    </span>`;
+  }).join('');
+}
+
+function addTipoPedido(){
+  const inp=document.getElementById('cfg-novo-tipo');
+  const val=(inp?.value||'').trim().toUpperCase();
+  if(!val){toast('Digite o nome da categoria!','terr');return;}
+  const tipos=getTiposPedido().slice();
+  if(tipos.includes(val)){toast('Essa categoria já existe!','terr');return;}
+  tipos.push(val);
+  cfg.tiposPedido=tipos;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  if(inp)inp.value='';
+  renderTiposPedido();
+  toast('Categoria adicionada!','tok');
+}
+
+function removeTipoPedido(t){
+  if(!confirm('Remover a categoria "'+t+'"?'))return;
+  cfg.tiposPedido=getTiposPedido().filter(x=>x!==t);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderTiposPedido();
+  toast('Categoria removida','tok');
+}
+
+function getParcelas(p){
+  // For XLSX imports: parcela values are ALREADY liquid (they sum exactly to lq).
+  // For manually-entered orders: pagamento stores BRUTO amounts, so ratio is applied.
+  const pag=p.pagamento||{};
+  const vals=p.valores||{};
+  const totalBruto=parseFloat(String(vals['Valor Bruto']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
+  const totalLiq=parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
+  const ratio=(p.importadoPlanilha)?1:(totalBruto>0?totalLiq/totalBruto:1);
+  const toLiq=bruto=>bruto*ratio;
+  const res=[];
+  if(pag['Valor de Entrada']&&pag['Data da Entrada']){
+    const vBruto=$mDash(pag['Valor de Entrada']);
+    res.push({pedidoId:p.id,pedido:p,label:'Entrada',valor:toLiq(vBruto),dataStr:(pag['Data da Entrada']||'').trim(),confKey:`${p.id}::entrada`});
+  }
+  Object.entries(pag).forEach(([k,v])=>{
+    const mt=k.match(/^Parcela\s+(\d+)\s+·\s+(.+)$/);
+    if(mt){
+      const vBruto=$mDash(v);
+      res.push({pedidoId:p.id,pedido:p,label:k,valor:toLiq(vBruto),dataStr:mt[2].trim(),confKey:`${p.id}::${k}`});
+    }
+  });
+  return res;
+}
+
+function parseDataBR(s){
+  if(!s)return null;
+  const pts=s.trim().split('/');
+  if(pts.length===3)return new Date(+pts[2],+pts[1]-1,+pts[0]);
+  return null;
+}
+
+function getQuinzenaInfo(dataStr){
+  // Returns the COMMISSION WINDOW for a given CLIENT payment date:
+  //   client pays days 1-14  → commission on 15th of same month  (half='II')
+  //   client pays days 15-31 → commission on  5th of next month  (half='I')
+  const d=parseDataBR(dataStr);
+  if(!d||isNaN(d))return null;
+  if(d.getDate()<=14){
+    return {y:d.getFullYear(),m:d.getMonth()+1,half:'II'};
+  } else {
+    const next=new Date(d.getFullYear(),d.getMonth()+1,1);
+    return {y:next.getFullYear(),m:next.getMonth()+1,half:'I'};
+  }
+}
+
+function getComissaoQuinzena(p, dataStr){
+  // For xlsx imports, dataStr IS already the commission payment date (dia 5 = half I, dia 15 = half II)
+  // For new orders entered via form, dataStr is the client payment date → apply window rule
+  if(p && p.importadoPlanilha){
+    const d=parseDataBR(dataStr);
+    if(!d||isNaN(d))return null;
+    const day=d.getDate();
+    // dia 5 → 1ª quinzena (half I), dia 15 → 2ª quinzena (half II)
+    return {y:d.getFullYear(),m:d.getMonth()+1,half:day<=7?'I':'II'};
+  }
+  return getQuinzenaInfo(dataStr);
+}
+
+function getVendedores(){
+  const cats=cfg.usuarioCats||{};
+  const nomes=cfg.usuarioNomes||{};
+  const result=new Set();
+  // Registered COMERCIAL users
+  Object.entries(cats).forEach(([email,cat])=>{
+    if(cat==='COMERCIAL'){
+      const nome=(nomes[email]||email).toUpperCase().trim();
+      if(nome)result.add(nome);
+    }
+  });
+  // Fallback: unique vendors from XLSX_VENDAS (excluding CLABONDE)
+  const xlsxVends=new Set((XLSX_VENDAS||[]).map(x=>(x.v||'').toUpperCase().trim()).filter(v=>v&&v!=='CLABONDE'&&v!=='KELLEN'));
+  xlsxVends.forEach(shortName=>{
+    const mapped=mapVendedorName(shortName);
+    let found=false;
+    result.forEach(r=>{if(vendedorMatch(r,mapped)||vendedorMatch(mapped,r))found=true;});
+    if(!found)result.add(mapped);
+  });
+  return Array.from(result).sort();
+}
+
+function getMetaMes(y,m,vendedor){
+  const k=dasKey(y,m);
+  return (cfg.metasMes&&cfg.metasMes[k]&&cfg.metasMes[k][vendedor.toUpperCase()])||0;
+}
+
+function savePctComissao(vendedor,pct){
+  const vend=(vendedor||'').toUpperCase().trim();
+  if(!cfg.pctComissaoVend)cfg.pctComissaoVend={};
+  cfg.pctComissaoVend[vend]=pct;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg).catch(e=>console.error(e));
+  else localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderDashMetas();
+}
+
+function setMetaMes(y,m,vendedor,valor){
+  const k=dasKey(y,m);
+  if(!cfg.metasMes)cfg.metasMes={};
+  if(!cfg.metasMes[k])cfg.metasMes[k]={};
+  cfg.metasMes[k][vendedor.toUpperCase()]=valor;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+}
+
+function isComercialPedido(p){
+  // Only count pedidos that belong to the commercial workflow
+  return !!(p.importadoPlanilha||p.origemComercial);
+}
+function getVendasMes(y,m,vendedor){
+  const mk=dasKey(y,m);
+  return pedidos.filter(p=>{
+    if(!p.emissaoEm||!isComercialPedido(p))return false;
+    const pk=p.emissaoEm.slice(0,7);
+    const resp=(p.responsavel||'').toUpperCase().trim();
+    return pk===mk&&vendedorMatch(resp,vendedor);
+  }).reduce((s,p)=>s+$mDash((p.valores&&p.valores['Valor Líquido do Pedido'])||'0'),0);
+}
+
+const _CLAB=['GUILHERME CLABONDE','CLABONDE'];
+function isClabonde(v){return _CLAB.some(c=>v.toUpperCase().includes(c));}
+
+function getPctComissao(y,m,vendedor){
+  const vend=(vendedor||'').toUpperCase().trim();
+  // Read from configurable commission % (cfg.pctComissaoVend)
+  const cfgPct=(cfg.pctComissaoVend||{})[vend];
+  if(cfgPct!=null&&cfgPct>0)return cfgPct;
+  // Fallback for Clabonde (owner share logic) — % aplicado conforme o mês da VENDA (y,m)
+  if(isClabonde(vend)){
+    // Histórico fixo: Jan a Mai/2026, todas as metas batidas, exceto Fevereiro
+    if(y===2026&&m>=1&&m<=5)return m===2?0.40:0.70;
+    const vends=getVendedores().filter(v=>!isClabonde(v));
+    const metaEmp=vends.reduce((s,v)=>s+getMetaMes(y,m,v),0);
+    const totalEmp=getVendasMes(y,m,null);
+    return (metaEmp>0&&totalEmp>=metaEmp)?0.70:0.40;
+  }
+  // Generic fallback
+  return 0;
+}
+
+function getPagConf(confKey){return (cfg.pagConf&&cfg.pagConf[confKey])||null;}
+
+function setPagConf(confKey,data){
+  if(!cfg.pagConf)cfg.pagConf={};
+  cfg.pagConf[confKey]=data;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+}
+
+function _dashShowPinModal(){
+  document.getElementById('dash-pin-modal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='dash-pin-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+  modal.innerHTML=`<div style="background:#fff;border-radius:18px;padding:44px 32px;text-align:center;min-width:280px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="font-size:2.2rem;margin-bottom:10px">🔒</div>
+    <div style="font-weight:700;color:#1e293b;font-size:1.05rem;margin-bottom:5px">Área restrita</div>
+    <div style="font-size:.8rem;color:#64748b;margin-bottom:22px">Digite o PIN para acessar Metas & Comissões</div>
+    <input id="dash-pin-inp" type="password" placeholder="••••" maxlength="10"
+      style="width:150px;padding:11px 16px;border-radius:10px;border:1.5px solid #c4b5fd;font-size:1.2rem;text-align:center;letter-spacing:6px;outline:none;font-family:inherit;display:block;margin:0 auto 18px"
+      onkeydown="if(event.key==='Enter')dashTryUnlock()">
+    <button onclick="dashTryUnlock()" style="background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:11px 32px;font-size:.9rem;font-weight:700;cursor:pointer;width:100%">Entrar</button>
+    <div id="dash-pin-err" style="display:none;color:#e0245e;font-size:.78rem;margin-top:12px;font-weight:600"></div>
+  </div>`;
+  document.body.appendChild(modal);
+  setTimeout(()=>document.getElementById('dash-pin-inp')?.focus(),50);
+}
+
+function dashTab(tab,btn){
+  document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('dash-tab-metas').style.display=tab==='metas'?'':'none';
+  document.getElementById('dash-tab-vendas').style.display=tab==='vendas'?'':'none';
+  document.getElementById('dash-tab-graficos').style.display=tab==='graficos'?'':'none';
+  if(tab==='metas'){
+    if(!dashMetasUnlocked){
+      _dashShowPinModal();
+    } else {
+      renderDashMetas();renderDashComissoes();
+    }
+  }
+  if(tab==='vendas')renderDashVendas();
+  if(tab==='graficos')renderDashGraficos();
+}
+
+function dashMov(dir){
+  if(!dashMetasUnlocked){_dashShowPinModal();return;}
+  dashMesAtual.m+=dir;
+  if(dashMesAtual.m>12){dashMesAtual.m=1;dashMesAtual.y++;}
+  if(dashMesAtual.m<1){dashMesAtual.m=12;dashMesAtual.y--;}
+  renderDashMetas();renderDashComissoes();
+}
+
+function dashQ(q,btn){
+  if(!dashMetasUnlocked)return;
+  dashQuinzena=q;
+  document.querySelectorAll('.q-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderDashComissoes();
+}
+function dashComissaoVend(v){
+  if(!dashMetasUnlocked)return;
+  dashComissaoVendFil=v;
+  renderDashComissoes();
+}
+
+function renderDashCards(){
+  const c=document.getElementById('dash-cards');if(!c)return;
+  const {y,m}=dashMesAtual;
+  const vends=getVendedores().filter(v=>!isClabonde(v));
+  const totalVendas=getVendasMes(y,m,null);
+  const totalMeta=vends.reduce((s,v)=>s+getMetaMes(y,m,v),0);
+  let totalRecebido=0;
+  pedidos.filter(isComercialPedido).forEach(p=>{getParcelas(p).forEach(parc=>{
+    const qi=getComissaoQuinzena(p,parc.dataStr);
+    if(qi&&qi.y===y&&qi.m===m){const conf=getPagConf(parc.confKey);if(conf&&conf.status==='confirmado')totalRecebido+=parc.valor;}
+  });});
+  c.innerHTML=[
+    {label:'Vendas do Mês',val:fmtR(totalVendas),sub:totalMeta>0?`Meta: ${fmtR(totalMeta)}`:'Meta não definida',color:'#2563eb'},
+    {label:'Recebido Confirmado',val:fmtR(totalRecebido),sub:'Parcelas confirmadas no mês',color:'#16a34a'},
+    {label:'Meta da Empresa',val:fmtR(totalMeta),sub:totalMeta>0&&totalVendas>=totalMeta?'✅ Meta atingida':'Acompanhe os vendedores',color:'#e91e63'},
+  ].map(card=>`<div style="background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #e5e7eb">
+    <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px">${card.label}</div>
+    <div style="font-size:1.25rem;font-weight:800;color:${card.color}">${card.val}</div>
+    <div style="font-size:.72rem;color:#94a3b8;margin-top:4px">${card.sub}</div>
+  </div>`).join('');
+}
+
+function renderDashMetas(){
+  const el=document.getElementById('dash-mes-lbl');if(el)el.textContent=MESES_PT[dashMesAtual.m]+' '+dashMesAtual.y;
+  renderDashCards();
+  const {y,m}=dashMesAtual;
+  const vends=getVendedores();
+  const tbody=document.getElementById('dash-metas-body');if(!tbody)return;
+  tbody.innerHTML=vends.map(v=>{
+    const meta=getMetaMes(y,m,v);
+    const vendas=getVendasMes(y,m,v);
+    const pct=getPctComissao(y,m,v);
+    const bateu=meta>0&&vendas>=meta;
+    const badge=meta===0?`<span class="dash-badge pend">Sem meta</span>`:bateu?`<span class="dash-badge ok">✅ Bateu</span>`:`<span class="dash-badge no">❌ Não bateu</span>`;
+    const vEsc=v.replace(/'/g,"\'");
+    const pctCfg=(cfg.pctComissaoVend||{})[v]||0;
+    return `<tr>
+      <td style="font-weight:600">${v}</td>
+      <td><input class="dash-meta-inp" type="text" value="${meta>0?fmtR(meta):''}" placeholder="R$ 0,00"
+        onblur="setMetaMes(${y},${m},'${vEsc}',parseFloat(this.value.replace(/[R$\s\.]/g,'').replace(',','.'))||0);renderDashMetas()"
+        oninput="fmtMoney(this)"></td>
+      <td style="font-weight:700">${fmtR(vendas)}</td>
+      <td>${badge}</td>
+      <td><input class="dash-meta-inp" type="number" min="0" max="100" step="0.01"
+        value="${pctCfg>0?pctCfg:''}" placeholder="0"
+        style="width:70px;text-align:center"
+        onblur="savePctComissao('${vEsc}',parseFloat(this.value)||0)"
+        title="% de comissão sobre o valor líquido"></td>
+      <td style="font-weight:800;color:#e91e63">${pct>0?pct.toFixed(2).replace('.',',')+'%':'—'}</td>
+    </tr>`;
+  }).join('');
+  const empRow=document.getElementById('dash-empresa-row');if(!empRow)return;
+  const vendsNoClab=vends.filter(v=>!isClabonde(v));
+  const metaEmp=vendsNoClab.reduce((s,v)=>s+getMetaMes(y,m,v),0);
+  const totalEmp=getVendasMes(y,m,null);
+  const pctClab=metaEmp>0&&totalEmp>=metaEmp?70:40;
+  empRow.innerHTML=`
+    <div><span style="font-size:.7rem;color:#94a3b8">Meta empresa:</span> <strong>${fmtR(metaEmp)}</strong></div>
+    <div><span style="font-size:.7rem;color:#94a3b8">Total vendas:</span> <strong>${fmtR(totalEmp)}</strong></div>
+    <div>${metaEmp>0&&totalEmp>=metaEmp?'<span class="dash-badge ok">✅ Meta atingida</span>':'<span class="dash-badge no">❌ Abaixo da meta</span>'}</div>`;
+}
+
+function getComissaoItems(y,m){
+  const allItemsI=[],allItemsII=[];
+  pedidos.filter(isComercialPedido).forEach(p=>{getParcelas(p).forEach(parc=>{
+    const conf=getPagConf(parc.confKey);
+    const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
+    const qi=getComissaoQuinzena(p,dataAtiva);
+    if(qi&&qi.y===y&&qi.m===m){
+      const pct=getPctComissao(y,m,(p.responsavel||'').toUpperCase().trim());
+      const emY=p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y;
+      const emM=p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m;
+      const pctClab=getPctComissao(emY,emM,'CLABONDE');
+      const emMes=(()=>{if(!p.emissaoEm)return'—';return (MESES_PT[emM-1]||'—')+' '+p.emissaoEm.slice(0,4);})();
+      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes};
+      if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
+    }
+  });});
+  return {itemsI:allItemsI,itemsII:allItemsII};
+}
+
+function renderDashComissoes(){
+  const {y,m}=dashMesAtual;
+  const el=document.getElementById('dash-comissoes');if(!el)return;
+  const {itemsI:allItemsI,itemsII:allItemsII}=getComissaoItems(y,m);
+
+  // Coletar todos os vendedores únicos
+  const allItems=[...allItemsI,...allItemsII];
+  const vendedoresUnicos=[''].concat([...new Set(allItems.map(i=>(i.nomeVend||'').toUpperCase().trim()).filter(Boolean))].sort());
+
+  // Aplicar filtro de vendedor
+  const filV=dashComissaoVendFil;
+  const itemsI=filV?allItemsI.filter(i=>vendedorMatch(i.nomeVend,filV)):allItemsI;
+  const itemsII=filV?allItemsII.filter(i=>vendedorMatch(i.nomeVend,filV)):allItemsII;
+
+  // Barra de filtro
+  const filterBar=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#64748b">Filtrar por vendedor:</span>
+    <select onchange="dashComissaoVend(this.value)" style="padding:5px 10px;border-radius:7px;border:1.5px solid #e5e7eb;font-size:.82rem;font-family:inherit;background:#fff;cursor:pointer">
+      ${vendedoresUnicos.map(v=>`<option value="${v}"${v===filV?' selected':''}>${v||'— Todos —'}</option>`).join('')}
+    </select>
+    ${filV?`<span style="font-size:.72rem;color:#6366f1;font-weight:600">Mostrando: ${filV}</span>`:''}
+    <select id="pdf-quinzena-sel" style="padding:5px 10px;border-radius:7px;border:1.5px solid #e5e7eb;font-size:.82rem;font-family:inherit;background:#fff;cursor:pointer;margin-left:auto">
+      <option value="">PDF: Consolidado (1ª + 2ª)</option>
+      <option value="I">PDF: 1ª Quinzena (dia 5)</option>
+      <option value="II">PDF: 2ª Quinzena (dia 15)</option>
+    </select>
+    <button onclick="gerarPDFComissao('${filV.replace(/'/g,"\\'")}',document.getElementById('pdf-quinzena-sel').value)" class="dash-btn-conf">📄 Gerar PDF${filV?' — '+filV:' (Todos)'}</button>
+    <button onclick="gerarPDFComissao('__CLABONDE__',document.getElementById('pdf-quinzena-sel')?.value||'')" class="dash-btn-conf">📄 Gerar PDF Clabonde</button>
+  </div>`;
+
+  if(!allItemsI.length&&!allItemsII.length){
+    el.innerHTML=filterBar+`<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.85rem">Nenhum recebimento previsto para ${MESES_PT[m-1]} ${y}.</div>`;
+    return;
+  }
+
+  function mkTable(items,emptyMsg){
+    if(!items.length)return`<div style="padding:12px 0;color:#94a3b8;font-size:.82rem">${emptyMsg||'Nenhum lançamento nesta quinzena.'}</div>`;
+    return`<div style="overflow-x:auto"><table class="dash-table">
+      <thead><tr><th>Mês Venda</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor cliente</th><th>Data prev.</th><th>%</th><th>Comissão</th><th>Status</th><th>Ação</th></tr></thead>
+      <tbody>${items.map(i=>{
+        const com=i.valor*i.pct/100;
+        const sb=i.status==='confirmado'?'<span class="dash-badge ok">✅ Confirmado</span>':i.status==='adiado'?'<span class="dash-badge pend">⏭ Adiado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
+        const ck=i.confKey.replace(/'/g,"\\'");
+        const da=i.dataAtiva.replace(/'/g,"\\'");
+        const ac=i.status==='confirmado'?`<span style="font-size:.72rem;color:#16a34a">Pago ✓</span>`:`<button class="dash-btn-conf" onclick="confPag('${ck}','${da}')">✅ Confirmar</button><button class="dash-btn-adiar" onclick="adiarPag('${ck}','${da}')">⏭ Adiar</button>`;
+        return`<tr style="${i.status==='confirmado'?'background:#f0fdf4;':''}">
+          <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
+          <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
+          <td>${i.nomeVend}</td>
+          <td style="font-size:.72rem">${i.label}</td>
+          <td style="font-weight:700">${fmtR(i.valor)}</td>
+          <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
+          <td style="font-weight:700;color:#e91e63">${i.pct>0?i.pct.toFixed(2).replace('.',',')+'%':'—'}</td>
+          <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
+          <td>${sb}</td>
+          <td>${ac}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+
+  function mkConsolidado(items){
+    if(!items.length)return'';
+    const totalVal=items.reduce((s,i)=>s+i.valor,0);
+    const totalCom=items.reduce((s,i)=>s+(i.valor*i.pct/100),0);
+    const rows=items.map(i=>{
+      const com=i.valor*i.pct/100;
+      const ck=i.confKey.replace(/'/g,"\\'");
+      const dataConf=i.confirmedAt?new Date(i.confirmedAt).toLocaleDateString('pt-BR'):'—';
+      return`<tr style="background:#f0fdf4">
+        <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
+        <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
+        <td>${i.nomeVend}</td>
+        <td style="font-weight:700">${fmtR(i.valor)}</td>
+        <td style="font-weight:700;color:#e91e63">${i.pct>0?i.pct.toFixed(2).replace('.',',')+'%':'—'}</td>
+        <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
+        <td style="font-size:.7rem;color:#16a34a;white-space:nowrap">${dataConf}</td>
+        <td><button class="dash-btn-adiar" onclick="reabrirPag('${ck}')">↩ Reabrir</button></td>
+      </tr>`;
+    }).join('');
+    return`<details style="margin:6px 0 16px">
+      <summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.5px;padding:6px 0">✅ Consolidados desta quinzena (${items.length}) — Valor: ${fmtR(totalVal)} · Comissão: ${fmtR(totalCom)}</summary>
+      <div style="overflow-x:auto;margin-top:8px"><table class="dash-table">
+        <thead><tr><th>Mês Venda</th><th>Cliente</th><th>Vendedor</th><th>Valor pago</th><th>%</th><th>Comissão</th><th>Confirmado em</th><th>Ação</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </details>`;
+  }
+
+  function mkCards(items){
+    const prev=items.filter(i=>i.status!=='confirmado').reduce((s,i)=>s+i.valor,0);
+    const conf=items.filter(i=>i.status==='confirmado').reduce((s,i)=>s+i.valor,0);
+    const cp=items.filter(i=>i.status!=='confirmado').reduce((s,i)=>s+(i.valor*i.pct/100),0);
+    const cc=items.filter(i=>i.status==='confirmado').reduce((s,i)=>s+(i.valor*i.pct/100),0);
+    return`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      <div style="background:#dbeafe;border-radius:8px;padding:10px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">Receb. cliente</div><div style="font-size:.95rem;font-weight:800;color:#1e40af">${fmtR(prev)}</div><div style="font-size:.6rem;color:#93c5fd;margin-top:2px">a receber dos clientes</div></div>
+      <div style="background:#dcfce7;border-radius:8px;padding:10px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#16a34a">Receb. confirmado</div><div style="font-size:.95rem;font-weight:800;color:#16a34a">${fmtR(conf)}</div><div style="font-size:.6rem;color:#86efac;margin-top:2px">pagos pelos clientes</div></div>
+      <div style="background:#fce7f3;border-radius:8px;padding:10px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#be185d">Comissão a pagar</div><div style="font-size:.95rem;font-weight:800;color:#be185d">${fmtR(cp)}</div><div style="font-size:.6rem;color:#f9a8d4;margin-top:2px">a pagar ao vendedor</div></div>
+      <div style="background:#f3e8ff;border-radius:8px;padding:10px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#7c3aed">Comissão paga</div><div style="font-size:.95rem;font-weight:800;color:#7c3aed">${fmtR(cc)}</div><div style="font-size:.6rem;color:#c4b5fd;margin-top:2px">comissão já confirmada</div></div>
+    </div>`;
+  }
+
+  function mkVendResume(items){
+    const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].sort();
+    if(vends.length<=1)return'';
+    const rows=vends.map(v=>{
+      const its=items.filter(i=>vendedorMatch(i.nomeVend,v));
+      const val=its.reduce((s,i)=>s+i.valor,0);
+      const com=its.reduce((s,i)=>s+(i.valor*i.pct/100),0);
+      const pend=its.filter(i=>i.status!=='confirmado').reduce((s,i)=>s+(i.valor*i.pct/100),0);
+      return`<tr>
+        <td style="font-weight:600">${v}</td>
+        <td style="font-weight:700">${fmtR(val)}</td>
+        <td style="font-weight:700;color:#be185d">${fmtR(pend)}</td>
+        <td style="font-weight:700;color:#7c3aed">${fmtR(com-pend)}</td>
+      </tr>`;
+    }).join('');
+    return`<details style="margin-bottom:12px">
+      <summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:6px 0">📊 Resumo por vendedor</summary>
+      <div style="overflow-x:auto;margin-top:8px"><table class="dash-table">
+        <thead><tr><th>Vendedor</th><th>Total clientes</th><th>Comissão a pagar</th><th>Comissão paga</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </details>`;
+  }
+
+  const pendI=itemsI.filter(i=>i.status!=='confirmado');
+  const consI=itemsI.filter(i=>i.status==='confirmado');
+  const pendII=itemsII.filter(i=>i.status!=='confirmado');
+  const consII=itemsII.filter(i=>i.status==='confirmado');
+
+  el.innerHTML=
+    filterBar+
+    `<div style="border-left:4px solid #111827;padding-left:12px;margin-bottom:16px;margin-top:4px">
+       <div style="font-size:.85rem;font-weight:700;color:#111827">1ª Quinzena · pagar dia 5</div>
+     </div>
+     ${mkCards(itemsI)}${mkVendResume(itemsI)}
+     <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendI.length})</div>
+     ${mkTable(pendI,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consI)}
+     <div style="border-left:4px solid #6366f1;padding-left:12px;margin:24px 0 16px">
+       <div style="font-size:.85rem;font-weight:700;color:#6366f1">2ª Quinzena · pagar dia 15</div>
+     </div>
+     ${mkCards(itemsII)}${mkVendResume(itemsII)}
+     <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendII.length})</div>
+     ${mkTable(pendII,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consII)}`;
+}
+
+function gerarPDFComissao(vend,quinzena){
+  if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const {y,m}=dashMesAtual;
+  const {itemsI,itemsII}=getComissaoItems(y,m);
+  let items, quinzenaLbl;
+  if(quinzena==='I'){items=itemsI.map(i=>({...i,_q:'1ª'}));quinzenaLbl=' - 1ª Quinzena (pagar dia 5)';}
+  else if(quinzena==='II'){items=itemsII.map(i=>({...i,_q:'2ª'}));quinzenaLbl=' - 2ª Quinzena (pagar dia 15)';}
+  else{items=[...itemsI.map(i=>({...i,_q:'1ª'})),...itemsII.map(i=>({...i,_q:'2ª'}))];quinzenaLbl=' - Consolidado (1ª e 2ª Quinzena)';}
+
+  // Apenas o que o cliente já pagou (confirmado). O que não foi pago é adiado para a próxima quinzena.
+  items=items.filter(i=>i.status==='confirmado');
+
+  let title, useClabPct=false, groupByVend=false;
+  if(vend==='__CLABONDE__'){
+    useClabPct=true;
+    groupByVend=true;
+    title='Comissão Guilherme Clabonde - sobre todas as vendas (0,70% meses com meta batida / 0,40% meses sem meta batida, conforme mês da venda)';
+  } else if(vend){
+    items=items.filter(i=>vendedorMatch(i.nomeVend,vend));
+    title='Comissão - '+vend;
+  } else {
+    groupByVend=true;
+    title='Comissão - Todos os vendedores';
+  }
+  title+=quinzenaLbl;
+  if(!items.length){toast('Nenhum lançamento confirmado (pago) para gerar o relatório.','terr');return;}
+
+  const showQCol=!quinzena;
+  const head=['Mês Venda','Cliente','Valor Pago','%','Comissão',...(showQCol?['Quinzena']:[])];
+
+  doc.setFontSize(14);
+  doc.text('GRANDA - Relatório de Comissão',14,16);
+  doc.setFontSize(10);
+  doc.text(title,14,24);
+  doc.text('Período: '+MESES_PT[m-1]+' '+y,14,30);
+
+  let curY=36;
+  let grandTotal=0;
+
+  function drawSection(its,sectionTitle){
+    if(curY>265){doc.addPage();curY=20;}
+    if(sectionTitle){
+      doc.setFontSize(10);
+      doc.setFont('helvetica','bold');
+      doc.text(sectionTitle,14,curY);
+      doc.setFont('helvetica','normal');
+      curY+=6;
+    }
+    let subtotal=0;
+    const body=its.map(i=>{
+      const pct=useClabPct?i.pctClab:i.pct;
+      const com=i.valor*pct/100;
+      subtotal+=com;
+      const row=[i.mesPedido,i.cliente,fmtR(i.valor),pct.toFixed(2).replace('.',',')+'%',fmtR(com)];
+      if(showQCol)row.push(i._q);
+      return row;
+    });
+    doc.autoTable({startY:curY,head:[head],body,styles:{fontSize:7.5},headStyles:{fillColor:[124,58,237]}});
+    curY=(doc.lastAutoTable?.finalY||curY)+7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica','bold');
+    doc.text('Subtotal: '+fmtR(subtotal),14,curY);
+    doc.setFont('helvetica','normal');
+    curY+=10;
+    grandTotal+=subtotal;
+  }
+
+  if(groupByVend){
+    const vendNames=[...new Set(items.map(i=>i.nomeVend||'—'))].sort();
+    vendNames.forEach(vn=>drawSection(items.filter(i=>(i.nomeVend||'—')===vn),vn));
+  } else {
+    drawSection(items,null);
+  }
+
+  if(curY>270){doc.addPage();curY=20;}
+  doc.setFontSize(11);
+  doc.setFont('helvetica','bold');
+  doc.text('Comissão total: '+fmtR(grandTotal),14,curY);
+  doc.setFont('helvetica','normal');
+
+  const slug=(vend==='__CLABONDE__'?'clabonde':vend?vend.toLowerCase().replace(/\s+/g,'_'):'todos')+(quinzena==='I'?'_1qz':quinzena==='II'?'_2qz':'');
+  doc.save(`comissao_${slug}_${y}_${String(m).padStart(2,'0')}.pdf`);
+}
+
+async function confPag(confKey,dataStr){
+  setPagConf(confKey,{status:'confirmado',novaData:dataStr,confirmedAt:new Date().toISOString()});
+  renderDashComissoes();renderDashCards();toast('Pagamento confirmado! ✅','tok');
+}
+
+async function reabrirPag(confKey){
+  if(cfg.pagConf)delete cfg.pagConf[confKey];
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderDashComissoes();renderDashCards();toast('Pagamento reaberto','tok');
+}
+
+async function adiarPag(confKey,dataStr){
+  const d=parseDataBR(dataStr);if(!d)return;
+  const dia=d.getDate();
+  let nova;
+  if(dia<=5){nova=new Date(d.getFullYear(),d.getMonth(),15);}
+  else if(dia<=15){nova=new Date(d.getFullYear(),d.getMonth()+1,5);}
+  else{nova=new Date(d.getFullYear(),d.getMonth()+1,15);}
+  const pad=n=>String(n).padStart(2,'0');
+  const novaStr=pad(nova.getDate())+'/'+pad(nova.getMonth()+1)+'/'+nova.getFullYear();
+  setPagConf(confKey,{status:'adiado',novaData:novaStr,adiatedAt:new Date().toISOString()});
+  renderDashComissoes();toast('Adiado para '+novaStr,'tok');
+}
+
+// ════════════════════════════════════════
+// PLANILHA DE VENDAS — DADOS DA XLSX
+// ════════════════════════════════════════
+const XLSX_VENDAS=[
+  {mes:"JANEIRO",m:1,p:"18696",cl:"BURGER KING EMBU DAS ARTES 1",cat:"MANUTENÇÃO",v:"JULIO",br:12850.0,ft:800.0,vi:2200.0,el:2450.0,mo:2000.0,art:500.0,ba:0.0,ou:0.0,lq:4900.0,op:7950.0,entrega:"16/02/2026",parcelas:[{dataStr:"15/04/2026",valor:4900.0}]},
+  {mes:"JANEIRO",m:1,p:"18697",cl:"BURGER KING EMBU DAS ARTES 2",cat:"MANUTENÇÃO",v:"JULIO",br:10150.0,ft:800.0,vi:0.0,el:2150.0,mo:2300.0,art:0.0,ba:0.0,ou:0.0,lq:4900.0,op:5250.0,entrega:"16/02/2026",parcelas:[{dataStr:"15/04/2026",valor:4900.0}]},
+  {mes:"JANEIRO",m:1,p:"18691",cl:"BOB'S ZAT - UNIÃO DA VITÓRIA",cat:"QUIOSQUE BASIC",v:"KELLEN",br:34922.17,ft:3000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:31922.17,op:3000.0,entrega:"13/02/2026",parcelas:[{dataStr:"15/01/2026",valor:15961.08},{dataStr:"05/03/2026",valor:3990.27},{dataStr:"05/04/2026",valor:3990.27},{dataStr:"05/05/2026",valor:3990.27},{dataStr:"05/06/2026",valor:3990.27}]},
+  {mes:"JANEIRO",m:1,p:"18692",cl:"BOB'S MURIAÉ MG",cat:"LOJA",v:"KELLEN",br:17060.43,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:17060.43,op:0.0,entrega:"20/02/2026",parcelas:[{dataStr:"15/01/2026",valor:8530.22},{dataStr:"05/03/2026",valor:4265.11},{dataStr:"05/04/2026",valor:4265.11}]},
+  {mes:"JANEIRO",m:1,p:"18698",cl:"BOB'S MACAÉ RJ",cat:"LOJA",v:"KELLEN",br:8821.52,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:8821.52,op:0.0,entrega:"10/02/2026",parcelas:[{dataStr:"15/01/2026",valor:4410.76},{dataStr:"05/02/2026",valor:4410.76}]},
+  {mes:"JANEIRO",m:1,p:"18695",cl:"BOB'S CATARATAS FOZ DO IGUAÇU PR",cat:"QUIOSQUE ESPECIAL",v:"KELLEN",br:57075.0,ft:0.0,vi:2500.0,el:0.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:49575.0,op:7500.0,entrega:"26/02/2026",parcelas:[{dataStr:"15/01/2026",valor:24787.5},{dataStr:"05/03/2026",valor:12393.75},{dataStr:"05/04/2026",valor:12393.75}]},
+  {mes:"JANEIRO",m:1,p:"18690",cl:"ESCOLA MAPLE BEAR",cat:"LETRAS CAIXA",v:"KELLEN",br:24224.62,ft:0.0,vi:0.0,el:0.0,mo:2000.0,art:500.0,ba:0.0,ou:0.0,lq:21724.62,op:2500.0,entrega:"06/02/2026",parcelas:[{dataStr:"15/01/2026",valor:10862.31},{dataStr:"05/03/2026",valor:5431.15},{dataStr:"05/04/2026",valor:5431.15}]},
+  {mes:"JANEIRO",m:1,p:"18708",cl:"BURGER KING ARUJA/ITAQUA/GUARULHOS",cat:"MANUTENÇÃO",v:"JULIO",br:283500.0,ft:18000.0,vi:6000.0,el:22000.0,mo:19500.0,art:0.0,ba:0.0,ou:0.0,lq:218000.0,op:65500.0,entrega:"27/02/2026",parcelas:[{dataStr:"15/03/2026",valor:47960.0},{dataStr:"05/05/2026",valor:132631.2},{dataStr:"15/06/2026",valor:37408.8}]},
+  {mes:"JANEIRO",m:1,p:"5",cl:"BURGER KING ITAGUAI",cat:"MANUTENÇÃO",v:"JULIO",br:145000.0,ft:9000.0,vi:2000.0,el:9000.0,mo:6500.0,art:500.0,ba:25000.0,ou:0.0,lq:93000.0,op:52000.0,entrega:"20/03/2026",parcelas:[{dataStr:"05/05/2026",valor:93000.0}]},
+  {mes:"JANEIRO",m:1,p:"56",cl:"BURGER KING COLOMBO",cat:"LOJA NOVA ZAMP",v:"JULIO",br:312895.0,ft:3500.0,vi:1400.0,el:7600.0,mo:21403.0,art:500.0,ba:0.0,ou:0.0,lq:278492.0,op:34403.0,entrega:"30/04/2026",parcelas:[{dataStr:"15/05/2026",valor:167095.2},{dataStr:"15/06/2026",valor:111396.8}]},
+  {mes:"JANEIRO",m:1,p:"18713",cl:"BURGER KING JUNDIAÍ",cat:"MANUTENÇÃO",v:"JULIO",br:63127.5,ft:5600.0,vi:2500.0,el:6000.0,mo:3000.0,art:0.0,ba:0.0,ou:0.0,lq:46027.5,op:17100.0,entrega:"18/03/2026",parcelas:[{dataStr:"15/04/2026",valor:46027.5}]},
+  {mes:"JANEIRO",m:1,p:"18725",cl:"BURGER ESTRADA DO MONTEIRO",cat:"MANUTENÇÃO",v:"JULIO",br:19095.0,ft:2645.0,vi:1000.0,el:3000.0,mo:2000.0,art:0.0,ba:0.0,ou:0.0,lq:10450.0,op:8645.0,entrega:"18/03/2026",parcelas:[{dataStr:"15/04/2026",valor:10450.0}]},
+  {mes:"JANEIRO",m:1,p:"18724",cl:"BURGER KING PRAIA GRANDE",cat:"MANUTENÇÃO",v:"JULIO",br:24035.0,ft:2050.0,vi:1000.0,el:3000.0,mo:2500.0,art:0.0,ba:0.0,ou:0.0,lq:15485.0,op:8550.0,entrega:"16/03/2026",parcelas:[{dataStr:"15/04/2026",valor:15485.0}]},
+  {mes:"JANEIRO",m:1,p:"2",cl:"BOB'S CENTER SHOP - RIO",cat:"QUIOSQUE STANDARD",v:"KELLEN",br:70566.0,ft:15000.0,vi:3500.0,el:0.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:47066.0,op:23500.0,entrega:"06/03/2026",parcelas:[{dataStr:"05/02/2026",valor:23533.0},{dataStr:"15/03/2026",valor:23533.0}]},
+  {mes:"JANEIRO",m:1,p:"18710",cl:"BOB'S SHOPPING BELA VISTA BA",cat:"LOJA",v:"KELLEN",br:56688.65,ft:6500.0,vi:7500.0,el:0.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:37688.65,op:19000.0,entrega:"23/03/2026",parcelas:[{dataStr:"05/02/2026",valor:18844.33},{dataStr:"05/04/2026",valor:9422.16},{dataStr:"05/05/2026",valor:9422.16},{dataStr:"05/06/2026",valor:9422.16}]},
+  {mes:"JANEIRO",m:1,p:"18711",cl:"BOB'S - SALVADOR BA",cat:"QUIOSQUE ESPECIAL",v:"KELLEN",br:134294.0,ft:21000.0,vi:7000.0,el:0.0,mo:9000.0,art:500.0,ba:0.0,ou:0.0,lq:96794.0,op:37500.0,entrega:"23/03/2026",parcelas:[{dataStr:"05/02/2026",valor:48397.0},{dataStr:"05/04/2026",valor:24198.5},{dataStr:"05/05/2026",valor:24198.5},{dataStr:"05/06/2026",valor:24198.5}]},
+  {mes:"JANEIRO",m:1,p:"1",cl:"BOB'S CENTER SHOP RIO",cat:"LOJA",v:"KELLEN",br:39356.9,ft:13500.0,vi:3500.0,el:0.0,mo:3500.0,art:500.0,ba:0.0,ou:0.0,lq:18356.9,op:21000.0,entrega:"10/03/2026",parcelas:[{dataStr:"05/02/2026",valor:9178.45},{dataStr:"15/03/2026",valor:9178.45}]},
+  {mes:"JANEIRO",m:1,p:"18701",cl:"BOB'S MANGABEIRA - JOÃO PESSOA PB",cat:"LOJA",v:"KELLEN",br:11614.28,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:11614.28,op:0.0,entrega:"24/02/2026",parcelas:[{dataStr:"05/02/2026",valor:7549.28},{dataStr:"15/03/2026",valor:4065.0}]},
+  {mes:"JANEIRO",m:1,p:"18716",cl:"ARCELOR MITTAL CHAPECÓ",cat:"LETRAS CAIXA",v:"JULIO",br:15255.17,ft:1500.0,vi:0.0,el:4300.0,mo:2800.0,art:0.0,ba:0.0,ou:0.0,lq:6655.17,op:8600.0,entrega:"20/02/2026",parcelas:[{dataStr:"05/04/2026",valor:6655.17}]},
+  {mes:"FEVEREIRO",m:2,p:"18730",cl:"D'PONTA - JOÃO BARBIERO",cat:"TOTEM E INTERNOS",v:"KELLEN",br:13297.0,ft:0.0,vi:0.0,el:0.0,mo:1500.0,art:0.0,ba:0.0,ou:0.0,lq:11797.0,op:1500.0,entrega:"19/02/2026",parcelas:[{dataStr:"05/02/2026",valor:5000.0},{dataStr:"05/03/2026",valor:6797.0}]},
+  {mes:"FEVEREIRO",m:2,p:"8",cl:"ARCELOR MITTAL ALVORADA",cat:"LETRAS CAIXA",v:"JULIO",br:33659.0,ft:3198.0,vi:2310.0,el:700.0,mo:2000.0,art:0.0,ba:0.0,ou:0.0,lq:25451.0,op:8208.0,entrega:"10/03/2026",parcelas:[{dataStr:"05/04/2026",valor:25451.0}]},
+  {mes:"FEVEREIRO",m:2,p:"9",cl:"DAF SANTA MARIA (CONCESSIONÁRIO)",cat:"CONCESSIONÁRIO",v:"JULIO",br:89484.95,ft:0.0,vi:5832.0,el:0.0,mo:5000.0,art:0.0,ba:0.0,ou:0.0,lq:78652.95,op:10832.0,entrega:"20/03/2026",parcelas:[{dataStr:"15/02/2026",valor:31461.18},{dataStr:"15/03/2026",valor:26217.65},{dataStr:"05/05/2026",valor:26217.65},{dataStr:"05/06/2026",valor:26217.65}]},
+  {mes:"FEVEREIRO",m:2,p:"14",cl:"DAF SANTA MARIA (DAF)",cat:"CONCESSIONÁRIO",v:"JULIO",br:102381.3,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:102381.3,op:0.0,entrega:"20/03/2026",parcelas:[{dataStr:"05/06/2026",valor:102381.3}]},
+  {mes:"FEVEREIRO",m:2,p:"17",cl:"MADERO RIBEIRÃO PRETO",cat:"LOJA HÍBRIDA",v:"KELLEN",br:120000.0,ft:11000.0,vi:2000.0,el:6000.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:96000.0,op:24000.0,entrega:"27/03/2026",parcelas:[{dataStr:"15/03/2026",valor:48000.0},{dataStr:"05/05/2026",valor:48000.0}]},
+  {mes:"FEVEREIRO",m:2,p:"11",cl:"KOPENHAGEN",cat:"LOJA SHOPPING",v:"KELLEN",br:63202.0,ft:5000.0,vi:2000.0,el:0.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:47702.0,op:15500.0,entrega:"25/03/2026",parcelas:[{dataStr:"15/06/2026",valor:47702.0}]},
+  {mes:"FEVEREIRO",m:2,p:"30",cl:"BURGER KING ITAQUA GARDEN SHOP",cat:"MANUTENÇÃO",v:"JULIO",br:75606.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:60606.0,op:15000.0,entrega:"09/05/2026",parcelas:[{dataStr:"15/06/2026",valor:60606.0}]},
+  {mes:"FEVEREIRO",m:2,p:"28",cl:"BURGER KING WEST PLAZA II",cat:"MANUTENÇÃO",v:"JULIO",br:59686.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:44686.0,op:15000.0,entrega:"20/05/2026",parcelas:[{dataStr:"15/06/2026",valor:44686.0}]},
+  {mes:"FEVEREIRO",m:2,p:"29",cl:"BURGER KING VILLA LOBOS",cat:"MANUTENÇÃO",v:"JULIO",br:56038.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:41038.0,op:15000.0,entrega:"14/05/2026",parcelas:[{dataStr:"15/06/2026",valor:41038.0}]},
+  {mes:"FEVEREIRO",m:2,p:"22",cl:"BOB'S CAXIAS RJ",cat:"LOJA",v:"KELLEN",br:32432.0,ft:4500.0,vi:3500.0,el:0.0,mo:3000.0,art:500.0,ba:0.0,ou:0.0,lq:20932.0,op:11500.0,entrega:"03/04/2026",parcelas:[{dataStr:"05/04/2026",valor:10466.0},{dataStr:"05/05/2026",valor:10466.0}]},
+  {mes:"FEVEREIRO",m:2,p:"23",cl:"BOB'S BANGU RJ",cat:"LOJA",v:"KELLEN",br:21332.0,ft:4500.0,vi:3500.0,el:0.0,mo:3000.0,art:500.0,ba:0.0,ou:0.0,lq:9832.0,op:11500.0,entrega:"03/04/2026",parcelas:[{dataStr:"05/04/2026",valor:4916.0},{dataStr:"05/05/2026",valor:4916.0}]},
+  {mes:"FEVEREIRO",m:2,p:"27",cl:"BURGER KING PONTA GROSSA",cat:"BK É FOGO",v:"JULIO",br:119357.0,ft:23500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:95857.0,op:23500.0,entrega:"23/03/2026",parcelas:[{dataStr:"05/06/2026",valor:95857.0}]},
+  {mes:"FEVEREIRO",m:2,p:"40",cl:"BURGER KING ARAGUAIA VARZEA",cat:"BK É FOGO",v:"JULIO",br:88848.0,ft:24197.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:64651.0,op:24197.0,entrega:"15/04/2026",parcelas:[{dataStr:"15/06/2026",valor:64651.0}]},
+  {mes:"FEVEREIRO",m:2,p:"S/N-90001",cl:"C&A CATANDUVA SP CTV",cat:"LETRAS CAIXA",v:"KELLEN",br:11000.0,ft:2037.0,vi:1500.0,el:0.0,mo:1500.0,art:500.0,ba:0.0,ou:0.0,lq:5463.0,op:5537.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/04/2026",valor:5463.0}]},
+  {mes:"FEVEREIRO",m:2,p:"32",cl:"C&A BLUMENAU SC BLK",cat:"LETRAS CAIXA",v:"KELLEN",br:25000.0,ft:2800.0,vi:1500.0,el:0.0,mo:2500.0,art:500.0,ba:0.0,ou:0.0,lq:17700.0,op:7300.0,entrega:"29/04/2026",parcelas:[{dataStr:"05/04/2026",valor:17700.0}]},
+  {mes:"MARÇO",m:3,p:"41",cl:"BURGER KING SERTÃOZINHO",cat:"BK É FOGO",v:"JULIO",br:138557.0,ft:8000.0,vi:2000.0,el:15000.0,mo:9500.0,art:0.0,ba:0.0,ou:0.0,lq:104057.0,op:34500.0,entrega:"07/04/2026",parcelas:[{dataStr:"05/06/2026",valor:104057.0}]},
+  {mes:"MARÇO",m:3,p:"43",cl:"BURGER KING NOVO HAMBURGO",cat:"BK É FOGO",v:"JULIO",br:82397.0,ft:7000.0,vi:2500.0,el:8000.0,mo:9000.0,art:0.0,ba:0.0,ou:0.0,lq:55897.0,op:26500.0,entrega:"08/04/2026",parcelas:[{dataStr:"15/05/2026",valor:55897.0}]},
+  {mes:"MARÇO",m:3,p:"42",cl:"BURGER KING JUIZ DE FORA",cat:"BK É FOGO",v:"JULIO",br:129633.0,ft:13100.0,vi:3000.0,el:15000.0,mo:10000.0,art:0.0,ba:0.0,ou:0.0,lq:88533.0,op:41100.0,entrega:"08/04/2026",parcelas:[{dataStr:"05/07/2026",valor:88533.0}]},
+  {mes:"MARÇO",m:3,p:"44",cl:"BURGER KING PORTO ALEGRE",cat:"BK É FOGO",v:"JULIO",br:73297.0,ft:6000.0,vi:2000.0,el:6500.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:52797.0,op:20500.0,entrega:"13/04/2026",parcelas:[{dataStr:"15/05/2026",valor:52797.0}]},
+  {mes:"MARÇO",m:3,p:"46",cl:"BURGER KING NOVA IGUAÇU",cat:"BK É FOGO",v:"JULIO",br:9100.0,ft:800.0,vi:1200.0,el:0.0,mo:1500.0,art:0.0,ba:0.0,ou:0.0,lq:5600.0,op:3500.0,entrega:"10/04/2026",parcelas:[{dataStr:"05/05/2026",valor:5600.0}]},
+  {mes:"MARÇO",m:3,p:"47",cl:"BURGER KING SALVADOR BA",cat:"BK É FOGO",v:"JULIO",br:12600.0,ft:2000.0,vi:1500.0,el:0.0,mo:3000.0,art:0.0,ba:0.0,ou:0.0,lq:6100.0,op:6500.0,entrega:"24/04/2026",parcelas:[{dataStr:"15/05/2026",valor:6100.0}]},
+  {mes:"MARÇO",m:3,p:"52",cl:"BURGER KING CARAPICUIBA INOCENCIO",cat:"BK É FOGO",v:"JULIO",br:108048.0,ft:8000.0,vi:2000.0,el:12000.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:77548.0,op:30500.0,entrega:"13/04/2026",parcelas:[{dataStr:"15/05/2026",valor:77548.0}]},
+  {mes:"MARÇO",m:3,p:"65",cl:"BURGER KING CENTER NORTE",cat:"BK É FOGO",v:"JULIO",br:71829.18,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:56829.18,op:15000.0,entrega:"01/05/2026",parcelas:[{dataStr:"05/05/2026",valor:34097.51},{dataStr:"15/06/2026",valor:22731.67}]},
+  {mes:"MARÇO",m:3,p:"55",cl:"BURGER KING GRU SAKAMOTO",cat:"BK É FOGO",v:"JULIO",br:88848.43,ft:6000.0,vi:1500.0,el:7000.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:65848.43,op:23000.0,entrega:"25/03/2026",parcelas:[{dataStr:"05/05/2026",valor:65848.43}]},
+  {mes:"MARÇO",m:3,p:"54",cl:"BURGER KING PAULO FACCINI",cat:"BK É FOGO",v:"JULIO",br:169566.0,ft:11000.0,vi:3000.0,el:12000.0,mo:10000.0,art:300.0,ba:0.0,ou:0.0,lq:133266.0,op:36300.0,entrega:"09/04/2026",parcelas:[{dataStr:"05/06/2026",valor:133266.0}]},
+  {mes:"MARÇO",m:3,p:"58",cl:"BOB'S CACHOEIRO DE ITAPEMIRIM",cat:"QUIOSQUE STANDARD",v:"CLABONDE",br:75350.0,ft:16800.0,vi:5600.0,el:0.0,mo:4500.0,art:950.0,ba:0.0,ou:0.0,lq:47500.0,op:27850.0,entrega:"30/04/2026",parcelas:[{dataStr:"15/03/2026",valor:23750.0},{dataStr:"05/05/2026",valor:23750.0}]},
+  {mes:"MARÇO",m:3,p:"68",cl:"DAF CASCAVEL",cat:"LETRAS CAIXA",v:"JULIO",br:35000.0,ft:0.0,vi:2200.0,el:0.0,mo:3500.0,art:500.0,ba:0.0,ou:0.0,lq:28800.0,op:6200.0,entrega:"11/05/2026",parcelas:[{dataStr:"05/04/2026",valor:14400.0},{dataStr:"05/05/2026",valor:14400.0}]},
+  {mes:"MARÇO",m:3,p:"70",cl:"BURGER KING - COROAS KIDS",cat:"COROAS KIDS",v:"JULIO",br:28000.0,ft:8500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:19500.0,op:8500.0,entrega:"01/05/2026",parcelas:[{dataStr:"15/06/2026",valor:19500.0}]},
+  {mes:"MARÇO",m:3,p:"72",cl:"BURGER KING CANOAS/RS",cat:"MANUTENÇÃO",v:"JULIO",br:85297.0,ft:8000.0,vi:3000.0,el:10000.0,mo:5000.0,art:0.0,ba:0.0,ou:0.0,lq:59297.0,op:26000.0,entrega:"05/05/2026",parcelas:[{dataStr:"15/06/2026",valor:59297.0}]},
+  {mes:"MARÇO",m:3,p:"84",cl:"BURGER KING RAGUEB SP",cat:"LOJA NOVA ZAMP",v:"JULIO",br:200595.0,ft:9000.0,vi:3500.0,el:8500.0,mo:7000.0,art:500.0,ba:0.0,ou:0.0,lq:172095.0,op:28500.0,entrega:"20/05/2026",parcelas:[{dataStr:"05/06/2026",valor:103257.0},{dataStr:"05/07/2026",valor:68838.0}]},
+  {mes:"MARÇO",m:3,p:"75",cl:"BURGER KING TIMOTEO PENTEADO SP, 41",cat:"BK É FOGO",v:"JULIO",br:163270.5,ft:7000.0,vi:2000.0,el:9000.0,mo:6573.0,art:0.0,ba:0.0,ou:0.0,lq:138697.5,op:24573.0,entrega:"17/04/2026",parcelas:[{dataStr:"15/05/2026",valor:138697.5}]},
+  {mes:"MARÇO",m:3,p:"76",cl:"BURGER KING TIMOTEO PENTEADO SP, 3975",cat:"BK É FOGO",v:"JULIO",br:150622.0,ft:10000.0,vi:3000.0,el:12000.0,mo:12800.0,art:300.0,ba:0.0,ou:0.0,lq:112522.0,op:38100.0,entrega:"15/04/2026",parcelas:[{dataStr:"15/05/2026",valor:112522.0}]},
+  {mes:"MARÇO",m:3,p:"77",cl:"BURGER KING GOIÂNIA",cat:"MANUTENÇÃO",v:"JULIO",br:148110.0,ft:17500.0,vi:3500.0,el:12000.0,mo:10653.0,art:500.0,ba:0.0,ou:0.0,lq:103957.0,op:44153.0,entrega:"11/05/2026",parcelas:[{dataStr:"15/06/2026",valor:103957.0}]},
+  {mes:"MARÇO",m:3,p:"78",cl:"BURGER KING S. J. DA BOA VISTA",cat:"MANUTENÇÃO",v:"JULIO",br:119357.0,ft:7000.0,vi:2000.0,el:8000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:96357.0,op:23000.0,entrega:"13/05/2026",parcelas:[{dataStr:"15/06/2026",valor:96357.0}]},
+  {mes:"MARÇO",m:3,p:"88",cl:"STARBUCKS PORTO BELO",cat:"TOTEM",v:"JULIO",br:150000.0,ft:15000.0,vi:5000.0,el:9000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:115000.0,op:35000.0,entrega:"15/05/2026",parcelas:[{dataStr:"15/06/2026",valor:69000.0},{dataStr:"15/07/2026",valor:46000.0}]},
+  {mes:"MARÇO",m:3,p:"83",cl:"STARBUCKS ROSEIRA",cat:"TOTEM",v:"JULIO",br:150000.0,ft:15000.0,vi:5000.0,el:9000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:115000.0,op:35000.0,entrega:"22/05/2026",parcelas:[{dataStr:"15/06/2026",valor:69000.0},{dataStr:"15/07/2026",valor:46000.0}]},
+  {mes:"MARÇO",m:3,p:"82",cl:"TOZETTO OFICINAS",cat:"EXTERNOS",v:"CLABONDE",br:122837.9,ft:500.0,vi:0.0,el:14480.0,mo:8928.0,art:2180.0,ba:0.0,ou:0.0,lq:96749.9,op:26088.0,entrega:"20/05/2026",parcelas:[{dataStr:"05/04/2026",valor:48374.95},{dataStr:"05/06/2026",valor:48374.95}]},
+  {mes:"ABRIL",m:4,p:"92",cl:"BURGER KING AV. PAULISTA",cat:"MANUTENÇÃO",v:"JULIO",br:16100.0,ft:2000.0,vi:1500.0,el:0.0,mo:2500.0,art:0.0,ba:0.0,ou:0.0,lq:10100.0,op:6000.0,entrega:"18/05/2026",parcelas:[{dataStr:"15/06/2026",valor:10100.0}]},
+  {mes:"ABRIL",m:4,p:"85",cl:"BURGER KING ADISER ITAJAÍ",cat:"FRANQUEADO SHOPPING",v:"JULIO",br:93717.33,ft:7500.0,vi:2600.0,el:0.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:76617.33,op:17100.0,entrega:"10/05/2026",parcelas:[]},
+  {mes:"ABRIL",m:4,p:"86",cl:"BURGER KING VIA ANCHIETA",cat:"BK É FOGO",v:"JULIO",br:116419.0,ft:8000.0,vi:3500.0,el:9000.0,mo:9499.0,art:0.0,ba:0.0,ou:0.0,lq:86420.0,op:29999.0,entrega:"21/04/2026",parcelas:[{dataStr:"05/06/2026",valor:86420.0}]},
+  {mes:"ABRIL",m:4,p:"89",cl:"BURGER KING ANHAIA MELO",cat:"BK É FOGO",v:"JULIO",br:108824.0,ft:28125.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:80699.0,op:28125.0,entrega:"23/04/2026",parcelas:[{dataStr:"15/05/2026",valor:80699.0}]},
+  {mes:"ABRIL",m:4,p:"91",cl:"BURGER KING SUZANO",cat:"BK É FOGO",v:"JULIO",br:196871.0,ft:40000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:156871.0,op:40000.0,entrega:"27/04/2026",parcelas:[{dataStr:"05/06/2026",valor:156871.0}]},
+  {mes:"ABRIL",m:4,p:"90",cl:"BURGER KING POÁ SP",cat:"BK É FOGO",v:"JULIO",br:195271.0,ft:40000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:155271.0,op:40000.0,entrega:"28/04/2026",parcelas:[{dataStr:"15/06/2026",valor:155271.0}]},
+  {mes:"ABRIL",m:4,p:"86",cl:"BURGER KING MOGI DAS CRUZES",cat:"BK É FOGO",v:"JULIO",br:117161.0,ft:31500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:85661.0,op:31500.0,entrega:"28/04/2026",parcelas:[{dataStr:"15/06/2026",valor:85661.0}]},
+  {mes:"ABRIL",m:4,p:"97",cl:"BURGER KING ARAÇATUBA AV. BRASILIA",cat:"MANUTENÇÃO",v:"JULIO",br:107048.0,ft:10500.0,vi:2900.0,el:7600.0,mo:4600.0,art:500.0,ba:0.0,ou:0.0,lq:80948.0,op:26100.0,entrega:"26/05/2026",parcelas:[{dataStr:"15/06/2026",valor:80948.0}]},
+  {mes:"ABRIL",m:4,p:"96",cl:"BURGER KING HORTOLÂNDIA SHOPPING",cat:"MANUTENÇÃO",v:"JULIO",br:11300.0,ft:2000.0,vi:700.0,el:800.0,mo:1000.0,art:0.0,ba:0.0,ou:0.0,lq:6800.0,op:4500.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/06/2026",valor:6800.0}]},
+  {mes:"ABRIL",m:4,p:"71",cl:"POPEYES ESPLANADA - REVESTIMENTO BALCÃO",cat:"REVEST. BALCÃO",v:"JULIO",br:24000.0,ft:4000.0,vi:2000.0,el:0.0,mo:2400.0,art:0.0,ba:0.0,ou:0.0,lq:15600.0,op:8400.0,entrega:"08/05/2026",parcelas:[{dataStr:"15/06/2026",valor:15600.0}]},
+  {mes:"ABRIL",m:4,p:"106",cl:"BURGER KING ITABORAÍ",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:1200.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:5600.0,op:3500.0,entrega:"22/05/2026",parcelas:[{dataStr:"15/06/2026",valor:5600.0}]},
+  {mes:"ABRIL",m:4,p:"102",cl:"BURGER KING BARUERI",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:3500.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:3300.0,op:5800.0,entrega:"20/05/2026",parcelas:[{dataStr:"15/06/2026",valor:3300.0}]},
+  {mes:"ABRIL",m:4,p:"101",cl:"BURGER KING SOROCABA",cat:"MANUTENÇÃO",v:"JULIO",br:97948.0,ft:9000.0,vi:2200.0,el:6800.0,mo:7000.0,art:500.0,ba:0.0,ou:2000.0,lq:70448.0,op:27500.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/06/2026",valor:70448.0}]},
+  {mes:"ABRIL",m:4,p:"110",cl:"BURGER KING SHOPPING BC",cat:"FRANQUEADO SHOPPING",v:"JULIO",br:117000.0,ft:5280.0,vi:2400.0,el:0.0,mo:9000.0,art:500.0,ba:0.0,ou:0.0,lq:99820.0,op:17180.0,entrega:"29/05/2026",parcelas:[{dataStr:"05/05/2026",valor:49910.0},{dataStr:"15/06/2026",valor:49910.0}]},
+  {mes:"ABRIL",m:4,p:"100",cl:"BOB'S MACAPÁ/AP",cat:"QUIOSQUE BASIC",v:"BRUNO",br:43046.0,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:43046.0,op:0.0,entrega:"29/05/2026",parcelas:[{dataStr:"05/02/2026",valor:11622.42},{dataStr:"15/02/2026",valor:21523.0},{dataStr:"05/03/2026",valor:21523.0},{dataStr:"15/03/2026",valor:21523.0},{dataStr:"05/04/2026",valor:21523.0},{dataStr:"05/05/2026",valor:21523.0},{dataStr:"15/06/2026",valor:21523.0}]},
+  {mes:"ABRIL",m:4,p:"109",cl:"BOB'S BOTAFOGO/RJ",cat:"LOJA",v:"BRUNO",br:30506.63,ft:0.0,vi:3800.0,el:0.0,mo:3315.0,art:458.0,ba:0.0,ou:0.0,lq:22933.63,op:7573.0,entrega:"01/06/2026",parcelas:[{dataStr:"05/02/2026",valor:6192.08},{dataStr:"15/02/2026",valor:11466.82},{dataStr:"05/03/2026",valor:11466.82},{dataStr:"15/03/2026",valor:11466.82},{dataStr:"05/04/2026",valor:11466.82},{dataStr:"05/05/2026",valor:6880.09},{dataStr:"15/06/2026",valor:5351.18}]},
+  {mes:"ABRIL",m:4,p:"103",cl:"BOB'S SÃO JOÃO MERITI/RJ",cat:"LOJA",v:"BRUNO",br:24462.76,ft:9000.0,vi:3500.0,el:0.0,mo:3500.0,art:500.0,ba:0.0,ou:0.0,lq:7962.76,op:16500.0,entrega:"05/06/2026",parcelas:[{dataStr:"05/02/2026",valor:2149.95},{dataStr:"15/02/2026",valor:3981.38},{dataStr:"05/03/2026",valor:3981.38},{dataStr:"15/03/2026",valor:3981.38},{dataStr:"05/04/2026",valor:3981.38},{dataStr:"15/05/2026",valor:3981.38}]},
+  {mes:"ABRIL",m:4,p:"105",cl:"BOB'S APARECIDA SP",cat:"LOJA",v:"BRUNO",br:11481.98,ft:2000.0,vi:2200.0,el:0.0,mo:2500.0,art:0.0,ba:0.0,ou:0.0,lq:4781.98,op:6700.0,entrega:"01/06/2026",parcelas:[{dataStr:"05/02/2026",valor:1291.13},{dataStr:"15/02/2026",valor:2390.99},{dataStr:"05/03/2026",valor:2390.99},{dataStr:"15/03/2026",valor:2390.99},{dataStr:"05/04/2026",valor:2390.99},{dataStr:"05/05/2026",valor:2390.99},{dataStr:"15/06/2026",valor:2390.99}]},
+  {mes:"ABRIL",m:4,p:"120",cl:"MADERO PELOTAS/RS",cat:"HÍBRIDO RUA",v:"BRUNO",br:130000.0,ft:9000.0,vi:2500.0,el:10000.0,mo:6000.0,art:500.0,ba:0.0,ou:0.0,lq:102000.0,op:28000.0,entrega:"24/06/2026",parcelas:[{dataStr:"05/02/2026",valor:27540.0},{dataStr:"15/02/2026",valor:51000.0},{dataStr:"05/03/2026",valor:51000.0},{dataStr:"15/03/2026",valor:51000.0},{dataStr:"05/04/2026",valor:51000.0},{dataStr:"05/06/2026",valor:51000.0},{dataStr:"05/07/2026",valor:51000.0}]},
+  {mes:"ABRIL",m:4,p:"99",cl:"BOB'S LAGARTO ES",cat:"QUIOSQUE BASIC",v:"BRUNO",br:60000.0,ft:16500.0,vi:2250.0,el:0.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:36250.0,op:23750.0,entrega:"26/06/2026",parcelas:[{dataStr:"05/02/2026",valor:9787.5},{dataStr:"15/02/2026",valor:18125.0},{dataStr:"05/03/2026",valor:18125.0},{dataStr:"15/03/2026",valor:18125.0},{dataStr:"05/04/2026",valor:18125.0},{dataStr:"05/05/2026",valor:18125.0},{dataStr:"05/06/2026",valor:18125.0}]},
+  {mes:"ABRIL",m:4,p:"98",cl:"BOB'S LAGARTO ES",cat:"LOJA",v:"BRUNO",br:54205.0,ft:4500.0,vi:5500.0,el:0.0,mo:4000.0,art:500.0,ba:0.0,ou:0.0,lq:39705.0,op:14500.0,entrega:"15/06/2026",parcelas:[{dataStr:"05/02/2026",valor:10720.35},{dataStr:"15/02/2026",valor:19852.5},{dataStr:"05/03/2026",valor:19852.5},{dataStr:"15/03/2026",valor:19852.5},{dataStr:"05/04/2026",valor:19852.5},{dataStr:"05/05/2026",valor:19852.5},{dataStr:"05/06/2026",valor:19852.5}]},
+  {mes:"ABRIL",m:4,p:"118",cl:"BOB'S POSTO SHELL IATE RJ",cat:"LOJA",v:"BRUNO",br:11709.05,ft:2000.0,vi:3920.0,el:0.0,mo:3000.0,art:250.0,ba:0.0,ou:0.0,lq:2539.05,op:9170.0,entrega:"04/06/2026",parcelas:[{dataStr:"05/02/2026",valor:685.54},{dataStr:"15/02/2026",valor:1269.52},{dataStr:"05/03/2026",valor:1269.52},{dataStr:"15/03/2026",valor:1269.52},{dataStr:"05/04/2026",valor:1269.52},{dataStr:"05/05/2026",valor:1269.52},{dataStr:"05/06/2026",valor:1269.52}]},
+  {mes:"ABRIL",m:4,p:"117",cl:"BOB'S POSTO SHELL DEMOCRÁTICOS RJ",cat:"LOJA",v:"BRUNO",br:11990.26,ft:2000.0,vi:3920.0,el:0.0,mo:3000.0,art:250.0,ba:0.0,ou:0.0,lq:2820.26,op:9170.0,entrega:"04/06/2026",parcelas:[{dataStr:"05/02/2026",valor:761.47},{dataStr:"15/02/2026",valor:1410.13},{dataStr:"05/03/2026",valor:1410.13},{dataStr:"15/03/2026",valor:1410.13},{dataStr:"05/04/2026",valor:1410.13},{dataStr:"05/05/2026",valor:1410.13},{dataStr:"05/06/2026",valor:1410.13}]},
+  {mes:"ABRIL",m:4,p:"122",cl:"BOB'S BELÉM PA - DOCA LIDER",cat:"LOJA",v:"BRUNO",br:17433.27,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:17433.27,op:0.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/02/2026",valor:4706.98},{dataStr:"15/02/2026",valor:8716.64},{dataStr:"05/03/2026",valor:8716.64},{dataStr:"15/03/2026",valor:8716.64},{dataStr:"05/04/2026",valor:8716.64},{dataStr:"15/05/2026",valor:8716.64},{dataStr:"15/06/2026",valor:8716.64}]},
+  {mes:"ABRIL",m:4,p:"134",cl:"POPEYES ABC",cat:"LOJA SHOPPING",v:"JULIO",br:105000.0,ft:8000.0,vi:2800.0,el:0.0,mo:5000.0,art:500.0,ba:0.0,ou:0.0,lq:88700.0,op:16300.0,entrega:"10/06/2026",parcelas:[{dataStr:"15/06/2026",valor:53220.0},{dataStr:"15/07/2026",valor:35480.0}]},
+  {mes:"MAIO",m:5,p:"107",cl:"BURGER KING SHOP TRÊS LAGOAS",cat:"MANUTENÇÃO",v:"JULIO",br:22900.0,ft:5000.0,vi:1400.0,el:1600.0,mo:2400.0,art:100.0,ba:0.0,ou:0.0,lq:12400.0,op:10500.0,entrega:"26/06/2026",parcelas:[{dataStr:"15/06/2026",valor:12400.0}]},
+  {mes:"MAIO",m:5,p:"141",cl:"BURGER KING PELOTAS",cat:"MANUTENÇÃO",v:"JULIO",br:77811.0,ft:14000.0,vi:3900.0,el:0.0,mo:6600.0,art:500.0,ba:0.0,ou:0.0,lq:52811.0,op:25000.0,entrega:"24/06/2026",parcelas:[{dataStr:"15/07/2026",valor:52811.0}]},
+  {mes:"MAIO",m:5,p:"S/N-90002",cl:"BURGER KING VITORIA",cat:"MANUTENÇÃO",v:"JULIO",br:60724.0,ft:29439.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:31285.0,op:29439.0,entrega:"",parcelas:[{dataStr:"15/06/2026",valor:31285.0}]},
+  {mes:"MAIO",m:5,p:"149",cl:"BURGER KING RAGUEB SP  - ADICIONAL",cat:"LOJA NOVA ZAMP",v:"JULIO",br:11085.31,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:11085.31,op:0.0,entrega:"15/06/2026",parcelas:[{dataStr:"05/07/2026",valor:11085.31}]},
+  {mes:"MAIO",m:5,p:"179",cl:"BURGER KING DRIVE CACHOEIRINHA RS",cat:"MANUTENÇÃO",v:"JULIO",br:24902.0,ft:3400.0,vi:1000.0,el:1600.0,mo:2000.0,art:1000.0,ba:0.0,ou:0.0,lq:15902.0,op:9000.0,entrega:"14/07/2026",parcelas:[{dataStr:"15/08/2026",valor:15902.0}]},
+  {mes:"MAIO",m:5,p:"177",cl:"BURGER KING DRIVE BELÉM PA",cat:"MANUTENÇÃO",v:"JULIO",br:12600.0,ft:3000.0,vi:1400.0,el:1500.0,mo:1000.0,art:100.0,ba:0.0,ou:0.0,lq:5600.0,op:7000.0,entrega:"15/07/2026",parcelas:[{dataStr:"15/08/2026",valor:5600.0}]},
+  {mes:"MAIO",m:5,p:"150",cl:"BURGER KING ARACAJU SE",cat:"MANUTENÇÃO",v:"JULIO",br:12600.0,ft:3000.0,vi:1400.0,el:1500.0,mo:1000.0,art:100.0,ba:0.0,ou:0.0,lq:5600.0,op:7000.0,entrega:"29/06/2026",parcelas:[{dataStr:"15/07/2026",valor:5600.0}]},
+  {mes:"MAIO",m:5,p:"S/N-90003",cl:"BURGER KING VOLUNTÁRIOS DA PÁTRIA",cat:"MANUTENÇÃO",v:"JULIO",br:19500.0,ft:6000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:13500.0,op:6000.0,entrega:"",parcelas:[{dataStr:"15/06/2026",valor:13500.0}]},
+  {mes:"MAIO",m:5,p:"119",cl:"BURGER KING SHOPPING RIO SUL",cat:"MANUTENÇÃO",v:"JULIO",br:18792.0,ft:3000.0,vi:1400.0,el:0.0,mo:2100.0,art:500.0,ba:0.0,ou:0.0,lq:11792.0,op:7000.0,entrega:"25/06/2026",parcelas:[{dataStr:"15/07/2026",valor:11792.0}]},
+  {mes:"MAIO",m:5,p:"S/N-90004",cl:"BURGER KING DUQUE BANDEIRANTES SP",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:6300.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:13639.0,op:6300.0,entrega:"",parcelas:[{dataStr:"15/06/2026",valor:13639.0}]},
+  {mes:"MAIO",m:5,p:"S/N-90005",cl:"BURGER KING CURITIBA",cat:"MANUTENÇÃO",v:"JULIO",br:145315.0,ft:4800.0,vi:1200.0,el:15000.0,mo:28450.0,art:1404.0,ba:0.0,ou:0.0,lq:94461.0,op:50854.0,entrega:"",parcelas:[{dataStr:"15/06/2026",valor:94461.0}]},
+  {mes:"MAIO",m:5,p:"166",cl:"BURGER KING BOITUVA",cat:"MANUTENÇÃO",v:"JULIO",br:139296.0,ft:10500.0,vi:2300.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:110496.0,op:28800.0,entrega:"",parcelas:[]},
+  {mes:"MAIO",m:5,p:"148",cl:"BURGER KING MARINGÁ",cat:"MANUTENÇÃO",v:"JULIO",br:146657.0,ft:12000.0,vi:3600.0,el:6000.0,mo:5600.0,art:500.0,ba:0.0,ou:0.0,lq:118957.0,op:27700.0,entrega:"23/06/2026",parcelas:[{dataStr:"15/07/2026",valor:118957.0}]},
+  {mes:"MAIO",m:5,p:"130",cl:"DAF MACPONTA PONTA GROSSA - CONCESSIONÁRIO",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:45894.44,ft:1500.0,vi:0.0,el:9000.0,mo:5500.0,art:500.0,ba:0.0,ou:0.0,lq:29394.44,op:16500.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:14697.22},{dataStr:"05/07/2026",valor:14697.22}]},
+  {mes:"MAIO",m:5,p:"131",cl:"DAF MACPONTA PONTA GROSSA - FÁBRICA",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:106554.32,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:106554.32,op:0.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:53277.16},{dataStr:"05/07/2026",valor:53277.16}]},
+  {mes:"MAIO",m:5,p:"S/N-90006",cl:"BURGER KING ITAPETININGA",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:19939.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:0.0,op:19939.0,entrega:"",parcelas:[]},
+  {mes:"MAIO",m:5,p:"170",cl:"BURGER KING - AV DOS ESTADOS",cat:"BK É FOGO",v:"JULIO",br:213751.64,ft:12000.0,vi:4000.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:171251.64,op:42500.0,entrega:"27/05/2026",parcelas:[{dataStr:"15/06/2026",valor:171251.64}]},
+  {mes:"MAIO",m:5,p:"169",cl:"BURGER KING PRESTES MAIA",cat:"BK É FOGO",v:"JULIO",br:100618.64,ft:7000.0,vi:1800.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:75818.64,op:24800.0,entrega:"28/05/2026",parcelas:[{dataStr:"15/06/2026",valor:75818.64}]},
+  {mes:"MAIO",m:5,p:"171",cl:"BURGER KING AVENIDA DOM PEDRO II",cat:"BK É FOGO",v:"JULIO",br:222675.0,ft:13000.0,vi:5000.0,el:15000.0,mo:15000.0,art:500.0,ba:0.0,ou:0.0,lq:174175.0,op:48500.0,entrega:"27/05/2026",parcelas:[{dataStr:"15/06/2026",valor:174175.0}]},
+  {mes:"MAIO",m:5,p:"162",cl:"BURGER KING MARIA SERVIDEI",cat:"BK É FOGO",v:"JULIO",br:180442.0,ft:13500.0,vi:4500.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:135942.0,op:44500.0,entrega:"28/05/2026",parcelas:[{dataStr:"15/06/2026",valor:135942.0}]},
+  {mes:"MAIO",m:5,p:"180",cl:"ARCELOR MITTAL GUARAPUAVA",cat:"REFORMA UNIDADE",v:"BRUNO",br:30351.04,ft:4500.0,vi:1160.0,el:9000.0,mo:5500.0,art:500.0,ba:0.0,ou:0.0,lq:9691.04,op:20660.0,entrega:"02/07/2026",parcelas:[{dataStr:"05/02/2026",valor:2616.58},{dataStr:"15/02/2026",valor:4845.52},{dataStr:"05/03/2026",valor:4845.52},{dataStr:"15/03/2026",valor:4845.52},{dataStr:"05/04/2026",valor:4845.52},{dataStr:"15/04/2026",valor:4845.52},{dataStr:"15/05/2026",valor:4845.52},{dataStr:"05/07/2026",valor:9691.04}]},
+  {mes:"MAIO",m:5,p:"172",cl:"MAX CHAPADA - PONTA GROSSA",cat:"REFORMA UNIDADE",v:"BRUNO",br:129000.0,ft:2000.0,vi:0.0,el:12500.0,mo:9000.0,art:500.0,ba:0.0,ou:0.0,lq:105000.0,op:24000.0,entrega:"19/06/2026",parcelas:[{dataStr:"05/02/2026",valor:28350.0},{dataStr:"15/02/2026",valor:52500.0},{dataStr:"05/03/2026",valor:52500.0},{dataStr:"15/03/2026",valor:52500.0},{dataStr:"05/04/2026",valor:52500.0},{dataStr:"15/04/2026",valor:52500.0},{dataStr:"15/05/2026",valor:52500.0},{dataStr:"05/07/2026",valor:21000.0},{dataStr:"05/08/2026",valor:84000.0}]},
+  {mes:"MAIO",m:5,p:"174",cl:"BURGER KING - AV. INTENDENTE MAGALHÃES - RJ",cat:"MANUTENÇÃO",v:"JULIO",br:50885.0,ft:7500.0,vi:1700.0,el:5300.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:29385.0,op:21500.0,entrega:"03/07/2026",parcelas:[{dataStr:"05/02/2026",valor:7933.95},{dataStr:"15/02/2026",valor:14692.5},{dataStr:"05/03/2026",valor:14692.5},{dataStr:"15/03/2026",valor:14692.5},{dataStr:"05/04/2026",valor:14692.5},{dataStr:"15/04/2026",valor:14692.5},{dataStr:"15/05/2026",valor:14692.5},{dataStr:"05/08/2026",valor:29385.0}]},
+  {mes:"MAIO",m:5,p:"136",cl:"BURGER KING COPACABANA",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:1200.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:5600.0,op:3500.0,entrega:"15/07/2026",parcelas:[{dataStr:"05/02/2026",valor:1512.0},{dataStr:"15/02/2026",valor:2800.0},{dataStr:"05/03/2026",valor:2800.0},{dataStr:"15/03/2026",valor:2800.0},{dataStr:"05/04/2026",valor:2800.0},{dataStr:"15/04/2026",valor:2800.0},{dataStr:"15/05/2026",valor:2800.0},{dataStr:"15/08/2026",valor:5600.0}]},
+  {mes:"MAIO",m:5,p:"161",cl:"BURGER KING OLIVEIRA LIMA - SP",cat:"BK É FOGO",v:"JULIO",br:49988.93,ft:7000.0,vi:2500.0,el:0.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:31988.93,op:18000.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/02/2026",valor:8637.01},{dataStr:"15/02/2026",valor:15994.47},{dataStr:"05/03/2026",valor:15994.47},{dataStr:"15/03/2026",valor:15994.47},{dataStr:"05/04/2026",valor:15994.47},{dataStr:"15/04/2026",valor:15994.47},{dataStr:"15/05/2026",valor:15994.47},{dataStr:"05/07/2026",valor:31988.93}]},
+  {mes:"MAIO",m:5,p:"183",cl:"BURGER KING ALAMEDA CAMPESTRE",cat:"BK É FOGO",v:"JULIO",br:205347.67,ft:7000.0,vi:2000.0,el:9000.0,mo:8500.0,art:500.0,ba:0.0,ou:0.0,lq:178347.67,op:27000.0,entrega:"26/05/2026",parcelas:[{dataStr:"05/02/2026",valor:48153.87},{dataStr:"15/02/2026",valor:89173.84},{dataStr:"05/03/2026",valor:89173.84},{dataStr:"15/03/2026",valor:89173.84},{dataStr:"05/04/2026",valor:89173.84},{dataStr:"15/04/2026",valor:89173.84},{dataStr:"15/05/2026",valor:89173.84},{dataStr:"05/07/2026",valor:178347.67}]},
+  {mes:"MAIO",m:5,p:"184",cl:"ARCELOR MITTAL PONTA GROSSA",cat:"REFORMA UNIDADE",v:"BRUNO",br:13777.75,ft:0.0,vi:0.0,el:4000.0,mo:1500.0,art:100.0,ba:0.0,ou:0.0,lq:8177.75,op:5600.0,entrega:"16/06/2026",parcelas:[{dataStr:"05/02/2026",valor:2207.99},{dataStr:"15/02/2026",valor:4088.88},{dataStr:"05/03/2026",valor:4088.88},{dataStr:"15/03/2026",valor:4088.88},{dataStr:"05/04/2026",valor:4088.88},{dataStr:"15/04/2026",valor:4088.88},{dataStr:"15/05/2026",valor:4088.88},{dataStr:"15/07/2026",valor:8177.75}]},
+  {mes:"MAIO",m:5,p:"185",cl:"PELISSARI",cat:"LETRAS CAIXA",v:"JULIO",br:23025.73,ft:250.0,vi:250.0,el:0.0,mo:2400.0,art:100.0,ba:0.0,ou:0.0,lq:20025.73,op:3000.0,entrega:"21/06/2026",parcelas:[{dataStr:"05/02/2026",valor:5406.95},{dataStr:"15/02/2026",valor:10012.86},{dataStr:"05/03/2026",valor:10012.86},{dataStr:"15/03/2026",valor:10012.86},{dataStr:"05/04/2026",valor:10012.86},{dataStr:"15/04/2026",valor:10012.86},{dataStr:"15/05/2026",valor:10012.86}]},
+  {mes:"MAIO",m:5,p:"188",cl:"ARCELOR MITTAL SANTA MARIA",cat:"PAINÉIS DE LONA",v:"BRUNO",br:32767.0,ft:10800.0,vi:3212.0,el:4555.0,mo:2500.0,art:500.0,ba:0.0,ou:0.0,lq:11200.0,op:21567.0,entrega:"26/06/2026",parcelas:[{dataStr:"05/02/2026",valor:3024.0},{dataStr:"15/02/2026",valor:5600.0},{dataStr:"05/03/2026",valor:5600.0},{dataStr:"15/03/2026",valor:5600.0},{dataStr:"05/04/2026",valor:5600.0},{dataStr:"15/04/2026",valor:5600.0},{dataStr:"15/05/2026",valor:5600.0},{dataStr:"15/06/2026",valor:11200.0}]},
+  {mes:"JUNHO",m:6,p:"S/N-90007",cl:"",cat:"",v:"",br:0.0,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:0.0,op:0.0,entrega:"",parcelas:[]}
+];
+
+function mapVendedorName(shortName){
+  // Maps a short xlsx name (ex: "JULIO") to the full registered COMERCIAL user name (ex: "JULIO CESAR")
+  const s=(shortName||'').toUpperCase().trim();
+  const cats=cfg.usuarioCats||{};
+  const nomes=cfg.usuarioNomes||{};
+  for(const [email,cat] of Object.entries(cats)){
+    if(cat==='COMERCIAL'){
+      const nome=(nomes[email]||'').toUpperCase().trim();
+      // Match if registered name starts with the short name or vice versa
+      if(nome&&(nome===s||nome.startsWith(s+' ')||s.startsWith(nome+' ')))return nome;
+    }
+  }
+  return s; // fallback: keep as-is
+}
+
+function vendedorMatch(resp,vendedor){
+  // True if resp and vendedor refer to the same person (handles short vs full name)
+  if(!vendedor)return true;
+  const r=(resp||'').toUpperCase().trim();
+  const v=(vendedor||'').toUpperCase().trim();
+  if(!r||!v)return false;
+  return r===v||r.startsWith(v+' ')||v.startsWith(r+' ');
+}
+
+async function importarPlanilha(){
+  // Values must be in pt-BR format (R$ 12.850,00) so $mDash parses correctly
+  const fmtBR=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  // Build map of existing imported pedidos by os — to UPDATE, not skip
+  const existingByOs={};
+  pedidos.filter(p=>p.importadoPlanilha).forEach(p=>{existingByOs[String(p.os)]=p;});
+
+  let ok=0,err=0;
+  for(let i=0;i<XLSX_VENDAS.length;i++){
+    const x=XLSX_VENDAS[i];
+
+    const pagamento={};
+    (x.parcelas||[]).forEach((parc,idx)=>{
+      pagamento[`Parcela ${idx+1} · ${parc.dataStr}`]=fmtBR(parc.valor);
+    });
+
+    const emissaoEm=`2026-${String(x.m).padStart(2,'0')}-01`;
+    const valores={
+      'Valor Bruto':fmtBR(x.br),
+      'Valor Líquido do Pedido':fmtBR(x.lq)
+    };
+    const resp=mapVendedorName(x.v);
+
+    const existing=existingByOs[String(x.p)];
+    const pedido=existing
+      ? {...existing,valores,pagamento,responsavel:resp}
+      : {id:uid(),os:String(x.p),tipo:x.cat,tipoPedido:x.cat,responsavel:resp,
+         cliente:x.cl,emails:[],job:x.cl,prazo:x.entrega||'',etapa:'Pedido Entregue',
+         emissaoEm,obs:'Importado da planilha de vendas',importadoPlanilha:true,
+         valores,pagamento,instalacao:{},frete:{},bases:'',elevacoes:[],remocoes:[],projetos:{}};
+
+    try{await savePedidoFS(pedido);ok++;}
+    catch(e){err++;console.error('Erro',x.p,e);}
+    if((i+1)%10===0)await new Promise(r=>setTimeout(r,400));
+  }
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  renderDashVendas();
+}
+function renderDashVendas(){
+  const selV=document.getElementById('vnd-fil-vend');
+  const selC=document.getElementById('vnd-fil-cat');
+  if(selV&&selV.options.length<=1){
+    const vends=[...new Set(XLSX_VENDAS.map(r=>r.v).filter(Boolean))].sort();
+    vends.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
+  }
+  if(selC&&selC.options.length<=1){
+    const cats=[...new Set(XLSX_VENDAS.map(r=>r.cat).filter(Boolean))].sort();
+    cats.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selC.appendChild(o);});
+  }
+  const filMes=(document.getElementById('vnd-fil-mes')||{}).value||'';
+  const filVend=(document.getElementById('vnd-fil-vend')||{}).value||'';
+  const filCat=(document.getElementById('vnd-fil-cat')||{}).value||'';
+  let rows2=XLSX_VENDAS.filter(r=>(!filMes||r.mes===filMes)&&(!filVend||r.v===filVend)&&(!filCat||r.cat===filCat));
+  rows2.sort((a,b)=>a.m-b.m||a.cl.localeCompare(b.cl));
+  const totBr=rows2.reduce((s,r)=>s+r.br,0);
+  const totLq=rows2.reduce((s,r)=>s+r.lq,0);
+  const totOp=rows2.reduce((s,r)=>s+r.op,0);
+  const nVends=[...new Set(rows2.map(r=>r.v).filter(Boolean))].length;
+  const nPeds=rows2.length;
+  const tot=document.getElementById('vnd-totais');
+  if(tot)tot.innerHTML=[
+    {cls:'az',l:'Total Bruto',v:fmtR(totBr)},
+    {cls:'ro',l:'Total Líquido',v:fmtR(totLq)},
+    {cls:'dk',l:'Total Operacionais',v:fmtR(totOp)},
+    {cls:'wn',l:'Pedidos / Vendedores',v:nPeds+' / '+nVends},
+  ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv" style="font-size:1rem">${k.v}</div></div>`).join('');
+
+  const el=document.getElementById('dash-vendas-content');if(!el)return;
+  if(!rows2.length){el.innerHTML='<p style="color:#94a3b8;font-size:.85rem">Nenhum resultado encontrado.</p>';return;}
+
+  const fmtOp=v=>v>0?fmtR(v):'—';
+  const tagCor=v=>v==='CLABONDE'?'#fef3c7':v==='BRUNO'?'#dbeafe':v==='JULIO'?'#dcfce7':'#f1f5f9';
+
+  let lastMes='';
+  const tableRows=rows2.map(r=>{
+    let header='';
+    if(r.mes!==lastMes){
+      lastMes=r.mes;
+      const grp=rows2.filter(x=>x.mes===r.mes);
+      const grpBr=grp.reduce((s,x)=>s+x.br,0);
+      const grpLq=grp.reduce((s,x)=>s+x.lq,0);
+      const grpOp=grp.reduce((s,x)=>s+x.op,0);
+      header=`<tr style="background:#f1f5f9;border-top:2px solid #cbd5e1">
+        <td style="font-size:.7rem;font-weight:700;color:#475569;padding:5px 10px;letter-spacing:.5px">${r.mes}</td>
+        <td colspan="2" style="font-size:.7rem;color:#64748b;padding:5px 8px">${grp.length} pedido${grp.length!==1?'s':''}</td>
+        <td colspan="2" style="font-size:.7rem;color:#475569;padding:5px 8px">Bruto: <strong>${fmtR(grpBr)}</strong></td>
+        <td style="font-size:.7rem;color:#7c3aed;padding:5px 8px;font-weight:600">Op.: ${fmtR(grpOp)}</td>
+        <td style="font-size:.7rem;color:#e0245e;padding:5px 8px;font-weight:700">Líq.: ${fmtR(grpLq)}</td>
+        <td colspan="7"></td>
+      </tr>`;
+    }
+    return header+`<tr>
+      <td style="font-size:.68rem;color:#94a3b8;font-weight:500">${r.mes.slice(0,3)}</td>
+      <td style="font-size:.72rem;color:#64748b">${r.p}</td>
+      <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px">${r.cl}</td>
+      <td style="font-size:.7rem;color:#64748b">${r.cat}</td>
+      <td><span style="font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:10px;background:${tagCor(r.v)};color:#1e293b">${r.v||'—'}</span></td>
+      <td style="font-weight:700">${fmtR(r.br)}</td>
+      <td style="font-weight:700;color:#7c3aed">${fmtOp(r.op)}</td>
+      <td style="font-weight:700;color:#e0245e">${fmtR(r.lq)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.ft)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.vi)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.el)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.mo)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.art)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.ba)}</td>
+      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.ou)}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+    <thead>
+      <tr>
+        <th rowspan="2">Mês</th>
+        <th rowspan="2">Pedido</th><th rowspan="2">Cliente</th><th rowspan="2">Categoria</th><th rowspan="2">Vendedor</th>
+        <th rowspan="2">Valor Bruto</th>
+        <th rowspan="2" style="color:#7c3aed">Total Oper.</th>
+        <th rowspan="2">Valor Líquido</th>
+        <th colspan="7" style="text-align:center;background:#f3e8ff;color:#7c3aed;font-size:.68rem">OPERACIONAIS</th>
+      </tr>
+      <tr style="background:#f3e8ff;color:#7c3aed;font-size:.68rem">
+        <th>Frete</th><th>Viagem/Inst.</th><th>Elevações</th><th>Mão de Obra</th><th>ART</th><th>BASE</th><th>Outros</th>
+      </tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+    <tfoot><tr style="background:#f8fafc">
+      <td colspan="5" style="font-weight:700">TOTAL (${nPeds} pedidos)</td>
+      <td style="font-weight:800;color:#1a2b5e">${fmtR(totBr)}</td>
+      <td style="font-weight:800;color:#7c3aed">${fmtR(totOp)}</td>
+      <td style="font-weight:800;color:#e0245e">${fmtR(totLq)}</td>
+      <td colspan="7"></td>
+    </tr></tfoot>
+  </table></div>`;
+}
+// ════════════════════════════════════════
+// GRÁFICOS — helpers
+// ════════════════════════════════════════
+function gcExtraKey(vend,y,m){return vend+'|'+y+'|'+m;}
+function gcGetExtra(vend,y,m){
+  const k=gcExtraKey(vend,y,m);
+  const raw=(cfg.dashExtra||{})[k]||{};
+  return {orc:raw.orc||0,cv:raw.cv||0,pd:raw.pd||0};
+}
+function gcSaveExtra(){
+  const orc=parseFloat((document.getElementById('gc-inp-orc')||{}).value)||0;
+  const cv=parseFloat((document.getElementById('gc-inp-cv')||{}).value)||0;
+  const pd=parseFloat((document.getElementById('gc-inp-pd')||{}).value)||0;
+  if(!cfg.dashExtra)cfg.dashExtra={};
+  cfg.dashExtra[gcExtraKey(gcVendIdx,gcMes.y,gcMes.m)]={orc,cv,pd};
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  gcRenderVendPaineis();
+}
+
+let gcVendIdx='GERAL';
+let gcMes={y:new Date().getFullYear(),m:new Date().getMonth()+1};
+let gcCharts={};
+
+const GC_CORES=['#1a2b5e','#e0245e','#059669','#d97706','#7c3aed','#0891b2','#dc2626','#16a34a'];
+const GC_MESES_S=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function gcMovMes(dir){
+  gcMes.m+=dir;
+  if(gcMes.m>12){gcMes.m=1;gcMes.y++;}
+  if(gcMes.m<1){gcMes.m=12;gcMes.y--;}
+  renderDashGraficos();
+}
+
+function gcSetVend(v){
+  gcVendIdx=v;
+  renderDashGraficos();
+}
+
+function getVendasBrutoMes(y,m,vendedor){
+  const mk=dasKey(y,m);
+  return pedidos.filter(p=>{
+    if(!p.emissaoEm||!isComercialPedido(p))return false;
+    const pk=p.emissaoEm.slice(0,7);
+    const resp=(p.responsavel||'').toUpperCase().trim();
+    return pk===mk&&vendedorMatch(resp,vendedor);
+  }).reduce((s,p)=>s+$mDash((p.valores&&p.valores['Valor Bruto'])||'0'),0);
+}
+
+function getFaturadoMes(y,m,vendedor){
+  let total=0;
+  pedidos.forEach(p=>{
+    const resp=(p.responsavel||'').toUpperCase().trim();
+    if(vendedor&&resp!==vendedor.toUpperCase().trim())return;
+    getParcelas(p).forEach(parc=>{
+      const qi=getComissaoQuinzena(p,parc.dataStr);
+      const conf=getPagConf(parc.confKey);
+      if(qi&&qi.y===y&&qi.m===m&&conf&&conf.status==='confirmado')total+=parc.valor;
+    });
+  });
+  return total;
+}
+
+function gcDestroyAll(){
+  Object.values(gcCharts).forEach(ch=>{try{ch.destroy();}catch(e){}});
+  gcCharts={};
+}
+
+function gcChartOpts(extraPlugins){
+  return {responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:Object.assign({legend:{display:false},tooltip:{callbacks:{label:ctx=>fmtR(ctx.raw)}}},extraPlugins||{}),
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10},color:'#888'},border:{display:false}},
+      y:{grid:{color:'rgba(0,0,0,.05)'},border:{display:false},min:0,
+         ticks:{font:{size:10},color:'#888',callback:v=>'R$'+(v>=1e6?(v/1e6).toFixed(1)+'M':(v/1000).toFixed(0)+'k')}}
+    }};
+}
+
+function renderDashGraficos(){
+  const lbl=document.getElementById('gc-mes-lbl');
+  if(lbl)lbl.textContent=MESES_PT[gcMes.m]+' '+gcMes.y;
+  const {y,m}=gcMes;
+  const todos=getVendedores();
+
+  // Tabs
+  const tabsEl=document.getElementById('gc-vend-tabs');
+  if(tabsEl){
+    tabsEl.innerHTML=`<button class="gc-vend-tab ${gcVendIdx==='GERAL'?'active':''}" onclick="gcSetVend('GERAL')">⭐ Geral</button>`
+      +todos.map(v=>`<button class="gc-vend-tab ${gcVendIdx===v?'active':''}" onclick="gcSetVend('${v.replace(/'/g,"\\'")}')">
+        ${v}</button>`).join('');
+  }
+
+  const pg=document.getElementById('gc-painel-geral');
+  const pv=document.getElementById('gc-painel-vend');
+  const isGeral=gcVendIdx==='GERAL';
+  if(pg)pg.style.display=isGeral?'':'none';
+  if(pv)pv.style.display=isGeral?'none':'';
+
+  gcDestroyAll();
+  if(isGeral)gcRenderGeralPaineis(y,m,todos);
+  else gcRenderVendPaineis();
+}
+
+function gcRenderGeralPaineis(y,m,todos){
+  const lqMes=getVendasMes(y,m,null);
+  const brMes=getVendasBrutoMes(y,m,null);
+  const ftMes=getFaturadoMes(y,m,null);
+  const metaMes=todos.reduce((s,v)=>s+getMetaMes(y,m,v),0);
+  const faltaMes=Math.max(0,metaMes-lqMes);
+  let acumLq=0,acumBr=0,metaAno=0;
+  for(let i=1;i<=12;i++){
+    acumLq+=getVendasMes(y,i,null);
+    acumBr+=getVendasBrutoMes(y,i,null);
+    metaAno+=todos.reduce((s,v)=>s+getMetaMes(y,i,v),0);
+  }
+  const faltaAno=Math.max(0,metaAno-acumLq);
+
+  // KPIs topo (4 cards)
+  const kTop=document.getElementById('gc-kpis-top');
+  if(kTop)kTop.innerHTML=[
+    {cls:'az',l:'Vendas Brutas do Mês',v:fmtR(brMes),s:''},
+    {cls:'ro',l:'Vendas Líquidas do Mês',v:fmtR(lqMes),s:metaMes>0?'Meta: '+fmtR(metaMes):'Meta não definida'},
+    {cls:'vd',l:'Faturado Confirmado',v:fmtR(ftMes),s:'Parcelas confirmadas'},
+    {cls:'wn',l:'Meta do Mês',v:metaMes>0?fmtR(metaMes):'—',s:'Soma das metas individuais'},
+  ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv">${k.v}</div><div class="gc-ks">${k.s}</div></div>`).join('');
+
+  // KPIs bot (3 cards)
+  const kBot=document.getElementById('gc-kpis-bot');
+  if(kBot)kBot.innerHTML=[
+    {st:'background:#1a2b5e;border:1px solid #2d4180',l:'Falta para Meta do Mês',v:metaMes>0?(faltaMes>0?fmtR(faltaMes):'✅ Meta atingida!'):'—',s:''},
+    {st:'background:#0d3347;border:1px solid #1a5270',l:'Acumulado do Ano — Líquidas',v:fmtR(acumLq),s:'Bruto: '+fmtR(acumBr)},
+    {st:'background:#e0245e;border:1px solid #c01a4e',l:'Falta para Meta do Ano',v:metaAno>0?(faltaAno>0?fmtR(faltaAno):'✅ Meta anual!'):'—',s:metaAno>0?'Meta anual: '+fmtR(metaAno):''},
+  ].map(k=>`<div class="gc-kp" style="${k.st}"><div class="gc-kl" style="color:rgba(255,255,255,.55)">${k.l}</div><div class="gc-kv" style="color:#fff;font-size:16px">${k.v}</div><div class="gc-ks" style="color:rgba(255,255,255,.45)">${k.s}</div></div>`).join('');
+
+  // Evolução mensal time
+  const evEl=document.getElementById('gc-cEv');
+  if(evEl){
+    document.getElementById('gc-ev-sub').textContent='Time completo — vendas líquidas vs meta — '+y;
+    const evData=[...Array(12)].map((_,i)=>getVendasMes(y,i+1,null));
+    const evMeta=[...Array(12)].map((_,i)=>todos.reduce((s,v)=>s+getMetaMes(y,i+1,v),0));
+    gcCharts.ev=new Chart(evEl,{type:'bar',data:{labels:GC_MESES_S,datasets:[
+      {label:'Realizado',data:evData,backgroundColor:GC_MESES_S.map((_,i)=>i===m-1?'#e0245e':'#1a2b5e'),borderWidth:0,borderRadius:4},
+      {label:'Meta',data:evMeta,type:'line',borderColor:'#e0245e',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false}
+    ]},options:gcChartOpts()});
+  }
+
+  // Contribuição por vendedor
+  const ctEl=document.getElementById('gc-cContrib');
+  if(ctEl){
+    const cVals=todos.map(v=>Math.max(0,getVendasMes(y,m,v)));
+    const tot=cVals.reduce((a,b)=>a+b,0);
+    gcCharts.contrib=new Chart(ctEl,{type:'doughnut',data:{labels:todos,datasets:[{data:cVals,backgroundColor:GC_CORES.slice(0,todos.length),borderWidth:0,hoverOffset:5}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,cutout:'58%',
+        plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'#888',boxWidth:10}},
+          tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmtR(ctx.raw)+(tot>0?' ('+(ctx.raw/tot*100).toFixed(1)+'%)':'')}}}}});
+    const ctLeg=document.getElementById('gc-contrib-leg');
+    if(ctLeg)ctLeg.innerHTML=todos.map((v,i)=>`<span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${GC_CORES[i]||'#ccc'}"></span>${v}: ${tot>0?(cVals[i]/tot*100).toFixed(1):'0'}%</span>`).join('');
+  }
+
+  // Progresso meta com barra por vendedor
+  const progEl=document.getElementById('gc-prog-bars');
+  const progAlert=document.getElementById('gc-prog-alerta');
+  if(progEl){
+    const pct=metaMes>0?Math.min(100,lqMes/metaMes*100):0;
+    const cor=pct>=100?'#16a34a':pct>=70?'#d97706':'#e0245e';
+    const vendBarras=todos.filter(v=>getMetaMes(y,m,v)>0).map(v=>{
+      const lv=getVendasMes(y,m,v),mv=getMetaMes(y,m,v),pv=Math.min(100,lv/mv*100),cv2=pv>=100?'#16a34a':pv>=70?'#d97706':'#e0245e';
+      return `<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:.68rem;color:#64748b;margin-bottom:3px"><span>${v}</span><span>${fmtR(lv)} / ${fmtR(mv)}</span></div><div class="gc-prog-bar" style="height:5px"><div class="gc-prog-fill" style="width:${pv.toFixed(1)}%;background:${cv2}"></div></div></div>`;
+    }).join('');
+    progEl.innerHTML=`
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#64748b;margin-bottom:4px"><span>Time completo</span><span style="font-weight:700">${fmtR(lqMes)}</span></div>
+      <div class="gc-prog-bar"><div class="gc-prog-fill" style="width:${pct.toFixed(1)}%;background:${cor}"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#94a3b8;margin-top:4px"><span>${pct.toFixed(1)}% da meta</span><span>Meta: ${fmtR(metaMes)}</span></div>
+      ${vendBarras}`;
+    if(progAlert)progAlert.innerHTML=metaMes<=0?'<span style="color:#94a3b8">Meta não definida.</span>':faltaMes===0?'<span style="color:#16a34a;font-size:.8rem">✅ Meta do mês atingida!</span>':faltaMes/metaMes>0.3?`<span style="color:#e0245e;font-size:.8rem">❌ Faltam ${fmtR(faltaMes)} — abaixo de 70%</span>`:`<span style="color:#d97706;font-size:.8rem">⚠️ Faltam ${fmtR(faltaMes)} para a meta</span>`;
+  }
+
+  // Comparativo anual bruto vs líquido
+  const compEl=document.getElementById('gc-cComp');
+  if(compEl){
+    document.getElementById('gc-comp-sub').textContent='Time completo — '+y;
+    const brArr=[...Array(12)].map((_,i)=>getVendasBrutoMes(y,i+1,null));
+    const lqArr=[...Array(12)].map((_,i)=>getVendasMes(y,i+1,null));
+    gcCharts.comp=new Chart(compEl,{type:'bar',data:{labels:GC_MESES_S,datasets:[
+      {label:'Bruto',data:brArr,backgroundColor:'rgba(26,43,94,.7)',borderWidth:0,borderRadius:3},
+      {label:'Líquido',data:lqArr,backgroundColor:'rgba(224,36,94,.7)',borderWidth:0,borderRadius:3}
+    ]},options:{...gcChartOpts({legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtR(ctx.raw)}}})}});
+  }
+}
+
+function gcRenderVendPaineis(){
+  const {y,m}=gcMes;
+  const v=gcVendIdx;
+  const vTit=document.getElementById('gc-vend-titulo');if(vTit)vTit.textContent=v;
+  const vSub=document.getElementById('gc-vend-sub2');if(vSub)vSub.textContent=MESES_PT[m]+' '+y;
+
+  const ex=gcGetExtra(v,y,m);
+  const inpOrc=document.getElementById('gc-inp-orc');if(inpOrc)inpOrc.value=ex.orc||'';
+  const inpCv=document.getElementById('gc-inp-cv');if(inpCv)inpCv.value=ex.cv||'';
+  const inpPd=document.getElementById('gc-inp-pd');if(inpPd)inpPd.value=ex.pd||'';
+
+  const lqMes=getVendasMes(y,m,v);
+  const brMes=getVendasBrutoMes(y,m,v);
+  const ftMes=getFaturadoMes(y,m,v);
+  const metaMes=getMetaMes(y,m,v);
+  const faltaMes=Math.max(0,metaMes-lqMes);
+  const orc=ex.orc,cv=ex.cv,pd=ex.pd;
+  const tend=orc>0&&cv>0?orc*(cv/100):0;
+  const gap=metaMes>0&&tend>0?metaMes-tend:0;
+  const nPeds=pedidos.filter(p=>(p.emissaoEm||'').slice(0,7)===dasKey(y,m)&&(p.responsavel||'').toUpperCase().trim()===v).length;
+
+  // KPIs top
+  const kTopV=document.getElementById('gc-vend-kpis-top');
+  if(kTopV)kTopV.innerHTML=[
+    {cls:'az',l:'Vendas Brutas do Mês',v:fmtR(brMes),s:''},
+    {cls:'ro',l:'Vendas Líquidas do Mês',v:fmtR(lqMes),s:metaMes>0?'Meta: '+fmtR(metaMes):'Sem meta'},
+    {cls:'vd',l:'Faturado Confirmado',v:fmtR(ftMes),s:'Parcelas confirmadas'},
+    {cls:'wn',l:'Pedidos no Mês',v:String(nPeds),s:'pedidos emitidos'},
+  ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv">${k.v}</div><div class="gc-ks">${k.s}</div></div>`).join('');
+
+  // KPIs bot
+  const kBotV=document.getElementById('gc-vend-kpis-bot');
+  if(kBotV)kBotV.innerHTML=[
+    {st:'background:#1a2b5e;border:1px solid #2d4180',l:'Falta para Meta',v:metaMes>0?(faltaMes>0?fmtR(faltaMes):'✅ Meta atingida!'):'—',s:''},
+    {st:'background:#0d3347;border:1px solid #1a5270',l:'Projeção do Mês',v:tend>0?fmtR(tend):'—',s:orc>0?'Orc: '+fmtR(orc)+(cv>0?' × '+cv+'%':''):''},
+    {st:'background:'+(gap>0?'#e0245e':'#059669')+';border:1px solid '+(gap>0?'#c01a4e':'#047857'),l:'Gap para Meta',v:gap>0?fmtR(gap):'✅ Projeção ok',s:''},
+  ].map(k=>`<div class="gc-kp" style="${k.st}"><div class="gc-kl" style="color:rgba(255,255,255,.55)">${k.l}</div><div class="gc-kv" style="color:#fff;font-size:16px">${k.v}</div><div class="gc-ks" style="color:rgba(255,255,255,.45)">${k.s}</div></div>`).join('');
+
+  // Evolução anual do vendedor
+  const evElV=document.getElementById('gc-cVend');
+  if(evElV){
+    const subElV=document.getElementById('gc-ev-vend-sub');if(subElV)subElV.textContent=v+' — evolução anual '+y;
+    const vLqArr=[...Array(12)].map((_,i)=>getVendasMes(y,i+1,v));
+    const vMetArr=[...Array(12)].map((_,i)=>getMetaMes(y,i+1,v));
+    gcCharts.vend=new Chart(evElV,{type:'bar',data:{labels:GC_MESES_S,datasets:[
+      {label:'Realizado',data:vLqArr,backgroundColor:GC_MESES_S.map((_,i)=>i===m-1?'#e0245e':'#1a2b5e'),borderWidth:0,borderRadius:4},
+      {label:'Meta',data:vMetArr,type:'line',borderColor:'#e0245e',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false}
+    ]},options:gcChartOpts()});
+  }
+
+  // Projeção × meta
+  const projEl=document.getElementById('gc-proj-barras');
+  const projAlert=document.getElementById('gc-proj-alerta');
+  if(projEl){
+    const pct=metaMes>0?Math.min(100,lqMes/metaMes*100):0;
+    const pctTend=metaMes>0&&tend>0?Math.min(150,tend/metaMes*100):0;
+    const cor=pct>=100?'#16a34a':pct>=70?'#d97706':'#e0245e';
+    projEl.innerHTML=`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#64748b;margin-bottom:3px"><span>Realizado</span><span>${fmtR(lqMes)}</span></div>
+        <div class="gc-prog-bar"><div class="gc-prog-fill" style="width:${pct.toFixed(1)}%;background:${cor}"></div></div>
+        <div style="font-size:.65rem;color:#94a3b8;margin-top:2px">${pct.toFixed(1)}% da meta</div>
+      </div>
+      ${tend>0?`<div><div style="display:flex;justify-content:space-between;font-size:.68rem;color:#64748b;margin-bottom:3px"><span>Projeção</span><span>${fmtR(tend)}</span></div><div class="gc-prog-bar"><div class="gc-prog-fill" style="width:${Math.min(100,pctTend).toFixed(1)}%;background:#7c3aed;opacity:.7"></div></div><div style="font-size:.65rem;color:#94a3b8;margin-top:2px">${pctTend.toFixed(1)}% da meta</div></div>`:'<div style="font-size:.75rem;color:#94a3b8">Preencha os dados acima para ver a projeção</div>'}
+      ${metaMes>0?`<div style="margin-top:8px;font-size:.7rem;color:#64748b">Meta: <strong>${fmtR(metaMes)}</strong></div>`:''}`;
+    if(projAlert)projAlert.innerHTML=metaMes<=0?'<span style="color:#94a3b8">Meta não definida.</span>':faltaMes===0?'<span style="color:#16a34a;font-weight:600">✅ Meta atingida!</span>':tend>0&&tend>=metaMes?'<span style="color:#7c3aed;font-weight:600">📈 Projeção cobre a meta!</span>':tend>0?`<span style="color:#e0245e;font-weight:600">⚠️ Gap ${fmtR(gap)}</span>`:'';
+  }
+
+  // Doughnut: conversão e perdas
+  const dnEl=document.getElementById('gc-cDn');
+  const convAlerta=document.getElementById('gc-conv-alerta');
+  if(dnEl&&(orc>0||pd>0)){
+    const cvVal=Math.max(0,tend);
+    const pdVal=Math.max(0,pd);
+    const rest=Math.max(0,orc-cvVal-pdVal);
+    const dnData=[cvVal,pdVal,rest];
+    const dnSum=dnData.reduce((a,b)=>a+b,0);
+    if(dnSum>0){
+      gcCharts.dn=new Chart(dnEl,{type:'doughnut',data:{labels:['Conversão estimada','Perdidos','Em aberto'],datasets:[{data:dnData,backgroundColor:['#059669','#e0245e','#94a3b8'],borderWidth:0,hoverOffset:5}]},
+        options:{responsive:true,maintainAspectRatio:false,animation:false,cutout:'58%',
+          plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'#888',boxWidth:10}},
+            tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmtR(ctx.raw)+(dnSum>0?' ('+(ctx.raw/dnSum*100).toFixed(1)+'%)':'')}}}}});
+    }
+    if(convAlerta)convAlerta.innerHTML=cv>0?`<span style="color:#64748b">Taxa de conversão: <strong>${cv}%</strong>${tend>0?' — estimado '+fmtR(tend):''}</span>`:'<span style="color:#94a3b8">Preencha a taxa de conversão acima</span>';
+  } else {
+    if(convAlerta)convAlerta.innerHTML='<span style="color:#94a3b8">Preencha os dados para ver a análise de conversão</span>';
+  }
+
+  // Comparativo anual bruto vs líquido do vendedor
+  const compElV=document.getElementById('gc-cVendComp');
+  if(compElV){
+    const subEl2=document.getElementById('gc-comp-vend-sub');if(subEl2)subEl2.textContent=v+' — '+y;
+    const brArrV=[...Array(12)].map((_,i)=>getVendasBrutoMes(y,i+1,v));
+    const lqArrV=[...Array(12)].map((_,i)=>getVendasMes(y,i+1,v));
+    gcCharts.vendComp=new Chart(compElV,{type:'bar',data:{labels:GC_MESES_S,datasets:[
+      {label:'Bruto',data:brArrV,backgroundColor:'rgba(26,43,94,.7)',borderWidth:0,borderRadius:3},
+      {label:'Líquido',data:lqArrV,backgroundColor:'rgba(224,36,94,.7)',borderWidth:0,borderRadius:3}
+    ]},options:{...gcChartOpts({legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtR(ctx.raw)}}})}});
+  }
+}
 </script>
 </body>
-</htm
+</html>
