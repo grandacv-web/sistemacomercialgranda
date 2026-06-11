@@ -789,7 +789,6 @@ select.fc{cursor:pointer}
         <div class="fg"><label>Template ID</label><input class="fc no-upper" id="ct" placeholder="template_xxxxxxx"></div>
         <div class="fg"><label>Public Key</label><input class="fc no-upper" id="ck" placeholder="xxxxxxxxxxxxxxx"></div>
         <div class="fg"><label>E-mails internos Granda (separados por vírgula)</label><input class="fc no-upper" id="ce" placeholder="nome@empresa.com.br"></div>
-        <div class="fg"><label>Responsáveis disponíveis no sistema (um por linha)</label><textarea class="fc" id="cr" rows="4" placeholder="GUILHERME CLABONDE"></textarea></div>
       </div>
       <!-- CLOUDINARY -->
       <div class="cfg-sec" id="cfg-sec-cloud" style="display:none">
@@ -1620,7 +1619,6 @@ async function avancarEtapa(id){
 }
 
 // EMISSÃO
-const resps=()=>cfg.r.split('\n').map(r=>r.trim()).filter(Boolean);
 function getTabs(){
   const t=[{id:'dados',l:'Dados'},{id:'valores',l:'Valores'},{id:'pagamento',l:'Pagamento'},{id:'projetos',l:'Projetos'}];
   if(ed.remocao==='Sim')t.push({id:'remocoes',l:'Remoções'});
@@ -2020,7 +2018,6 @@ function rmEmail(em){ed.emails=ed.emails.filter(e=>e!==em);document.querySelecto
 
 function renderStep(id){
   const bd=document.getElementById('em-bd');
-  const rs=resps();
   if(id==='dados'){
     bd.innerHTML=`<div class="fsec">
       <div class="fsec-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> DADOS GERAIS DO PEDIDO</div>
@@ -2867,7 +2864,6 @@ function saveCfg(){
   cfg.t=document.getElementById('cfg-t')?.value||cfg.t;
   cfg.k=document.getElementById('cfg-k')?.value||cfg.k;
   cfg.e=document.getElementById('cfg-e')?.value||cfg.e;
-  cfg.r=document.getElementById('cfg-r')?.value||cfg.r;
   cfg.freteOrigem=document.getElementById('cfg-frete-origem')?.value||cfg.freteOrigem;
   cfg.cld_cloud=document.getElementById('cfg-cld')?.value||cfg.cld_cloud;
   cfg.cld_preset=document.getElementById('cfg-pre')?.value||cfg.cld_preset;
@@ -3088,7 +3084,6 @@ function openSettings(){
   document.getElementById('ct').value=c.t||'';
   document.getElementById('ck').value=c.k||'';
   document.getElementById('ce').value=c.e||'';
-  document.getElementById('cr').value=c.r||'';
   const cfo=document.getElementById('cfg-frete-origem');if(cfo)cfo.value=c.freteOrigem||'PONTA GROSSA/PR';
   document.getElementById('cc').value=c.cld_cloud||'';
   document.getElementById('cp').value=c.cld_preset||'';
@@ -3757,7 +3752,7 @@ function renderDashComissoes(){
 
   function mkVendResume(items){
     if(!items.length)return'';
-    const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].sort();
+    const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].filter(v=>!v.toUpperCase().includes('KELLEN')).sort();
     const rows=vends.map(v=>{
       const its=items.filter(i=>vendedorMatch(i.nomeVend,v));
       const val=its.reduce((s,i)=>s+i.valor,0);
