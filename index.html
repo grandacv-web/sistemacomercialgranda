@@ -911,7 +911,7 @@ select.fc{cursor:pointer}
 <!-- Firebase Auth -->
 <script type="module">
 import{initializeApp,deleteApp}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
-import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword,sendPasswordResetEmail}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword,sendPasswordResetEmail,EmailAuthProvider,reauthenticateWithCredential}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
 import{getFirestore,collection,doc,setDoc,deleteDoc,onSnapshot,getDocs}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
 
 const firebaseConfig={
@@ -942,6 +942,7 @@ window._fbSignOut=()=>signOut(auth);
 window._fbOnAuth=(cb)=>onAuthStateChanged(auth,cb);
 window._fbCreateUser=fbCreateUser;
 window._fbSendReset=(email)=>sendPasswordResetEmail(auth,email);
+window._fbReauth=(pass)=>reauthenticateWithCredential(auth.currentUser,EmailAuthProvider.credential(auth.currentUser.email,pass));
 // Firestore
 window._db=db;
 window._fbSavePedido=(p)=>setDoc(doc(db,'pedidos',String(p.id)),p);
@@ -1128,6 +1129,13 @@ function calcPrazoEtapas(pedido){
   return result;
 }
 
+// Etapa atual de um pedido = primeira etapa do seu kanban ainda não concluída
+function etapaAtual(p){
+  const ek=p.etapasKanban||getEtapasPedido(p);
+  const done=p.etapasConcluidas||[];
+  return ek.find(e=>!done.includes(e))||'Pedido Entregue';
+}
+
 let pedidos=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
 let view='mykanban',sf='os',sa=true,vid=null,eid=null;
 let step=0,ed={},editing=null;
@@ -1223,16 +1231,21 @@ function setupRealtimeSync(){
 
 function filt(){
   const q=vEl('srch').toLowerCase(),fe=vEl('f-etapa'),ft=vEl('f-tipo');
-  return pedidos.filter(p=>(!q||p.cliente.toLowerCase().includes(q)||String(p.os||'').includes(q)||(p.job||'').toLowerCase().includes(q))&&(!fe||p.etapa===fe)&&(!ft||p.tipo===ft));
+  return pedidos.filter(p=>{
+    const ek=p.etapasKanban||getEtapasPedido(p);
+    const done=p.etapasConcluidas||[];
+    return (!q||p.cliente.toLowerCase().includes(q)||String(p.os||'').includes(q)||(p.job||'').toLowerCase().includes(q))
+      &&(!fe||(ek.includes(fe)&&!done.includes(fe)))
+      &&(!ft||p.tipo===ft);
+  });
 }
 
 function renderStats(){
-  const f=filt();
   vEl;// noop
   document.getElementById('s-tot').textContent=pedidos.length;
-  document.getElementById('s-atv').textContent=pedidos.filter(p=>p.etapa!=='Pedido Entregue').length;
-  document.getElementById('s-prd').textContent=pedidos.filter(p=>PROD.has(p.etapa)).length;
-  document.getElementById('s-ok').textContent=pedidos.filter(p=>p.etapa==='Pedido Entregue').length;
+  document.getElementById('s-atv').textContent=pedidos.filter(p=>etapaAtual(p)!=='Pedido Entregue').length;
+  document.getElementById('s-prd').textContent=pedidos.filter(p=>PROD.has(etapaAtual(p))).length;
+  document.getElementById('s-ok').textContent=pedidos.filter(p=>etapaAtual(p)==='Pedido Entregue').length;
 }
 
 function getEtapasParaView(){
@@ -1271,17 +1284,21 @@ function renderKanban(){
     banner.style.display='block';
   }
   etapas.forEach(st=>{
-    const cards=f.filter(p=>p.etapa===st);
+    const cards=f.filter(p=>{
+      const ek=p.etapasKanban||getEtapasPedido(p);
+      const done=p.etapasConcluidas||[];
+      return ek.includes(st)&&!done.includes(st);
+    });
     const col=document.createElement('div');col.className='kcol';
     col.innerHTML='<div class="khdr"><span class="khdr-name">'+st+'</span><span class="khdr-cnt'+(cards.length?' has':'')+'">'+cards.length+'</span></div>'+
-    '<div class="kbody">'+(cards.length?cards.map(p=>cardH(p,isMeu)).join(''):'<div class="kempty">Vazio</div>')+'</div>';
+    '<div class="kbody">'+(cards.length?cards.map(p=>cardH(p,st,isMeu)).join(''):'<div class="kempty">Vazio</div>')+'</div>';
     board.appendChild(col);
   });
 }
 
-function cardH(p,canMove){
+function cardH(p,etapaCard,canMove){
   const tc=TC[p.tipo]||'tv';
-  const prazoEtapa=p.prazosKanban&&p.prazosKanban[p.etapa]?p.prazosKanban[p.etapa]:null;
+  const prazoEtapa=p.prazosKanban&&p.prazosKanban[etapaCard]?p.prazosKanban[etapaCard]:null;
   let prazoEtapaHtml='';
   if(prazoEtapa){
     const hoje=new Date();hoje.setHours(0,0,0,0);
@@ -1293,14 +1310,14 @@ function cardH(p,canMove){
   }
   // Info extra por etapa
   let extraInfo='';
-  if(p.etapa==='Início da Instalação'){
+  if(etapaCard==='Início da Instalação'){
     const diasInst=(p.instalacao||{})['Estimativa']||(p.instalacao||{})['Estimativa de Instalação']||'';
     if(diasInst)extraInfo=`<div style="font-size:.62rem;background:#e0f9fb;color:#0e7490;border-radius:5px;padding:3px 7px;margin-top:4px;font-weight:700">🔨 Instalação: ${diasInst}</div>`;
-  } else if(p.etapa==='Início do Frete'){
+  } else if(etapaCard==='Início do Frete'){
     const diasFrete=(p.frete||{})['Prazo Estimado de Entrega']||'';
     if(diasFrete)extraInfo=`<div style="font-size:.62rem;background:#fef3c7;color:#92400e;border-radius:5px;padding:3px 7px;margin-top:4px;font-weight:700">🚚 Frete: ${diasFrete}</div>`;
   }
-  const moveBtn=canMove?`<button onclick="event.stopPropagation();avancarEtapa('${p.id}')" style="margin-top:6px;width:100%;padding:4px 8px;background:#e91e63;color:#fff;border:none;border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer">Avançar etapa →</button>`:'';
+  const moveBtn=canMove?`<button onclick="event.stopPropagation();concluirEtapa('${p.id}','${etapaCard.replace(/'/g,"\\'")}')" style="margin-top:6px;width:100%;padding:4px 8px;background:#e91e63;color:#fff;border:none;border-radius:6px;font-size:.65rem;font-weight:700;cursor:pointer">Concluir etapa ✓</button>`:'';
   return `<div class="kcard" onclick="viewP('${p.id}')">
     <div class="kc-top"><span class="kc-num">#${p.os||'—'}</span><span class="kc-tipo ${tc}">${p.tipo}</span></div>
     <div class="kc-cli">${p.cliente}</div>
@@ -1316,7 +1333,7 @@ function renderList(){
   const sorted=[...filt()].sort((a,b)=>{let va=a[sf]||'',vb=b[sf]||'';if(sf==='os'){va=+va;vb=+vb;}return va<vb?(sa?-1:1):va>vb?(sa?1:-1):0;});
   document.getElementById('ltb').innerHTML=sorted.map(p=>`<tr>
     <td><b>OS ${p.os||'—'}</b></td><td>${p.cliente}</td><td>${p.job||'—'}</td>
-    <td style="font-size:.75rem">${p.etapa}</td>
+    <td style="font-size:.75rem">${etapaAtual(p)}</td>
     <td><span class="kc-tipo ${TC[p.tipo]||'tv'}" style="padding:3px 8px;border-radius:8px;font-size:.65rem">${p.tipo}</span></td>
     <td>${p.prazo?fmtD(p.prazo):'—'}</td><td>${p.responsavel||'—'}</td>
     <td><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600" onclick="viewP('${p.id}')">Ver</button></td>
@@ -1410,20 +1427,17 @@ async function criarPedidoTeste(){
   const grupoId='tg_'+Date.now();
   const osBase='T'+Math.floor(Math.random()*9000+1000);
   const emissaoEm=new Date().toISOString().slice(0,10);
-  // Cria 1 pedido por etapa para preencher todas as colunas do Kanban
-  const saves=todasEtapas.map(etapa=>{
-    const p={id:'teste_'+grupoId+'_'+etapa.replace(/[^a-zA-Z0-9]/g,'_'),
-      os:osBase,tipo,emissaoEm,
-      cliente:'[TESTE] '+cli,job,prazo,
-      responsavel:usuarioLogado?.nomeExibicao||'TESTE',
-      etapa,obs:'',emails:[],
-      valores:{},pagamento:{},instalacao:instObj,frete:freteObj,
-      bases:'',elevacoes:[],remocoes:[],projetos:{},
-      _teste:true,_grupoTeste:grupoId,etapasKanban:todasEtapas};
-    p.prazosKanban=calcPrazoEtapas(p);
-    return savePedidoFS(p);
-  });
-  await Promise.all(saves);
+  // Cria 1 pedido de teste, que aparece como card em todas as etapas aplicáveis do Kanban
+  const p={id:'teste_'+grupoId,
+    os:osBase,tipo,emissaoEm,
+    cliente:'[TESTE] '+cli,job,prazo,
+    responsavel:usuarioLogado?.nomeExibicao||'TESTE',
+    etapa:todasEtapas[0]||'Pedido',obs:'',emails:[],
+    valores:{},pagamento:{},instalacao:instObj,frete:freteObj,
+    bases:'',elevacoes:[],remocoes:[],projetos:{},
+    _teste:true,_grupoTeste:grupoId,etapasKanban:todasEtapas,etapasConcluidas:[]};
+  p.prazosKanban=calcPrazoEtapas(p);
+  await savePedidoFS(p);
   closeM('mo-teste');
   toast(todasEtapas.length+' cards de teste criados! ✅','tok');
 }
@@ -1567,7 +1581,7 @@ function toggleSidebar(){
 function viewP(id){
   vid=id;const p=pedidos.find(x=>x.id===id);if(!p)return;
   document.getElementById('vp-t').textContent=`OS ${p.os||'—'} — ${p.cliente}`;
-  document.getElementById('vp-s').textContent=`${p.etapa} · ${p.tipo} · JOB: ${p.job||'—'}`;
+  document.getElementById('vp-s').textContent=`${etapaAtual(p)} · ${p.tipo} · JOB: ${p.job||'—'}`;
   const sec=(t,obj)=>{
     const ent=Object.entries(obj).filter(([,v])=>v&&v!=='');
     if(!ent.length)return'';
@@ -1592,30 +1606,69 @@ function viewP(id){
   openM('mo-vp');
 }
 async function delP(){
-  if(!confirm('Excluir este pedido?'))return;
+  const {isAdm}=_getUserCat();
+  if(!isAdm){toast('Apenas administradores podem excluir pedidos','terr');return;}
+  const p=pedidos.find(x=>x.id===vid);
+  if(!confirm(`Excluir o pedido OS ${p?.os||'—'} (${p?.cliente||''})? Ele será removido da Lista de Vendas e de todos os cards do Kanban.`))return;
+  const senha=prompt('Digite sua senha de administrador para confirmar a exclusão:');
+  if(!senha){toast('Exclusão cancelada','tinf');return;}
+  try{
+    await window._fbReauth(senha);
+  }catch(e){toast('Senha incorreta','terr');return;}
   try{
     if(window._fbDeletePedido) await window._fbDeletePedido(vid);
     pedidos=pedidos.filter(p=>p.id!==vid);
-    closeM('mo-vp');renderAll();toast('Excluído','tok');
+    closeM('mo-vp');renderAll();
+    if(typeof renderDashVendas==='function')renderDashVendas();
+    toast('Excluído','tok');
   }catch(e){toast('Erro ao excluir: '+e.message,'terr');}
+}
+async function cancelarVenda(pedidoId){
+  const {isAdm}=_getUserCat();
+  if(!isAdm){toast('Apenas administradores podem cancelar vendas','terr');return;}
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!confirm(`Cancelar a venda do pedido OS ${p?.os||'—'} (${p?.cliente||''})? Ele será removido da Lista de Vendas e de todos os cards do Kanban.`))return;
+  const senha=prompt('Digite sua senha de administrador para confirmar o cancelamento:');
+  if(!senha){toast('Cancelamento cancelado','tinf');return;}
+  try{
+    await window._fbReauth(senha);
+  }catch(e){toast('Senha incorreta','terr');return;}
+  try{
+    if(window._fbDeletePedido) await window._fbDeletePedido(pedidoId);
+    pedidos=pedidos.filter(p=>p.id!==pedidoId);
+    renderAll();
+    if(typeof renderDashVendas==='function')renderDashVendas();
+    toast('Venda cancelada','tok');
+  }catch(e){toast('Erro ao cancelar: '+e.message,'terr');}
 }
 function editP(){closeM('mo-vp');openEmissao(vid)}
 function openMv(){
-  document.getElementById('mv-grid').innerHTML=STAGES.map(s=>`<button class="mv-btn" onclick="mvTo('${s}')">${s}</button>`).join('');
+  const p=pedidos.find(x=>x.id===vid);
+  const ek=p?(p.etapasKanban||getEtapasPedido(p)):STAGES;
+  document.getElementById('mv-grid').innerHTML=ek.map(s=>`<button class="mv-btn" onclick="mvTo('${s}')">${s}</button>`).join('');
   openM('mo-mv');
 }
-async function mvTo(s){const p=pedidos.find(x=>x.id===vid);if(p){p.etapa=s;await savePedidoFS(p);toast('Movido para: '+s,'tinf')}closeM('mo-mv');closeM('mo-vp')}
+async function mvTo(s){
+  const p=pedidos.find(x=>x.id===vid);
+  if(!p)return;
+  const ek=p.etapasKanban||getEtapasPedido(p);
+  const idx=ek.indexOf(s);
+  // Marca como concluídas todas as etapas anteriores a "s" e reabre "s" e as seguintes
+  p.etapasConcluidas=idx>=0?ek.slice(0,idx):(p.etapasConcluidas||[]);
+  p.etapa=etapaAtual(p);
+  await savePedidoFS(p);
+  toast('Movido para: '+s,'tinf');
+  closeM('mo-mv');closeM('mo-vp');
+}
 
-async function avancarEtapa(id){
+async function concluirEtapa(id,etapa){
   const p=pedidos.find(x=>x.id===id);
   if(!p)return;
-  const etapas=getEtapasParaView();
-  const idx=etapas.indexOf(p.etapa);
-  if(idx===-1||idx>=etapas.length-1){toast('Já está na última etapa do seu kanban','tinf');return;}
-  const prox=etapas[idx+1];
-  p.etapa=prox;
+  p.etapasConcluidas=p.etapasConcluidas||[];
+  if(!p.etapasConcluidas.includes(etapa))p.etapasConcluidas.push(etapa);
+  p.etapa=etapaAtual(p);
   await savePedidoFS(p);
-  toast('Avançado para: '+prox,'tok');
+  toast('Etapa concluída: '+etapa,'tok');
 }
 
 // EMISSÃO
@@ -1719,6 +1772,14 @@ function validarAba(id){
   }
   if(id==='instalacao'){
     if(ed.itel&&!validaTel(ed.itel))erros.push('Telefone da instalação inválido');
+    if(!ed.iinteg)erros.push('Informe se necessita integração na empresa');
+    if(!ed.iseg)erros.push('Informe se precisa de seguro para esta obra');
+    if(ed.iseg==='Sim'&&!ed.vseg)erros.push('Valor do seguro não informado');
+  }
+  if(id==='bases'){
+    if(!ed.chumbador)erros.push('Informe se esta obra tem chumbador');
+    if(ed.chumbador==='Sim'&&!ed.os_chumb)erros.push('Informe o Nº da OS do Chumbador');
+    if(ed.chumbador==='Sim'&&!ed.arq_chumb)erros.push('Anexe o PDF do Pedido de Chumbador');
   }
   if(id==='frete'){
     if(ed.ftel&&!validaTel(ed.ftel))erros.push('Telefone da descarga inválido');
@@ -2692,7 +2753,8 @@ async function submit(){
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
   const proj={art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig};
   if(ed.art==='Sim'&&ed.vart)proj['Valor da ART']=fmtV(moneyToNum(ed.vart));
-  const _emissaoExistente=editing?(pedidos.find(x=>x.id===editing)||{}).emissaoEm:null;
+  const _pedidoExistente=editing?pedidos.find(x=>x.id===editing):null;
+  const _emissaoExistente=_pedidoExistente?_pedidoExistente.emissaoEm:null;
   const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,tipoPedido:ed.tipoPedido||'',responsavel:ed.resp,
     cliente:ed.cli,emails:[ed.email_comprador,ed.email_engenheiro].filter(Boolean),email_comprador:ed.email_comprador||'',email_engenheiro:ed.email_engenheiro||'',job:ed.job,prazo:ed.prazo,etapa:ed.etapa||'Pedido',
     emissaoEm:_emissaoExistente||new Date().toISOString().slice(0,10),
@@ -2700,10 +2762,13 @@ async function submit(){
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
     elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
-    projetos:proj};
+    projetos:proj,
+    etapasConcluidas:(_pedidoExistente&&_pedidoExistente.etapasConcluidas)||[]};
   // Gera etapas e prazos do kanban (sempre, inclusive ao editar)
   p.etapasKanban=getEtapasPedido(p);
   p.prazosKanban=calcPrazoEtapas(p);
+  // Etapa atual = primeira etapa pendente (não concluída) na ordem do kanban
+  p.etapa=p.etapasKanban.find(e=>!p.etapasConcluidas.includes(e))||'Pedido Entregue';
   const wasEditing=editing;
   editing=null;
   // Fechar modal ANTES do save para não travar
@@ -2785,11 +2850,11 @@ async function submit(){
       ${fmtSec('Pagamento',pag)}
       ${ed.arq_os_url?`
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_os_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_os_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE SERVIÇO GRANDA ↗</a></td>
       </tr>`:''}
       ${ed.arq_oc_url?`
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Compra</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_oc_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_oc_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE COMPRA DO CLIENTE ↗</a></td>
       </tr>`:''}
 
       <!-- ELEVAÇÕES -->
@@ -4115,9 +4180,10 @@ function pedidoToVendaRow(p){
     mes=MESES_PT[m]||'';
   }
   return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:p.responsavel||'',
-    br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined};
+    br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id};
 }
 function renderDashVendas(){
+  const {isAdm}=_getUserCat();
   const selV=document.getElementById('vnd-fil-vend');
   const selC=document.getElementById('vnd-fil-cat');
   const allRowsForFil=[...XLSX_VENDAS,...pedidos.filter(p=>isComercialPedido(p)&&!p.importadoPlanilha).map(pedidoToVendaRow)];
@@ -4172,7 +4238,7 @@ function renderDashVendas(){
         <td colspan="2" style="font-size:.7rem;color:#475569;padding:5px 8px">Bruto: <strong>${fmtR(grpBr)}</strong></td>
         <td style="font-size:.7rem;color:#7c3aed;padding:5px 8px;font-weight:600">Op.: ${fmtR(grpOp)}</td>
         <td style="font-size:.7rem;color:#e0245e;padding:5px 8px;font-weight:700">Líq.: ${fmtR(grpLq)}</td>
-        <td colspan="7"></td>
+        <td colspan="7"></td>${isAdm?'<td></td>':''}
       </tr>`;
     }
     return header+`<tr>
@@ -4191,6 +4257,7 @@ function renderDashVendas(){
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.art)}</td>
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.rem)}</td>
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.med)}</td>
+      ${isAdm?`<td>${r._pid?`<button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${r._pid}')">Cancelar</button>`:''}</td>`:''}
     </tr>`;
   }).join('');
 
@@ -4203,6 +4270,7 @@ function renderDashVendas(){
         <th rowspan="2" style="color:#7c3aed">Total Oper.</th>
         <th rowspan="2">Valor Líquido</th>
         <th colspan="7" style="text-align:center;background:#f3e8ff;color:#7c3aed;font-size:.68rem">OPERACIONAIS</th>
+        ${isAdm?'<th rowspan="2">Ações</th>':''}
       </tr>
       <tr style="background:#f3e8ff;color:#7c3aed;font-size:.68rem">
         <th>Frete</th><th>Mobilização</th><th>Elevações</th><th>Instalação</th><th>ART</th><th>Remoção de Materiais</th><th>Medição Técnica</th>
@@ -4214,7 +4282,7 @@ function renderDashVendas(){
       <td style="font-weight:800;color:#1a2b5e">${fmtR(totBr)}</td>
       <td style="font-weight:800;color:#7c3aed">${fmtR(totOp)}</td>
       <td style="font-weight:800;color:#e0245e">${fmtR(totLq)}</td>
-      <td colspan="7"></td>
+      <td colspan="7"></td>${isAdm?'<td></td>':''}
     </tr></tfoot>
   </table></div>`;
 }
