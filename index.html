@@ -717,6 +717,22 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+<!-- PASSWORD CONFIRM MODAL -->
+<div class="mov" id="mo-pwd" onclick="if(event.target.id==='mo-pwd')resolvePwdModal(null)">
+<div class="mvmod" style="width:380px">
+  <h3 id="pwd-t">Confirmação de administrador</h3>
+  <div id="pwd-s" style="font-size:.78rem;color:var(--ink4);margin:-8px 0 14px">Digite sua senha de administrador para continuar:</div>
+  <div style="position:relative">
+    <input type="password" id="pwd-inp" autocomplete="off" placeholder="Senha de administrador" style="width:100%;padding:10px 42px 10px 12px;border:1.5px solid var(--border-lt);border-radius:10px;font-size:.85rem;font-family:inherit;box-sizing:border-box">
+    <button type="button" id="pwd-eye" onclick="togglePwdEye()" title="Mostrar/ocultar senha" style="position:absolute;right:6px;top:5px;background:none;border:none;cursor:pointer;font-size:1.05rem;color:var(--ink4);padding:4px 6px">👁</button>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+    <button class="btn-mv" onclick="resolvePwdModal(null)">Cancelar</button>
+    <button class="btn-ed" onclick="resolvePwdModal(document.getElementById('pwd-inp').value)">Confirmar</button>
+  </div>
+</div>
+</div>
+
 <!-- MOVE MODAL -->
 <div class="mov" id="mo-mv" onclick="cio(event,'mo-mv')">
 <div class="mvmod">
@@ -767,9 +783,9 @@ select.fc{cursor:pointer}
           <button onclick="enviarResetSenha()" class="btn-next" style="padding:10px 20px">Enviar link de redefinição</button>
         </div>
         <div class="admin-only" style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid var(--border);margin-top:16px">
-          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">🔒 PIN do painel de Metas/Comissões</div>
-          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">PIN usado para desbloquear o painel de Metas e Comissões. Padrão: 1234.</p>
-          <div class="fg" style="max-width:160px"><label>PIN (4 dígitos)</label><input class="fc no-upper" id="cfg-dash-pin" maxlength="8" placeholder="1234"></div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">🔐 Senha/PIN de Administrador</div>
+          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">Usada para excluir pedido, cancelar venda e desbloquear o painel de Metas/Comissões. Padrão: 2024.</p>
+          <div class="fg" style="max-width:200px"><label>Senha/PIN</label><input class="fc no-upper" type="password" id="cfg-senha-admin" maxlength="30" placeholder="2024"></div>
         </div>
         <div class="admin-only" style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid var(--border);margin-top:16px">
           <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">💰 % de Comissão</div>
@@ -1142,7 +1158,7 @@ let step=0,ed={},editing=null;
 
 const uid=()=>'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
 const vEl=id=>document.getElementById(id)?.value||'';
-const fmtD=d=>{if(!d)return'';try{const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`}catch(e){return d}};
+const fmtD=d=>{if(!d)return'';if(d.includes('/'))return d;try{const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`}catch(e){return d}};
 
 async function setUpload(zoneId,nameId,input,edKey){
   const z=document.getElementById(zoneId);
@@ -1231,7 +1247,7 @@ function setupRealtimeSync(){
 
 function filt(){
   const q=vEl('srch').toLowerCase(),fe=vEl('f-etapa'),ft=vEl('f-tipo');
-  return pedidos.filter(p=>{
+  return pedidosKanban().filter(p=>{
     const ek=p.etapasKanban||getEtapasPedido(p);
     const done=p.etapasConcluidas||[];
     return (!q||p.cliente.toLowerCase().includes(q)||String(p.os||'').includes(q)||(p.job||'').toLowerCase().includes(q))
@@ -1240,12 +1256,17 @@ function filt(){
   });
 }
 
+function pedidosKanban(){
+  return pedidos.filter(p=>p.origemComercial&&!p.importadoPlanilha);
+}
+
 function renderStats(){
   vEl;// noop
-  document.getElementById('s-tot').textContent=pedidos.length;
-  document.getElementById('s-atv').textContent=pedidos.filter(p=>etapaAtual(p)!=='Pedido Entregue').length;
-  document.getElementById('s-prd').textContent=pedidos.filter(p=>PROD.has(etapaAtual(p))).length;
-  document.getElementById('s-ok').textContent=pedidos.filter(p=>etapaAtual(p)==='Pedido Entregue').length;
+  const ps=pedidosKanban();
+  document.getElementById('s-tot').textContent=ps.length;
+  document.getElementById('s-atv').textContent=ps.filter(p=>etapaAtual(p)!=='Pedido Entregue').length;
+  document.getElementById('s-prd').textContent=ps.filter(p=>PROD.has(etapaAtual(p))).length;
+  document.getElementById('s-ok').textContent=ps.filter(p=>etapaAtual(p)==='Pedido Entregue').length;
 }
 
 function getEtapasParaView(){
@@ -1524,7 +1545,7 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
       atualizarBotaoNovoPedido();
       atualizarBotaoTeste();
       // Aba Metas & Comissões só visível para administrador
-      const _isAdmDash=getInfoUser().isAdm;
+      const _isAdmDash=_getUserCat().isAdm;
       const _dtabMetas=document.getElementById('dtab-metas');
       if(_dtabMetas)_dtabMetas.style.display=_isAdmDash?'':'none';
       // Se não for admin, ativa a aba Vendas como padrão
@@ -1605,16 +1626,35 @@ function viewP(id){
   `;
   openM('mo-vp');
 }
+let _pwdResolve=null;
+function pedirSenhaAdmin(titulo,msg){
+  return new Promise(resolve=>{
+    _pwdResolve=resolve;
+    document.getElementById('pwd-t').textContent=titulo;
+    document.getElementById('pwd-s').textContent=msg;
+    const inp=document.getElementById('pwd-inp'),eye=document.getElementById('pwd-eye');
+    inp.value='';inp.type='password';eye.textContent='👁';
+    openM('mo-pwd');
+    setTimeout(()=>inp.focus(),50);
+    inp.onkeydown=e=>{if(e.key==='Enter')resolvePwdModal(inp.value);if(e.key==='Escape')resolvePwdModal(null);};
+  });
+}
+function togglePwdEye(){
+  const inp=document.getElementById('pwd-inp'),eye=document.getElementById('pwd-eye');
+  if(inp.type==='password'){inp.type='text';eye.textContent='🙈';}else{inp.type='password';eye.textContent='👁';}
+}
+function resolvePwdModal(val){
+  closeM('mo-pwd');
+  if(_pwdResolve){const r=_pwdResolve;_pwdResolve=null;r(val&&val.trim()?val:null);}
+}
 async function delP(){
   const {isAdm}=_getUserCat();
   if(!isAdm){toast('Apenas administradores podem excluir pedidos','terr');return;}
   const p=pedidos.find(x=>x.id===vid);
   if(!confirm(`Excluir o pedido OS ${p?.os||'—'} (${p?.cliente||''})? Ele será removido da Lista de Vendas e de todos os cards do Kanban.`))return;
-  const senha=prompt('Digite sua senha de administrador para confirmar a exclusão:');
+  const senha=await pedirSenhaAdmin('Confirmar exclusão','Digite sua senha de administrador para confirmar a exclusão:');
   if(!senha){toast('Exclusão cancelada','tinf');return;}
-  try{
-    await window._fbReauth(senha);
-  }catch(e){toast('Senha incorreta','terr');return;}
+  if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');return;}
   try{
     if(window._fbDeletePedido) await window._fbDeletePedido(vid);
     pedidos=pedidos.filter(p=>p.id!==vid);
@@ -1628,11 +1668,9 @@ async function cancelarVenda(pedidoId){
   if(!isAdm){toast('Apenas administradores podem cancelar vendas','terr');return;}
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!confirm(`Cancelar a venda do pedido OS ${p?.os||'—'} (${p?.cliente||''})? Ele será removido da Lista de Vendas e de todos os cards do Kanban.`))return;
-  const senha=prompt('Digite sua senha de administrador para confirmar o cancelamento:');
+  const senha=await pedirSenhaAdmin('Confirmar cancelamento','Digite sua senha de administrador para confirmar o cancelamento:');
   if(!senha){toast('Cancelamento cancelado','tinf');return;}
-  try{
-    await window._fbReauth(senha);
-  }catch(e){toast('Senha incorreta','terr');return;}
+  if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');return;}
   try{
     if(window._fbDeletePedido) await window._fbDeletePedido(pedidoId);
     pedidos=pedidos.filter(p=>p.id!==pedidoId);
@@ -2931,8 +2969,8 @@ function saveCfg(){
   cfg.cld_cloud=document.getElementById('cfg-cld')?.value||cfg.cld_cloud;
   cfg.cld_preset=document.getElementById('cfg-pre')?.value||cfg.cld_preset;
   cfg.avisos=document.getElementById('cav')?.value??cfg.avisos;
-  const pinInp=document.getElementById('cfg-dash-pin');
-  if(pinInp&&pinInp.value.trim())cfg.dashMetasPin=pinInp.value.trim();
+  const sadmInp=document.getElementById('cfg-senha-admin');
+  if(sadmInp&&sadmInp.value.trim())cfg.senhaAdmin=sadmInp.value.trim();
   const pVB=document.getElementById('cfg-pct-vend-bate');if(pVB&&pVB.value!=='')cfg.pctComissaoVendBate=parseFloat(pVB.value)||0;
   const pVN=document.getElementById('cfg-pct-vend-naobate');if(pVN&&pVN.value!=='')cfg.pctComissaoVendNaoBate=parseFloat(pVN.value)||0;
   const pCB=document.getElementById('cfg-pct-clab-bate');if(pCB&&pCB.value!=='')cfg.pctComissaoClabBate=parseFloat(pCB.value)||0;
@@ -3152,7 +3190,7 @@ function openSettings(){
   document.getElementById('cp').value=c.cld_preset||'';
   document.getElementById('clogourl').value=c.cld_logo||'';
   const cav=document.getElementById('cav');if(cav)cav.value=c.avisos||'';
-  const cdpin=document.getElementById('cfg-dash-pin');if(cdpin)cdpin.value=c.dashMetasPin||'1234';
+  const cdsadm=document.getElementById('cfg-senha-admin');if(cdsadm)cdsadm.value=c.senhaAdmin||c.senhaExclusao||c.dashMetasPin||'2024';
   const pVB2=document.getElementById('cfg-pct-vend-bate');if(pVB2)pVB2.value=c.pctComissaoVendBate??0.30;
   const pVN2=document.getElementById('cfg-pct-vend-naobate');if(pVN2)pVN2.value=c.pctComissaoVendNaoBate??0.15;
   const pCB2=document.getElementById('cfg-pct-clab-bate');if(pCB2)pCB2.value=c.pctComissaoClabBate??0.70;
@@ -3279,7 +3317,7 @@ let dashMesAtual={y:new Date().getFullYear(),m:new Date().getMonth()+1};
 function initDashComercial(){
   dashMesAtual={y:new Date().getFullYear(),m:new Date().getMonth()+1};
   // Admin desbloqueia automaticamente ao entrar
-  if(getInfoUser().isAdm)dashMetasUnlocked=true;
+  if(_getUserCat().isAdm)dashMetasUnlocked=true;
   renderDashMetas();
   renderDashComissoes();
 }
@@ -3292,7 +3330,7 @@ function dashLockMetas(){
 }
 function dashTryUnlock(){
   const pin=(document.getElementById('dash-pin-inp')?.value||'').trim();
-  const correct=cfg.dashMetasPin||'1234';
+  const correct=cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024';
   if(pin===correct){
     dashMetasUnlocked=true;
     document.getElementById('dash-pin-modal')?.remove();
