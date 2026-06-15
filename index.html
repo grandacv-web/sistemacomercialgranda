@@ -3496,7 +3496,15 @@ function getProspectores(){
 
 function getMetaMes(y,m,vendedor){
   const k=dasKey(y,m);
-  return (cfg.metasMes&&cfg.metasMes[k]&&cfg.metasMes[k][vendedor.toUpperCase()])||0;
+  const stored=(cfg.metasMes&&cfg.metasMes[k]&&cfg.metasMes[k][(vendedor||'').toUpperCase()])||0;
+  if(stored>0)return stored;
+  // Histórico fixo de metas Jan–Mai/2026
+  const v=(vendedor||'').toUpperCase().trim();
+  if(y===2026){
+    if(v==='JULIO'&&m>=1&&m<=5)return 550000;
+    if(v==='BRUNO'&&m>=4&&m<=5)return 550000;
+  }
+  return 0;
 }
 
 function savePctComissaoPessoal(vendedor,tipo,val){
@@ -3738,23 +3746,45 @@ function renderDashMetas(){
 
 function getComissaoItems(y,m){
   const allItemsI=[],allItemsII=[];
-  pedidos.filter(isComercialPedido).forEach(p=>{getParcelas(p).forEach(parc=>{
-    const conf=getPagConf(parc.confKey);
-    const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
-    const qi=getComissaoQuinzena(p,dataAtiva);
-    if(qi&&qi.y===y&&qi.m===m){
-      // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
-      const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
-      const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y);
-      const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m);
-      // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento
-      const pct=getPctComissao(emY,emM,(p.responsavel||'').toUpperCase().trim());
-      const pctClab=getPctComissao(emY,emM,'CLABONDE');
-      const emMes=xlsxRef?(MESES_PT[emM-1]+' '+emY):(p.emissaoEm?(MESES_PT[emM-1]||'—')+' '+p.emissaoEm.slice(0,4):'—');
-      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—'};
-      if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
-    }
-  });});
+  const osFirestore=new Set();
+  pedidos.filter(isComercialPedido).forEach(p=>{
+    if(p.os!=null)osFirestore.add(String(p.os));
+    getParcelas(p).forEach(parc=>{
+      const conf=getPagConf(parc.confKey);
+      const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
+      const qi=getComissaoQuinzena(p,dataAtiva);
+      if(qi&&qi.y===y&&qi.m===m){
+        // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
+        const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
+        const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y);
+        const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m);
+        // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento
+        const pct=getPctComissao(emY,emM,(p.responsavel||'').toUpperCase().trim());
+        const pctClab=getPctComissao(emY,emM,'CLABONDE');
+        const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
+        const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—'};
+        if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
+      }
+    });
+  });
+  // Entradas do XLSX_VENDAS sem pedido correspondente no Firestore
+  const synP={importadoPlanilha:true};
+  (XLSX_VENDAS||[]).filter(x=>!osFirestore.has(String(x.p))).forEach(x=>{
+    (x.parcelas||[]).forEach((parc,idx)=>{
+      const confKey=`xlsxv::${x.p}::${idx}`;
+      const conf=getPagConf(confKey);
+      const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
+      const qi=getComissaoQuinzena(synP,dataAtiva);
+      if(qi&&qi.y===y&&qi.m===m){
+        const emM=x.m,emY=2026;
+        const pct=getPctComissao(emY,emM,(x.v||'').toUpperCase().trim());
+        const pctClab=getPctComissao(emY,emM,'CLABONDE');
+        const emMes=MESES_PT[emM]+' '+emY;
+        const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p)};
+        if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
+      }
+    });
+  });
   return {itemsI:allItemsI,itemsII:allItemsII};
 }
 
@@ -3789,7 +3819,7 @@ function renderDashComissoes(){
   </div>`;
 
   if(!allItemsI.length&&!allItemsII.length){
-    el.innerHTML=filterBar+`<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.85rem">Nenhum recebimento previsto para ${MESES_PT[m-1]} ${y}.</div>`;
+    el.innerHTML=filterBar+`<div style="padding:32px;text-align:center;color:#94a3b8;font-size:.85rem">Nenhum recebimento previsto para ${MESES_PT[m]} ${y}.</div>`;
     return;
   }
 
@@ -3984,7 +4014,7 @@ async function gerarPDFComissao(vend,quinzena){
     doc.setTextColor(...GRAY);
     doc.setFont('helvetica','normal');
     doc.setFontSize(8.5);
-    doc.text('Período: '+MESES_PT[m-1]+' de '+y+'  ·  '+quinzenaLbl,pageW-14,26.5,{align:'right'});
+    doc.text('Período: '+MESES_PT[m]+' de '+y+'  ·  '+quinzenaLbl,pageW-14,26.5,{align:'right'});
     doc.setDrawColor(...PINK);
     doc.setLineWidth(0.7);
     doc.line(14,30,pageW-14,30);
@@ -4132,7 +4162,7 @@ const XLSX_VENDAS=[
   {mes:"JANEIRO",m:1,p:"18690",cl:"ESCOLA MAPLE BEAR",cat:"LETRAS CAIXA",v:"KELLEN",br:24224.62,ft:0.0,vi:0.0,el:0.0,mo:2000.0,art:500.0,ba:0.0,ou:0.0,lq:21724.62,op:2500.0,entrega:"06/02/2026",parcelas:[{dataStr:"15/01/2026",valor:10862.31},{dataStr:"05/03/2026",valor:5431.15},{dataStr:"05/04/2026",valor:5431.15}]},
   {mes:"JANEIRO",m:1,p:"18708",cl:"BURGER KING ARUJA/ITAQUA/GUARULHOS",cat:"MANUTENÇÃO",v:"JULIO",br:283500.0,ft:18000.0,vi:6000.0,el:22000.0,mo:19500.0,art:0.0,ba:0.0,ou:0.0,lq:218000.0,op:65500.0,entrega:"27/02/2026",parcelas:[{dataStr:"15/03/2026",valor:47960.0},{dataStr:"05/05/2026",valor:132631.2},{dataStr:"15/06/2026",valor:37408.8}]},
   {mes:"JANEIRO",m:1,p:"5",cl:"BURGER KING ITAGUAI",cat:"MANUTENÇÃO",v:"JULIO",br:145000.0,ft:9000.0,vi:2000.0,el:9000.0,mo:6500.0,art:500.0,ba:25000.0,ou:0.0,lq:93000.0,op:52000.0,entrega:"20/03/2026",parcelas:[{dataStr:"05/05/2026",valor:93000.0}]},
-  {mes:"JANEIRO",m:1,p:"56",cl:"BURGER KING COLOMBO",cat:"LOJA NOVA ZAMP",v:"JULIO",br:312895.0,ft:3500.0,vi:1400.0,el:7600.0,mo:21403.0,art:500.0,ba:0.0,ou:0.0,lq:278492.0,op:34403.0,entrega:"30/04/2026",parcelas:[{dataStr:"15/05/2026",valor:167095.2},{dataStr:"15/06/2026",valor:111396.8}]},
+  {mes:"JANEIRO",m:1,p:"56",cl:"BURGER KING COLOMBO",cat:"LOJA NOVA ZAMP",v:"JULIO",br:312895.0,ft:3500.0,vi:1400.0,el:7600.0,mo:21403.0,art:500.0,ba:0.0,ou:0.0,lq:278492.0,op:34403.0,entrega:"30/04/2026",parcelas:[{dataStr:"15/05/2026",valor:167095.2},{dataStr:"15/07/2026",valor:111396.8}]},
   {mes:"JANEIRO",m:1,p:"18713",cl:"BURGER KING JUNDIAÍ",cat:"MANUTENÇÃO",v:"JULIO",br:63127.5,ft:5600.0,vi:2500.0,el:6000.0,mo:3000.0,art:0.0,ba:0.0,ou:0.0,lq:46027.5,op:17100.0,entrega:"18/03/2026",parcelas:[{dataStr:"15/04/2026",valor:46027.5}]},
   {mes:"JANEIRO",m:1,p:"18725",cl:"BURGER ESTRADA DO MONTEIRO",cat:"MANUTENÇÃO",v:"JULIO",br:19095.0,ft:2645.0,vi:1000.0,el:3000.0,mo:2000.0,art:0.0,ba:0.0,ou:0.0,lq:10450.0,op:8645.0,entrega:"18/03/2026",parcelas:[{dataStr:"15/04/2026",valor:10450.0}]},
   {mes:"JANEIRO",m:1,p:"18724",cl:"BURGER KING PRAIA GRANDE",cat:"MANUTENÇÃO",v:"JULIO",br:24035.0,ft:2050.0,vi:1000.0,el:3000.0,mo:2500.0,art:0.0,ba:0.0,ou:0.0,lq:15485.0,op:8550.0,entrega:"16/03/2026",parcelas:[{dataStr:"15/04/2026",valor:15485.0}]},
@@ -4148,13 +4178,13 @@ const XLSX_VENDAS=[
   {mes:"FEVEREIRO",m:2,p:"14",cl:"DAF SANTA MARIA (DAF)",cat:"CONCESSIONÁRIO",v:"JULIO",br:102381.3,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:102381.3,op:0.0,entrega:"20/03/2026",parcelas:[{dataStr:"05/06/2026",valor:102381.3}]},
   {mes:"FEVEREIRO",m:2,p:"17",cl:"MADERO RIBEIRÃO PRETO",cat:"LOJA HÍBRIDA",v:"KELLEN",br:120000.0,ft:11000.0,vi:2000.0,el:6000.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:96000.0,op:24000.0,entrega:"27/03/2026",parcelas:[{dataStr:"15/03/2026",valor:48000.0},{dataStr:"05/05/2026",valor:48000.0}]},
   {mes:"FEVEREIRO",m:2,p:"11",cl:"KOPENHAGEN",cat:"LOJA SHOPPING",v:"KELLEN",br:63202.0,ft:5000.0,vi:2000.0,el:0.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:47702.0,op:15500.0,entrega:"25/03/2026",parcelas:[{dataStr:"15/06/2026",valor:47702.0}]},
-  {mes:"FEVEREIRO",m:2,p:"30",cl:"BURGER KING ITAQUA GARDEN SHOP",cat:"MANUTENÇÃO",v:"JULIO",br:75606.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:60606.0,op:15000.0,entrega:"09/05/2026",parcelas:[{dataStr:"15/06/2026",valor:60606.0}]},
-  {mes:"FEVEREIRO",m:2,p:"28",cl:"BURGER KING WEST PLAZA II",cat:"MANUTENÇÃO",v:"JULIO",br:59686.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:44686.0,op:15000.0,entrega:"20/05/2026",parcelas:[{dataStr:"15/06/2026",valor:44686.0}]},
-  {mes:"FEVEREIRO",m:2,p:"29",cl:"BURGER KING VILLA LOBOS",cat:"MANUTENÇÃO",v:"JULIO",br:56038.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:41038.0,op:15000.0,entrega:"14/05/2026",parcelas:[{dataStr:"15/06/2026",valor:41038.0}]},
+  {mes:"FEVEREIRO",m:2,p:"30",cl:"BURGER KING ITAQUA GARDEN SHOP",cat:"MANUTENÇÃO",v:"JULIO",br:75606.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:60606.0,op:15000.0,entrega:"09/05/2026",parcelas:[{dataStr:"15/07/2026",valor:60606.0}]},
+  {mes:"FEVEREIRO",m:2,p:"28",cl:"BURGER KING WEST PLAZA II",cat:"MANUTENÇÃO",v:"JULIO",br:59686.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:44686.0,op:15000.0,entrega:"20/05/2026",parcelas:[{dataStr:"15/07/2026",valor:44686.0}]},
+  {mes:"FEVEREIRO",m:2,p:"29",cl:"BURGER KING VILLA LOBOS",cat:"MANUTENÇÃO",v:"JULIO",br:56038.0,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:41038.0,op:15000.0,entrega:"14/05/2026",parcelas:[{dataStr:"15/07/2026",valor:41038.0}]},
   {mes:"FEVEREIRO",m:2,p:"22",cl:"BOB'S CAXIAS RJ",cat:"LOJA",v:"KELLEN",br:32432.0,ft:4500.0,vi:3500.0,el:0.0,mo:3000.0,art:500.0,ba:0.0,ou:0.0,lq:20932.0,op:11500.0,entrega:"03/04/2026",parcelas:[{dataStr:"05/04/2026",valor:10466.0},{dataStr:"05/05/2026",valor:10466.0}]},
   {mes:"FEVEREIRO",m:2,p:"23",cl:"BOB'S BANGU RJ",cat:"LOJA",v:"KELLEN",br:21332.0,ft:4500.0,vi:3500.0,el:0.0,mo:3000.0,art:500.0,ba:0.0,ou:0.0,lq:9832.0,op:11500.0,entrega:"03/04/2026",parcelas:[{dataStr:"05/04/2026",valor:4916.0},{dataStr:"05/05/2026",valor:4916.0}]},
   {mes:"FEVEREIRO",m:2,p:"27",cl:"BURGER KING PONTA GROSSA",cat:"BK É FOGO",v:"JULIO",br:119357.0,ft:23500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:95857.0,op:23500.0,entrega:"23/03/2026",parcelas:[{dataStr:"05/06/2026",valor:95857.0}]},
-  {mes:"FEVEREIRO",m:2,p:"40",cl:"BURGER KING ARAGUAIA VARZEA",cat:"BK É FOGO",v:"JULIO",br:88848.0,ft:24197.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:64651.0,op:24197.0,entrega:"15/04/2026",parcelas:[{dataStr:"15/06/2026",valor:64651.0}]},
+  {mes:"FEVEREIRO",m:2,p:"40",cl:"BURGER KING ARAGUAIA VARZEA",cat:"BK É FOGO",v:"JULIO",br:88848.0,ft:24197.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:64651.0,op:24197.0,entrega:"15/04/2026",parcelas:[{dataStr:"15/07/2026",valor:64651.0}]},
   {mes:"FEVEREIRO",m:2,p:"S/N-90001",cl:"C&A CATANDUVA SP CTV",cat:"LETRAS CAIXA",v:"KELLEN",br:11000.0,ft:2037.0,vi:1500.0,el:0.0,mo:1500.0,art:500.0,ba:0.0,ou:0.0,lq:5463.0,op:5537.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/04/2026",valor:5463.0}]},
   {mes:"FEVEREIRO",m:2,p:"32",cl:"C&A BLUMENAU SC BLK",cat:"LETRAS CAIXA",v:"KELLEN",br:25000.0,ft:2800.0,vi:1500.0,el:0.0,mo:2500.0,art:500.0,ba:0.0,ou:0.0,lq:17700.0,op:7300.0,entrega:"29/04/2026",parcelas:[{dataStr:"05/04/2026",valor:17700.0}]},
   {mes:"MARÇO",m:3,p:"41",cl:"BURGER KING SERTÃOZINHO",cat:"BK É FOGO",v:"JULIO",br:138557.0,ft:8000.0,vi:2000.0,el:15000.0,mo:9500.0,art:0.0,ba:0.0,ou:0.0,lq:104057.0,op:34500.0,entrega:"07/04/2026",parcelas:[{dataStr:"05/06/2026",valor:104057.0}]},
@@ -4164,18 +4194,18 @@ const XLSX_VENDAS=[
   {mes:"MARÇO",m:3,p:"46",cl:"BURGER KING NOVA IGUAÇU",cat:"BK É FOGO",v:"JULIO",br:9100.0,ft:800.0,vi:1200.0,el:0.0,mo:1500.0,art:0.0,ba:0.0,ou:0.0,lq:5600.0,op:3500.0,entrega:"10/04/2026",parcelas:[{dataStr:"05/05/2026",valor:5600.0}]},
   {mes:"MARÇO",m:3,p:"47",cl:"BURGER KING SALVADOR BA",cat:"BK É FOGO",v:"JULIO",br:12600.0,ft:2000.0,vi:1500.0,el:0.0,mo:3000.0,art:0.0,ba:0.0,ou:0.0,lq:6100.0,op:6500.0,entrega:"24/04/2026",parcelas:[{dataStr:"15/05/2026",valor:6100.0}]},
   {mes:"MARÇO",m:3,p:"52",cl:"BURGER KING CARAPICUIBA INOCENCIO",cat:"BK É FOGO",v:"JULIO",br:108048.0,ft:8000.0,vi:2000.0,el:12000.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:77548.0,op:30500.0,entrega:"13/04/2026",parcelas:[{dataStr:"15/05/2026",valor:77548.0}]},
-  {mes:"MARÇO",m:3,p:"65",cl:"BURGER KING CENTER NORTE",cat:"BK É FOGO",v:"JULIO",br:71829.18,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:56829.18,op:15000.0,entrega:"01/05/2026",parcelas:[{dataStr:"05/05/2026",valor:34097.51},{dataStr:"15/06/2026",valor:22731.67}]},
+  {mes:"MARÇO",m:3,p:"65",cl:"BURGER KING CENTER NORTE",cat:"BK É FOGO",v:"JULIO",br:71829.18,ft:8000.0,vi:1000.0,el:0.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:56829.18,op:15000.0,entrega:"01/05/2026",parcelas:[{dataStr:"05/05/2026",valor:34097.51},{dataStr:"15/07/2026",valor:22731.67}]},
   {mes:"MARÇO",m:3,p:"55",cl:"BURGER KING GRU SAKAMOTO",cat:"BK É FOGO",v:"JULIO",br:88848.43,ft:6000.0,vi:1500.0,el:7000.0,mo:8000.0,art:500.0,ba:0.0,ou:0.0,lq:65848.43,op:23000.0,entrega:"25/03/2026",parcelas:[{dataStr:"05/05/2026",valor:65848.43}]},
   {mes:"MARÇO",m:3,p:"54",cl:"BURGER KING PAULO FACCINI",cat:"BK É FOGO",v:"JULIO",br:169566.0,ft:11000.0,vi:3000.0,el:12000.0,mo:10000.0,art:300.0,ba:0.0,ou:0.0,lq:133266.0,op:36300.0,entrega:"09/04/2026",parcelas:[{dataStr:"05/06/2026",valor:133266.0}]},
   {mes:"MARÇO",m:3,p:"58",cl:"BOB'S CACHOEIRO DE ITAPEMIRIM",cat:"QUIOSQUE STANDARD",v:"CLABONDE",br:75350.0,ft:16800.0,vi:5600.0,el:0.0,mo:4500.0,art:950.0,ba:0.0,ou:0.0,lq:47500.0,op:27850.0,entrega:"30/04/2026",parcelas:[{dataStr:"15/03/2026",valor:23750.0},{dataStr:"05/05/2026",valor:23750.0}]},
   {mes:"MARÇO",m:3,p:"68",cl:"DAF CASCAVEL",cat:"LETRAS CAIXA",v:"JULIO",br:35000.0,ft:0.0,vi:2200.0,el:0.0,mo:3500.0,art:500.0,ba:0.0,ou:0.0,lq:28800.0,op:6200.0,entrega:"11/05/2026",parcelas:[{dataStr:"05/04/2026",valor:14400.0},{dataStr:"05/05/2026",valor:14400.0}]},
-  {mes:"MARÇO",m:3,p:"70",cl:"BURGER KING - COROAS KIDS",cat:"COROAS KIDS",v:"JULIO",br:28000.0,ft:8500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:19500.0,op:8500.0,entrega:"01/05/2026",parcelas:[{dataStr:"15/06/2026",valor:19500.0}]},
-  {mes:"MARÇO",m:3,p:"72",cl:"BURGER KING CANOAS/RS",cat:"MANUTENÇÃO",v:"JULIO",br:85297.0,ft:8000.0,vi:3000.0,el:10000.0,mo:5000.0,art:0.0,ba:0.0,ou:0.0,lq:59297.0,op:26000.0,entrega:"05/05/2026",parcelas:[{dataStr:"15/06/2026",valor:59297.0}]},
+  {mes:"MARÇO",m:3,p:"70",cl:"BURGER KING - COROAS KIDS",cat:"COROAS KIDS",v:"JULIO",br:28000.0,ft:8500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:19500.0,op:8500.0,entrega:"01/05/2026",parcelas:[{dataStr:"15/07/2026",valor:19500.0}]},
+  {mes:"MARÇO",m:3,p:"72",cl:"BURGER KING CANOAS/RS",cat:"MANUTENÇÃO",v:"JULIO",br:85297.0,ft:8000.0,vi:3000.0,el:10000.0,mo:5000.0,art:0.0,ba:0.0,ou:0.0,lq:59297.0,op:26000.0,entrega:"05/05/2026",parcelas:[{dataStr:"15/07/2026",valor:59297.0}]},
   {mes:"MARÇO",m:3,p:"84",cl:"BURGER KING RAGUEB SP",cat:"LOJA NOVA ZAMP",v:"JULIO",br:200595.0,ft:9000.0,vi:3500.0,el:8500.0,mo:7000.0,art:500.0,ba:0.0,ou:0.0,lq:172095.0,op:28500.0,entrega:"20/05/2026",parcelas:[{dataStr:"05/06/2026",valor:103257.0},{dataStr:"05/07/2026",valor:68838.0}]},
   {mes:"MARÇO",m:3,p:"75",cl:"BURGER KING TIMOTEO PENTEADO SP, 41",cat:"BK É FOGO",v:"JULIO",br:163270.5,ft:7000.0,vi:2000.0,el:9000.0,mo:6573.0,art:0.0,ba:0.0,ou:0.0,lq:138697.5,op:24573.0,entrega:"17/04/2026",parcelas:[{dataStr:"15/05/2026",valor:138697.5}]},
   {mes:"MARÇO",m:3,p:"76",cl:"BURGER KING TIMOTEO PENTEADO SP, 3975",cat:"BK É FOGO",v:"JULIO",br:150622.0,ft:10000.0,vi:3000.0,el:12000.0,mo:12800.0,art:300.0,ba:0.0,ou:0.0,lq:112522.0,op:38100.0,entrega:"15/04/2026",parcelas:[{dataStr:"15/05/2026",valor:112522.0}]},
   {mes:"MARÇO",m:3,p:"77",cl:"BURGER KING GOIÂNIA",cat:"MANUTENÇÃO",v:"JULIO",br:148110.0,ft:17500.0,vi:3500.0,el:12000.0,mo:10653.0,art:500.0,ba:0.0,ou:0.0,lq:103957.0,op:44153.0,entrega:"11/05/2026",parcelas:[{dataStr:"15/06/2026",valor:103957.0}]},
-  {mes:"MARÇO",m:3,p:"78",cl:"BURGER KING S. J. DA BOA VISTA",cat:"MANUTENÇÃO",v:"JULIO",br:119357.0,ft:7000.0,vi:2000.0,el:8000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:96357.0,op:23000.0,entrega:"13/05/2026",parcelas:[{dataStr:"15/06/2026",valor:96357.0}]},
+  {mes:"MARÇO",m:3,p:"78",cl:"BURGER KING S. J. DA BOA VISTA",cat:"MANUTENÇÃO",v:"JULIO",br:119357.0,ft:7000.0,vi:2000.0,el:8000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:96357.0,op:23000.0,entrega:"13/05/2026",parcelas:[{dataStr:"15/07/2026",valor:96357.0}]},
   {mes:"MARÇO",m:3,p:"88",cl:"STARBUCKS PORTO BELO",cat:"TOTEM",v:"JULIO",br:150000.0,ft:15000.0,vi:5000.0,el:9000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:115000.0,op:35000.0,entrega:"15/05/2026",parcelas:[{dataStr:"15/06/2026",valor:69000.0},{dataStr:"15/07/2026",valor:46000.0}]},
   {mes:"MARÇO",m:3,p:"83",cl:"STARBUCKS ROSEIRA",cat:"TOTEM",v:"JULIO",br:150000.0,ft:15000.0,vi:5000.0,el:9000.0,mo:6000.0,art:0.0,ba:0.0,ou:0.0,lq:115000.0,op:35000.0,entrega:"22/05/2026",parcelas:[{dataStr:"15/06/2026",valor:69000.0},{dataStr:"15/07/2026",valor:46000.0}]},
   {mes:"MARÇO",m:3,p:"82",cl:"TOZETTO OFICINAS",cat:"EXTERNOS",v:"CLABONDE",br:122837.9,ft:500.0,vi:0.0,el:14480.0,mo:8928.0,art:2180.0,ba:0.0,ou:0.0,lq:96749.9,op:26088.0,entrega:"20/05/2026",parcelas:[{dataStr:"05/04/2026",valor:48374.95},{dataStr:"05/06/2026",valor:48374.95}]},
@@ -4184,17 +4214,17 @@ const XLSX_VENDAS=[
   {mes:"ABRIL",m:4,p:"86",cl:"BURGER KING VIA ANCHIETA",cat:"BK É FOGO",v:"JULIO",br:116419.0,ft:8000.0,vi:3500.0,el:9000.0,mo:9499.0,art:0.0,ba:0.0,ou:0.0,lq:86420.0,op:29999.0,entrega:"21/04/2026",parcelas:[{dataStr:"05/06/2026",valor:86420.0}]},
   {mes:"ABRIL",m:4,p:"89",cl:"BURGER KING ANHAIA MELO",cat:"BK É FOGO",v:"JULIO",br:108824.0,ft:28125.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:80699.0,op:28125.0,entrega:"23/04/2026",parcelas:[{dataStr:"15/05/2026",valor:80699.0}]},
   {mes:"ABRIL",m:4,p:"91",cl:"BURGER KING SUZANO",cat:"BK É FOGO",v:"JULIO",br:196871.0,ft:40000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:156871.0,op:40000.0,entrega:"27/04/2026",parcelas:[{dataStr:"05/06/2026",valor:156871.0}]},
-  {mes:"ABRIL",m:4,p:"90",cl:"BURGER KING POÁ SP",cat:"BK É FOGO",v:"JULIO",br:195271.0,ft:40000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:155271.0,op:40000.0,entrega:"28/04/2026",parcelas:[{dataStr:"15/06/2026",valor:155271.0}]},
-  {mes:"ABRIL",m:4,p:"86",cl:"BURGER KING MOGI DAS CRUZES",cat:"BK É FOGO",v:"JULIO",br:117161.0,ft:31500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:85661.0,op:31500.0,entrega:"28/04/2026",parcelas:[{dataStr:"15/06/2026",valor:85661.0}]},
+  {mes:"ABRIL",m:4,p:"90",cl:"BURGER KING POÁ SP",cat:"BK É FOGO",v:"JULIO",br:195271.0,ft:40000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:155271.0,op:40000.0,entrega:"28/04/2026",parcelas:[{dataStr:"15/07/2026",valor:155271.0}]},
+  {mes:"ABRIL",m:4,p:"86",cl:"BURGER KING MOGI DAS CRUZES",cat:"BK É FOGO",v:"JULIO",br:117161.0,ft:31500.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:85661.0,op:31500.0,entrega:"28/04/2026",parcelas:[{dataStr:"15/07/2026",valor:85661.0}]},
   {mes:"ABRIL",m:4,p:"97",cl:"BURGER KING ARAÇATUBA AV. BRASILIA",cat:"MANUTENÇÃO",v:"JULIO",br:107048.0,ft:10500.0,vi:2900.0,el:7600.0,mo:4600.0,art:500.0,ba:0.0,ou:0.0,lq:80948.0,op:26100.0,entrega:"26/05/2026",parcelas:[{dataStr:"15/06/2026",valor:80948.0}]},
-  {mes:"ABRIL",m:4,p:"96",cl:"BURGER KING HORTOLÂNDIA SHOPPING",cat:"MANUTENÇÃO",v:"JULIO",br:11300.0,ft:2000.0,vi:700.0,el:800.0,mo:1000.0,art:0.0,ba:0.0,ou:0.0,lq:6800.0,op:4500.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/06/2026",valor:6800.0}]},
+  {mes:"ABRIL",m:4,p:"96",cl:"BURGER KING HORTOLÂNDIA SHOPPING",cat:"MANUTENÇÃO",v:"JULIO",br:11300.0,ft:2000.0,vi:700.0,el:800.0,mo:1000.0,art:0.0,ba:0.0,ou:0.0,lq:6800.0,op:4500.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/07/2026",valor:6800.0}]},
   {mes:"ABRIL",m:4,p:"71",cl:"POPEYES ESPLANADA - REVESTIMENTO BALCÃO",cat:"REVEST. BALCÃO",v:"JULIO",br:24000.0,ft:4000.0,vi:2000.0,el:0.0,mo:2400.0,art:0.0,ba:0.0,ou:0.0,lq:15600.0,op:8400.0,entrega:"08/05/2026",parcelas:[{dataStr:"15/06/2026",valor:15600.0}]},
-  {mes:"ABRIL",m:4,p:"106",cl:"BURGER KING ITABORAÍ",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:1200.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:5600.0,op:3500.0,entrega:"22/05/2026",parcelas:[{dataStr:"15/06/2026",valor:5600.0}]},
-  {mes:"ABRIL",m:4,p:"102",cl:"BURGER KING BARUERI",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:3500.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:3300.0,op:5800.0,entrega:"20/05/2026",parcelas:[{dataStr:"15/06/2026",valor:3300.0}]},
+  {mes:"ABRIL",m:4,p:"106",cl:"BURGER KING ITABORAÍ",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:1200.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:5600.0,op:3500.0,entrega:"22/05/2026",parcelas:[{dataStr:"15/07/2026",valor:5600.0}]},
+  {mes:"ABRIL",m:4,p:"102",cl:"BURGER KING BARUERI",cat:"MANUTENÇÃO",v:"JULIO",br:9100.0,ft:3500.0,vi:500.0,el:800.0,mo:500.0,art:500.0,ba:0.0,ou:0.0,lq:3300.0,op:5800.0,entrega:"20/05/2026",parcelas:[{dataStr:"15/07/2026",valor:3300.0}]},
   {mes:"ABRIL",m:4,p:"101",cl:"BURGER KING SOROCABA",cat:"MANUTENÇÃO",v:"JULIO",br:97948.0,ft:9000.0,vi:2200.0,el:6800.0,mo:7000.0,art:500.0,ba:0.0,ou:2000.0,lq:70448.0,op:27500.0,entrega:"25/05/2026",parcelas:[{dataStr:"15/06/2026",valor:70448.0}]},
-  {mes:"ABRIL",m:4,p:"110",cl:"BURGER KING SHOPPING BC",cat:"FRANQUEADO SHOPPING",v:"JULIO",br:117000.0,ft:5280.0,vi:2400.0,el:0.0,mo:9000.0,art:500.0,ba:0.0,ou:0.0,lq:99820.0,op:17180.0,entrega:"29/05/2026",parcelas:[{dataStr:"05/05/2026",valor:49910.0},{dataStr:"15/06/2026",valor:49910.0}]},
-  {mes:"ABRIL",m:4,p:"100",cl:"BOB'S MACAPÁ/AP",cat:"QUIOSQUE BASIC",v:"BRUNO",br:43046.0,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:43046.0,op:0.0,entrega:"29/05/2026",parcelas:[{dataStr:"05/02/2026",valor:11622.42},{dataStr:"15/02/2026",valor:21523.0},{dataStr:"05/03/2026",valor:21523.0},{dataStr:"15/03/2026",valor:21523.0},{dataStr:"05/04/2026",valor:21523.0},{dataStr:"05/05/2026",valor:21523.0},{dataStr:"15/06/2026",valor:21523.0}]},
-  {mes:"ABRIL",m:4,p:"109",cl:"BOB'S BOTAFOGO/RJ",cat:"LOJA",v:"BRUNO",br:30506.63,ft:0.0,vi:3800.0,el:0.0,mo:3315.0,art:458.0,ba:0.0,ou:0.0,lq:22933.63,op:7573.0,entrega:"01/06/2026",parcelas:[{dataStr:"05/02/2026",valor:6192.08},{dataStr:"15/02/2026",valor:11466.82},{dataStr:"05/03/2026",valor:11466.82},{dataStr:"15/03/2026",valor:11466.82},{dataStr:"05/04/2026",valor:11466.82},{dataStr:"05/05/2026",valor:6880.09},{dataStr:"15/06/2026",valor:5351.18}]},
+  {mes:"ABRIL",m:4,p:"110",cl:"BURGER KING SHOPPING BC",cat:"FRANQUEADO SHOPPING",v:"JULIO",br:117000.0,ft:5280.0,vi:2400.0,el:0.0,mo:9000.0,art:500.0,ba:0.0,ou:0.0,lq:99820.0,op:17180.0,entrega:"29/05/2026",parcelas:[{dataStr:"05/05/2026",valor:49910.0},{dataStr:"15/07/2026",valor:49910.0}]},
+  {mes:"ABRIL",m:4,p:"100",cl:"BOB'S MACAPÁ/AP",cat:"QUIOSQUE BASIC",v:"BRUNO",br:43046.0,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:43046.0,op:0.0,entrega:"29/05/2026",parcelas:[{dataStr:"05/02/2026",valor:11622.42},{dataStr:"15/02/2026",valor:21523.0},{dataStr:"05/03/2026",valor:21523.0},{dataStr:"15/03/2026",valor:21523.0},{dataStr:"05/04/2026",valor:21523.0},{dataStr:"05/05/2026",valor:21523.0},{dataStr:"15/07/2026",valor:21523.0}]},
+  {mes:"ABRIL",m:4,p:"109",cl:"BOB'S BOTAFOGO/RJ",cat:"LOJA",v:"BRUNO",br:30506.63,ft:0.0,vi:3800.0,el:0.0,mo:3315.0,art:458.0,ba:0.0,ou:0.0,lq:22933.63,op:7573.0,entrega:"01/06/2026",parcelas:[{dataStr:"05/02/2026",valor:6192.08},{dataStr:"15/02/2026",valor:11466.82},{dataStr:"05/03/2026",valor:11466.82},{dataStr:"15/03/2026",valor:11466.82},{dataStr:"05/04/2026",valor:11466.82},{dataStr:"05/05/2026",valor:6880.09},{dataStr:"15/07/2026",valor:5351.18}]},
   {mes:"ABRIL",m:4,p:"103",cl:"BOB'S SÃO JOÃO MERITI/RJ",cat:"LOJA",v:"BRUNO",br:24462.76,ft:9000.0,vi:3500.0,el:0.0,mo:3500.0,art:500.0,ba:0.0,ou:0.0,lq:7962.76,op:16500.0,entrega:"05/06/2026",parcelas:[{dataStr:"05/02/2026",valor:2149.95},{dataStr:"15/02/2026",valor:3981.38},{dataStr:"05/03/2026",valor:3981.38},{dataStr:"15/03/2026",valor:3981.38},{dataStr:"05/04/2026",valor:3981.38},{dataStr:"15/05/2026",valor:3981.38}]},
   {mes:"ABRIL",m:4,p:"105",cl:"BOB'S APARECIDA SP",cat:"LOJA",v:"BRUNO",br:11481.98,ft:2000.0,vi:2200.0,el:0.0,mo:2500.0,art:0.0,ba:0.0,ou:0.0,lq:4781.98,op:6700.0,entrega:"01/06/2026",parcelas:[{dataStr:"05/02/2026",valor:1291.13},{dataStr:"15/02/2026",valor:2390.99},{dataStr:"05/03/2026",valor:2390.99},{dataStr:"15/03/2026",valor:2390.99},{dataStr:"05/04/2026",valor:2390.99},{dataStr:"05/05/2026",valor:2390.99},{dataStr:"15/06/2026",valor:2390.99}]},
   {mes:"ABRIL",m:4,p:"120",cl:"MADERO PELOTAS/RS",cat:"HÍBRIDO RUA",v:"BRUNO",br:130000.0,ft:9000.0,vi:2500.0,el:10000.0,mo:6000.0,art:500.0,ba:0.0,ou:0.0,lq:102000.0,op:28000.0,entrega:"24/06/2026",parcelas:[{dataStr:"05/02/2026",valor:27540.0},{dataStr:"15/02/2026",valor:51000.0},{dataStr:"05/03/2026",valor:51000.0},{dataStr:"15/03/2026",valor:51000.0},{dataStr:"05/04/2026",valor:51000.0},{dataStr:"05/06/2026",valor:51000.0},{dataStr:"05/07/2026",valor:51000.0}]},
@@ -4204,7 +4234,7 @@ const XLSX_VENDAS=[
   {mes:"ABRIL",m:4,p:"117",cl:"BOB'S POSTO SHELL DEMOCRÁTICOS RJ",cat:"LOJA",v:"BRUNO",br:11990.26,ft:2000.0,vi:3920.0,el:0.0,mo:3000.0,art:250.0,ba:0.0,ou:0.0,lq:2820.26,op:9170.0,entrega:"04/06/2026",parcelas:[{dataStr:"05/02/2026",valor:761.47},{dataStr:"15/02/2026",valor:1410.13},{dataStr:"05/03/2026",valor:1410.13},{dataStr:"15/03/2026",valor:1410.13},{dataStr:"05/04/2026",valor:1410.13},{dataStr:"05/05/2026",valor:1410.13},{dataStr:"05/06/2026",valor:1410.13}]},
   {mes:"ABRIL",m:4,p:"122",cl:"BOB'S BELÉM PA - DOCA LIDER",cat:"LOJA",v:"BRUNO",br:17433.27,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:17433.27,op:0.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/02/2026",valor:4706.98},{dataStr:"15/02/2026",valor:8716.64},{dataStr:"05/03/2026",valor:8716.64},{dataStr:"15/03/2026",valor:8716.64},{dataStr:"05/04/2026",valor:8716.64},{dataStr:"15/05/2026",valor:8716.64},{dataStr:"15/06/2026",valor:8716.64}]},
   {mes:"ABRIL",m:4,p:"134",cl:"POPEYES ABC",cat:"LOJA SHOPPING",v:"JULIO",br:105000.0,ft:8000.0,vi:2800.0,el:0.0,mo:5000.0,art:500.0,ba:0.0,ou:0.0,lq:88700.0,op:16300.0,entrega:"10/06/2026",parcelas:[{dataStr:"15/06/2026",valor:53220.0},{dataStr:"15/07/2026",valor:35480.0}]},
-  {mes:"MAIO",m:5,p:"107",cl:"BURGER KING SHOP TRÊS LAGOAS",cat:"MANUTENÇÃO",v:"JULIO",br:22900.0,ft:5000.0,vi:1400.0,el:1600.0,mo:2400.0,art:100.0,ba:0.0,ou:0.0,lq:12400.0,op:10500.0,entrega:"26/06/2026",parcelas:[{dataStr:"15/06/2026",valor:12400.0}]},
+  {mes:"MAIO",m:5,p:"107",cl:"BURGER KING SHOP TRÊS LAGOAS",cat:"MANUTENÇÃO",v:"JULIO",br:22900.0,ft:5000.0,vi:1400.0,el:1600.0,mo:2400.0,art:100.0,ba:0.0,ou:0.0,lq:12400.0,op:10500.0,entrega:"26/06/2026",parcelas:[{dataStr:"15/07/2026",valor:12400.0}]},
   {mes:"MAIO",m:5,p:"141",cl:"BURGER KING PELOTAS",cat:"MANUTENÇÃO",v:"JULIO",br:77811.0,ft:14000.0,vi:3900.0,el:0.0,mo:6600.0,art:500.0,ba:0.0,ou:0.0,lq:52811.0,op:25000.0,entrega:"24/06/2026",parcelas:[{dataStr:"15/07/2026",valor:52811.0}]},
   {mes:"MAIO",m:5,p:"S/N-90002",cl:"BURGER KING VITORIA",cat:"MANUTENÇÃO",v:"JULIO",br:60724.0,ft:29439.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:31285.0,op:29439.0,entrega:"",parcelas:[{dataStr:"15/06/2026",valor:31285.0}]},
   {mes:"MAIO",m:5,p:"149",cl:"BURGER KING RAGUEB SP  - ADICIONAL",cat:"LOJA NOVA ZAMP",v:"JULIO",br:11085.31,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:11085.31,op:0.0,entrega:"15/06/2026",parcelas:[{dataStr:"05/07/2026",valor:11085.31}]},
@@ -4220,10 +4250,10 @@ const XLSX_VENDAS=[
   {mes:"MAIO",m:5,p:"130",cl:"DAF MACPONTA PONTA GROSSA - CONCESSIONÁRIO",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:45894.44,ft:1500.0,vi:0.0,el:9000.0,mo:5500.0,art:500.0,ba:0.0,ou:0.0,lq:29394.44,op:16500.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:14697.22},{dataStr:"05/07/2026",valor:14697.22}]},
   {mes:"MAIO",m:5,p:"131",cl:"DAF MACPONTA PONTA GROSSA - FÁBRICA",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:106554.32,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:106554.32,op:0.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:53277.16},{dataStr:"05/07/2026",valor:53277.16}]},
   {mes:"MAIO",m:5,p:"S/N-90006",cl:"BURGER KING ITAPETININGA",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:19939.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:0.0,op:19939.0,entrega:"",parcelas:[]},
-  {mes:"MAIO",m:5,p:"170",cl:"BURGER KING - AV DOS ESTADOS",cat:"BK É FOGO",v:"JULIO",br:213751.64,ft:12000.0,vi:4000.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:171251.64,op:42500.0,entrega:"27/05/2026",parcelas:[{dataStr:"15/06/2026",valor:171251.64}]},
-  {mes:"MAIO",m:5,p:"169",cl:"BURGER KING PRESTES MAIA",cat:"BK É FOGO",v:"JULIO",br:100618.64,ft:7000.0,vi:1800.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:75818.64,op:24800.0,entrega:"28/05/2026",parcelas:[{dataStr:"15/06/2026",valor:75818.64}]},
-  {mes:"MAIO",m:5,p:"171",cl:"BURGER KING AVENIDA DOM PEDRO II",cat:"BK É FOGO",v:"JULIO",br:222675.0,ft:13000.0,vi:5000.0,el:15000.0,mo:15000.0,art:500.0,ba:0.0,ou:0.0,lq:174175.0,op:48500.0,entrega:"27/05/2026",parcelas:[{dataStr:"15/06/2026",valor:174175.0}]},
-  {mes:"MAIO",m:5,p:"162",cl:"BURGER KING MARIA SERVIDEI",cat:"BK É FOGO",v:"JULIO",br:180442.0,ft:13500.0,vi:4500.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:135942.0,op:44500.0,entrega:"28/05/2026",parcelas:[{dataStr:"15/06/2026",valor:135942.0}]},
+  {mes:"MAIO",m:5,p:"170",cl:"BURGER KING - AV DOS ESTADOS",cat:"BK É FOGO",v:"JULIO",br:213751.64,ft:12000.0,vi:4000.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:171251.64,op:42500.0,entrega:"27/05/2026",parcelas:[{dataStr:"15/07/2026",valor:171251.64}]},
+  {mes:"MAIO",m:5,p:"169",cl:"BURGER KING PRESTES MAIA",cat:"BK É FOGO",v:"JULIO",br:100618.64,ft:7000.0,vi:1800.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:75818.64,op:24800.0,entrega:"28/05/2026",parcelas:[{dataStr:"15/07/2026",valor:75818.64}]},
+  {mes:"MAIO",m:5,p:"171",cl:"BURGER KING AVENIDA DOM PEDRO II",cat:"BK É FOGO",v:"JULIO",br:222675.0,ft:13000.0,vi:5000.0,el:15000.0,mo:15000.0,art:500.0,ba:0.0,ou:0.0,lq:174175.0,op:48500.0,entrega:"27/05/2026",parcelas:[{dataStr:"15/07/2026",valor:174175.0}]},
+  {mes:"MAIO",m:5,p:"162",cl:"BURGER KING MARIA SERVIDEI",cat:"BK É FOGO",v:"JULIO",br:180442.0,ft:13500.0,vi:4500.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:135942.0,op:44500.0,entrega:"28/05/2026",parcelas:[{dataStr:"15/07/2026",valor:135942.0}]},
   {mes:"MAIO",m:5,p:"180",cl:"ARCELOR MITTAL GUARAPUAVA",cat:"REFORMA UNIDADE",v:"BRUNO",br:30351.04,ft:4500.0,vi:1160.0,el:9000.0,mo:5500.0,art:500.0,ba:0.0,ou:0.0,lq:9691.04,op:20660.0,entrega:"02/07/2026",parcelas:[{dataStr:"05/02/2026",valor:2616.58},{dataStr:"15/02/2026",valor:4845.52},{dataStr:"05/03/2026",valor:4845.52},{dataStr:"15/03/2026",valor:4845.52},{dataStr:"05/04/2026",valor:4845.52},{dataStr:"15/04/2026",valor:4845.52},{dataStr:"15/05/2026",valor:4845.52},{dataStr:"05/07/2026",valor:9691.04}]},
   {mes:"MAIO",m:5,p:"172",cl:"MAX CHAPADA - PONTA GROSSA",cat:"REFORMA UNIDADE",v:"BRUNO",br:129000.0,ft:2000.0,vi:0.0,el:12500.0,mo:9000.0,art:500.0,ba:0.0,ou:0.0,lq:105000.0,op:24000.0,entrega:"19/06/2026",parcelas:[{dataStr:"05/02/2026",valor:28350.0},{dataStr:"15/02/2026",valor:52500.0},{dataStr:"05/03/2026",valor:52500.0},{dataStr:"15/03/2026",valor:52500.0},{dataStr:"05/04/2026",valor:52500.0},{dataStr:"15/04/2026",valor:52500.0},{dataStr:"15/05/2026",valor:52500.0},{dataStr:"05/07/2026",valor:21000.0},{dataStr:"05/08/2026",valor:84000.0}]},
   {mes:"MAIO",m:5,p:"174",cl:"BURGER KING - AV. INTENDENTE MAGALHÃES - RJ",cat:"MANUTENÇÃO",v:"JULIO",br:50885.0,ft:7500.0,vi:1700.0,el:5300.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:29385.0,op:21500.0,entrega:"03/07/2026",parcelas:[{dataStr:"05/02/2026",valor:7933.95},{dataStr:"15/02/2026",valor:14692.5},{dataStr:"05/03/2026",valor:14692.5},{dataStr:"15/03/2026",valor:14692.5},{dataStr:"05/04/2026",valor:14692.5},{dataStr:"15/04/2026",valor:14692.5},{dataStr:"15/05/2026",valor:14692.5},{dataStr:"05/08/2026",valor:29385.0}]},
@@ -4232,7 +4262,7 @@ const XLSX_VENDAS=[
   {mes:"MAIO",m:5,p:"183",cl:"BURGER KING ALAMEDA CAMPESTRE",cat:"BK É FOGO",v:"JULIO",br:205347.67,ft:7000.0,vi:2000.0,el:9000.0,mo:8500.0,art:500.0,ba:0.0,ou:0.0,lq:178347.67,op:27000.0,entrega:"26/05/2026",parcelas:[{dataStr:"05/02/2026",valor:48153.87},{dataStr:"15/02/2026",valor:89173.84},{dataStr:"05/03/2026",valor:89173.84},{dataStr:"15/03/2026",valor:89173.84},{dataStr:"05/04/2026",valor:89173.84},{dataStr:"15/04/2026",valor:89173.84},{dataStr:"15/05/2026",valor:89173.84},{dataStr:"05/07/2026",valor:178347.67}]},
   {mes:"MAIO",m:5,p:"184",cl:"ARCELOR MITTAL PONTA GROSSA",cat:"REFORMA UNIDADE",v:"BRUNO",br:13777.75,ft:0.0,vi:0.0,el:4000.0,mo:1500.0,art:100.0,ba:0.0,ou:0.0,lq:8177.75,op:5600.0,entrega:"16/06/2026",parcelas:[{dataStr:"05/02/2026",valor:2207.99},{dataStr:"15/02/2026",valor:4088.88},{dataStr:"05/03/2026",valor:4088.88},{dataStr:"15/03/2026",valor:4088.88},{dataStr:"05/04/2026",valor:4088.88},{dataStr:"15/04/2026",valor:4088.88},{dataStr:"15/05/2026",valor:4088.88},{dataStr:"15/07/2026",valor:8177.75}]},
   {mes:"MAIO",m:5,p:"185",cl:"PELISSARI",cat:"LETRAS CAIXA",v:"JULIO",br:23025.73,ft:250.0,vi:250.0,el:0.0,mo:2400.0,art:100.0,ba:0.0,ou:0.0,lq:20025.73,op:3000.0,entrega:"21/06/2026",parcelas:[{dataStr:"05/02/2026",valor:5406.95},{dataStr:"15/02/2026",valor:10012.86},{dataStr:"05/03/2026",valor:10012.86},{dataStr:"15/03/2026",valor:10012.86},{dataStr:"05/04/2026",valor:10012.86},{dataStr:"15/04/2026",valor:10012.86},{dataStr:"15/05/2026",valor:10012.86}]},
-  {mes:"MAIO",m:5,p:"188",cl:"ARCELOR MITTAL SANTA MARIA",cat:"PAINÉIS DE LONA",v:"BRUNO",br:32767.0,ft:10800.0,vi:3212.0,el:4555.0,mo:2500.0,art:500.0,ba:0.0,ou:0.0,lq:11200.0,op:21567.0,entrega:"26/06/2026",parcelas:[{dataStr:"05/02/2026",valor:3024.0},{dataStr:"15/02/2026",valor:5600.0},{dataStr:"05/03/2026",valor:5600.0},{dataStr:"15/03/2026",valor:5600.0},{dataStr:"05/04/2026",valor:5600.0},{dataStr:"15/04/2026",valor:5600.0},{dataStr:"15/05/2026",valor:5600.0},{dataStr:"15/06/2026",valor:11200.0}]},
+  {mes:"MAIO",m:5,p:"188",cl:"ARCELOR MITTAL SANTA MARIA",cat:"PAINÉIS DE LONA",v:"BRUNO",br:32767.0,ft:10800.0,vi:3212.0,el:4555.0,mo:2500.0,art:500.0,ba:0.0,ou:0.0,lq:11200.0,op:21567.0,entrega:"26/06/2026",parcelas:[{dataStr:"05/02/2026",valor:3024.0},{dataStr:"15/02/2026",valor:5600.0},{dataStr:"05/03/2026",valor:5600.0},{dataStr:"15/03/2026",valor:5600.0},{dataStr:"05/04/2026",valor:5600.0},{dataStr:"15/04/2026",valor:5600.0},{dataStr:"15/05/2026",valor:5600.0},{dataStr:"15/07/2026",valor:11200.0}]},
   {mes:"JUNHO",m:6,p:"S/N-90007",cl:"",cat:"",v:"",br:0.0,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:0.0,op:0.0,entrega:"",parcelas:[]}
 ];
 
