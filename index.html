@@ -3743,7 +3743,7 @@ function getComissaoItems(y,m){
       const pct=getPctComissao(emY,emM,(p.responsavel||'').toUpperCase().trim());
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=(()=>{if(!p.emissaoEm)return'—';return (MESES_PT[emM-1]||'—')+' '+p.emissaoEm.slice(0,4);})();
-      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes};
+      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—'};
       if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
     }
   });});
@@ -3788,7 +3788,7 @@ function renderDashComissoes(){
   function mkTable(items,emptyMsg){
     if(!items.length)return`<div style="padding:12px 0;color:#94a3b8;font-size:.82rem">${emptyMsg||'Nenhum lançamento nesta quinzena.'}</div>`;
     return`<div style="overflow-x:auto"><table class="dash-table">
-      <thead><tr><th>Mês Venda</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor cliente</th><th>Data prev.</th><th>%</th><th>Comissão</th><th>Status</th><th>Ação</th></tr></thead>
+      <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor cliente</th><th>Data prev.</th><th>%</th><th>Comissão</th><th>Status</th><th>Ação</th></tr></thead>
       <tbody>${items.map(i=>{
         const com=i.valor*i.pct/100;
         const sb=i.status==='confirmado'?'<span class="dash-badge ok">✅ Confirmado</span>':i.status==='adiado'?'<span class="dash-badge pend">⏭ Adiado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
@@ -3797,6 +3797,7 @@ function renderDashComissoes(){
         const ac=i.status==='confirmado'?`<span style="font-size:.72rem;color:#16a34a">Pago ✓</span>`:`<button class="dash-btn-conf" onclick="confPag('${ck}','${da}')">✅ Confirmar</button><button class="dash-btn-adiar" onclick="adiarPag('${ck}','${da}')">⏭ Adiar</button>`;
         return`<tr style="${i.status==='confirmado'?'background:#f0fdf4;':''}">
           <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
+          <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.pedidoOs||'—'}</td>
           <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
           <td>${i.nomeVend}</td>
           <td style="font-size:.72rem">${i.label}</td>
@@ -3820,6 +3821,7 @@ function renderDashComissoes(){
       const dataConf=i.confirmedAt?new Date(i.confirmedAt).toLocaleDateString('pt-BR'):'—';
       return`<tr style="background:#f0fdf4">
         <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
+        <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.pedidoOs||'—'}</td>
         <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
         <td>${i.nomeVend}</td>
         <td style="font-weight:700">${fmtR(i.valor)}</td>
@@ -3832,7 +3834,7 @@ function renderDashComissoes(){
     return`<details style="margin:6px 0 16px">
       <summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.5px;padding:6px 0">✅ Consolidados desta quinzena (${items.length}) — Valor: ${fmtR(totalVal)} · Comissão: ${fmtR(totalCom)}</summary>
       <div style="overflow-x:auto;margin-top:8px"><table class="dash-table">
-        <thead><tr><th>Mês Venda</th><th>Cliente</th><th>Vendedor</th><th>Valor pago</th><th>%</th><th>Comissão</th><th>Confirmado em</th><th>Ação</th></tr></thead>
+        <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Valor pago</th><th>%</th><th>Comissão</th><th>Confirmado em</th><th>Ação</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </details>`;
@@ -3937,7 +3939,7 @@ function gerarPDFComissao(vend,quinzena){
   if(!items.length){toast('Nenhum lançamento confirmado (pago) para gerar o relatório.','terr');return;}
 
   const showQCol=!quinzena;
-  const head=['Mês Venda','Cliente','Valor Pago','%','Comissão',...(showQCol?['Quinzena']:[])];
+  const head=['Mês Venda','Pedido','Cliente','Valor Pago','%','Comissão',...(showQCol?['Quinzena']:[])];
 
   doc.setFontSize(14);
   doc.text('GRANDA - Relatório de Comissão',14,16);
@@ -3962,7 +3964,7 @@ function gerarPDFComissao(vend,quinzena){
       const pct=useClabPct?i.pctClab:i.pct;
       const com=i.valor*pct/100;
       subtotal+=com;
-      const row=[i.mesPedido,i.cliente,fmtR(i.valor),pct.toFixed(2).replace('.',',')+'%',fmtR(com)];
+      const row=[i.mesPedido,i.pedidoOs||'—',i.cliente,fmtR(i.valor),pct.toFixed(2).replace('.',',')+'%',fmtR(com)];
       if(showQCol)row.push(i._q);
       return row;
     });
