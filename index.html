@@ -3743,12 +3743,14 @@ function getComissaoItems(y,m){
     const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
     const qi=getComissaoQuinzena(p,dataAtiva);
     if(qi&&qi.y===y&&qi.m===m){
-      const emY=p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y;
-      const emM=p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m;
+      // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
+      const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
+      const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y);
+      const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m);
       // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento
       const pct=getPctComissao(emY,emM,(p.responsavel||'').toUpperCase().trim());
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
-      const emMes=(()=>{if(!p.emissaoEm)return'—';return (MESES_PT[emM-1]||'—')+' '+p.emissaoEm.slice(0,4);})();
+      const emMes=xlsxRef?(MESES_PT[emM-1]+' '+emY):(p.emissaoEm?(MESES_PT[emM-1]||'—')+' '+p.emissaoEm.slice(0,4):'—');
       const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—'};
       if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
     }
@@ -4284,7 +4286,7 @@ async function importarPlanilha(){
 
     const existing=existingByOs[String(x.p)];
     const pedido=existing
-      ? {...existing,valores,pagamento,responsavel:resp}
+      ? {...existing,valores,pagamento,responsavel:resp,emissaoEm}
       : {id:uid(),os:String(x.p),tipo:x.cat,tipoPedido:x.cat,responsavel:resp,
          cliente:x.cl,emails:[],job:x.cl,prazo:x.entrega||'',etapa:'Pedido Entregue',
          emissaoEm,obs:'Importado da planilha de vendas',importadoPlanilha:true,
