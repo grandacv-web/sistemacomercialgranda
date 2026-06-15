@@ -3552,9 +3552,15 @@ function getPctComissao(y,m,vendedor){
     return (metaEmp>0&&totalEmp>=metaEmp)?clabBate:clabNaoBate;
   }
   // Vendedores em geral: % configurável conforme bateu ou não a meta do mês
-  const meta=getMetaMes(y,m,vend);
-  const vendas=getVendasMes(y,m,vend);
-  const bateu=meta>0&&vendas>=meta;
+  let bateu;
+  if(y===2026&&m>=1&&m<=5){
+    // Histórico fixo: Jan a Mai/2026, todas as metas batidas, exceto Fevereiro
+    bateu=(m!==2);
+  } else {
+    const meta=getMetaMes(y,m,vend);
+    const vendas=getVendasMes(y,m,vend);
+    bateu=meta>0&&vendas>=meta;
+  }
   // Override pessoal definido no cadastro do usuário (Vendedor)
   const pessoal=(cfg.pctComissaoPessoal||{})[vend];
   if(pessoal){
@@ -3909,55 +3915,119 @@ function renderDashComissoes(){
      ${mkTable(pendII,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consII)}`;
 }
 
-function gerarPDFComissao(vend,quinzena){
+async function _getLogoGrandaPDF(){
+  if(window._logoGrandaPdfB64!==undefined)return window._logoGrandaPdfB64;
+  try{
+    const resp=await fetch('logo_granda.png');
+    if(!resp.ok)throw 0;
+    const blob=await resp.blob();
+    window._logoGrandaPdfB64=await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result);
+      r.onerror=rej;
+      r.readAsDataURL(blob);
+    });
+  }catch(e){window._logoGrandaPdfB64=null;}
+  return window._logoGrandaPdfB64;
+}
+
+async function gerarPDFComissao(vend,quinzena){
   if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
   const {y,m}=dashMesAtual;
   const {itemsI,itemsII}=getComissaoItems(y,m);
   let items, quinzenaLbl;
-  if(quinzena==='I'){items=itemsI.map(i=>({...i,_q:'1ª'}));quinzenaLbl=' - 1ª Quinzena (pagar dia 5)';}
-  else if(quinzena==='II'){items=itemsII.map(i=>({...i,_q:'2ª'}));quinzenaLbl=' - 2ª Quinzena (pagar dia 15)';}
-  else{items=[...itemsI.map(i=>({...i,_q:'1ª'})),...itemsII.map(i=>({...i,_q:'2ª'}))];quinzenaLbl=' - Consolidado (1ª e 2ª Quinzena)';}
+  if(quinzena==='I'){items=itemsI.map(i=>({...i,_q:'1ª'}));quinzenaLbl='1ª Quinzena (pagar dia 5)';}
+  else if(quinzena==='II'){items=itemsII.map(i=>({...i,_q:'2ª'}));quinzenaLbl='2ª Quinzena (pagar dia 15)';}
+  else{items=[...itemsI.map(i=>({...i,_q:'1ª'})),...itemsII.map(i=>({...i,_q:'2ª'}))];quinzenaLbl='Consolidado (1ª e 2ª Quinzena)';}
 
   // Apenas o que o cliente já pagou (confirmado). O que não foi pago é adiado para a próxima quinzena.
   items=items.filter(i=>i.status==='confirmado');
 
-  let title, useClabPct=false, groupByVend=false;
+  let title, note='', useClabPct=false, groupByVend=false;
   if(vend==='__CLABONDE__'){
     useClabPct=true;
-    groupByVend=true;
-    title='Comissão Guilherme Clabonde - sobre todas as vendas (0,70% meses com meta batida / 0,40% meses sem meta batida, conforme mês da venda)';
+    groupByVend=false;
+    title='Comissão — Guilherme Clabonde (Gerente)';
+    note='Comissão sobre o total das vendas: 0,70% nos meses com meta da empresa batida e 0,40% nos meses sem meta batida, conforme o mês da venda.';
   } else if(vend){
     items=items.filter(i=>vendedorMatch(i.nomeVend,vend));
-    title='Comissão - '+vend;
+    title='Comissão — '+vend;
   } else {
     groupByVend=true;
-    title='Comissão - Todos os vendedores';
+    title='Comissão — Todos os vendedores';
   }
-  title+=quinzenaLbl;
   if(!items.length){toast('Nenhum lançamento confirmado (pago) para gerar o relatório.','terr');return;}
 
   const showQCol=!quinzena;
   const head=['Mês Venda','Pedido','Cliente','Valor Pago','%','Comissão',...(showQCol?['Quinzena']:[])];
 
-  doc.setFontSize(14);
-  doc.text('GRANDA - Relatório de Comissão',14,16);
-  doc.setFontSize(10);
-  doc.text(title,14,24);
-  doc.text('Período: '+MESES_PT[m-1]+' '+y,14,30);
+  const NAVY=[26,43,94], PINK=[233,30,99], LIGHT=[241,245,249], GRAY=[100,116,139];
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const logo=await _getLogoGrandaPDF();
+  const drawnHeaderPages=new Set([1]);
+  const drawnFooterPages=new Set();
 
-  let curY=36;
+  function drawHeader(){
+    if(logo){try{doc.addImage(logo,'PNG',14,9,36,12.9);}catch(e){}}
+    doc.setTextColor(...NAVY);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(15);
+    doc.text('RELATÓRIO DE COMISSÃO',pageW-14,15,{align:'right'});
+    doc.setTextColor(...PINK);
+    doc.setFontSize(10);
+    doc.text(title,pageW-14,21,{align:'right'});
+    doc.setTextColor(...GRAY);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8.5);
+    doc.text('Período: '+MESES_PT[m-1]+' de '+y+'  ·  '+quinzenaLbl,pageW-14,26.5,{align:'right'});
+    doc.setDrawColor(...PINK);
+    doc.setLineWidth(0.7);
+    doc.line(14,30,pageW-14,30);
+    let yy=36;
+    if(note){
+      doc.setTextColor(...GRAY);
+      doc.setFont('helvetica','italic');
+      doc.setFontSize(7.5);
+      const lines=doc.splitTextToSize(note,pageW-28);
+      doc.text(lines,14,yy);
+      yy+=lines.length*3.2+3;
+    }
+    doc.setFont('helvetica','normal');
+    return yy;
+  }
+
+  function drawFooter(pageNum){
+    if(drawnFooterPages.has(pageNum))return;
+    drawnFooterPages.add(pageNum);
+    doc.setPage(pageNum);
+    doc.setDrawColor(220,224,230);
+    doc.setLineWidth(0.3);
+    doc.line(14,pageH-14,pageW-14,pageH-14);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('GRANDA Comunicação Visual · Sistema GCore',14,pageH-9);
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
+    doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
+  }
+
+  let curY=drawHeader();
   let grandTotal=0;
 
   function drawSection(its,sectionTitle){
-    if(curY>265){doc.addPage();curY=20;}
+    if(curY>pageH-50){doc.addPage();curY=drawHeader();}
     if(sectionTitle){
-      doc.setFontSize(10);
+      doc.setFillColor(...NAVY);
+      doc.rect(14,curY-4.2,pageW-28,6.2,'F');
+      doc.setTextColor(255,255,255);
       doc.setFont('helvetica','bold');
-      doc.text(sectionTitle,14,curY);
+      doc.setFontSize(9);
+      doc.text(sectionTitle.toUpperCase(),17,curY);
       doc.setFont('helvetica','normal');
-      curY+=6;
+      curY+=5;
     }
     let subtotal=0;
     const body=its.map(i=>{
@@ -3968,13 +4038,30 @@ function gerarPDFComissao(vend,quinzena){
       if(showQCol)row.push(i._q);
       return row;
     });
-    doc.autoTable({startY:curY,head:[head],body,styles:{fontSize:7.5},headStyles:{fillColor:[124,58,237]}});
-    curY=(doc.lastAutoTable?.finalY||curY)+7;
-    doc.setFontSize(9);
+    doc.autoTable({
+      startY:curY,head:[head],body,
+      theme:'grid',
+      styles:{fontSize:7.5,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1},
+      headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7.8},
+      alternateRowStyles:{fillColor:LIGHT},
+      columnStyles:{3:{halign:'right'},4:{halign:'center'},5:{halign:'right',fontStyle:'bold',textColor:PINK},...(showQCol?{6:{halign:'center',fontStyle:'bold',textColor:NAVY}}:{})},
+      margin:{top:32,left:14,right:14,bottom:20},
+      didDrawPage:(data)=>{
+        if(!drawnHeaderPages.has(data.pageNumber)){drawnHeaderPages.add(data.pageNumber);drawHeader();}
+        drawFooter(data.pageNumber);
+      }
+    });
+    curY=(doc.lastAutoTable?.finalY||curY)+6;
+    if(curY>pageH-40){doc.addPage();curY=drawHeader();}
+    doc.setFillColor(255,228,238);
+    const boxW=62,boxH=8;
+    doc.roundedRect(pageW-14-boxW,curY-5.5,boxW,boxH,1.2,1.2,'F');
+    doc.setTextColor(...NAVY);
     doc.setFont('helvetica','bold');
-    doc.text('Subtotal: '+fmtR(subtotal),14,curY);
+    doc.setFontSize(9);
+    doc.text('Subtotal: '+fmtR(subtotal),pageW-14-boxW/2,curY,{align:'center'});
     doc.setFont('helvetica','normal');
-    curY+=10;
+    curY+=12;
     grandTotal+=subtotal;
   }
 
@@ -3985,11 +4072,21 @@ function gerarPDFComissao(vend,quinzena){
     drawSection(items,null);
   }
 
-  if(curY>270){doc.addPage();curY=20;}
-  doc.setFontSize(11);
+  if(curY>pageH-36){doc.addPage();curY=drawHeader();}
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(14,curY-6,pageW-28,12,2,2,'F');
+  doc.setFillColor(...PINK);
+  doc.rect(14,curY-6,3,12,'F');
+  doc.setTextColor(255,255,255);
   doc.setFont('helvetica','bold');
-  doc.text('Comissão total: '+fmtR(grandTotal),14,curY);
+  doc.setFontSize(11);
+  doc.text('COMISSÃO TOTAL',21,curY+1.3);
+  doc.setFontSize(13);
+  doc.text(fmtR(grandTotal),pageW-20,curY+1.3,{align:'right'});
   doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+
+  for(let p=1;p<=doc.internal.getNumberOfPages();p++)drawFooter(p);
 
   const slug=(vend==='__CLABONDE__'?'clabonde':vend?vend.toLowerCase().replace(/\s+/g,'_'):'todos')+(quinzena==='I'?'_1qz':quinzena==='II'?'_2qz':'');
   doc.save(`comissao_${slug}_${y}_${String(m).padStart(2,'0')}.pdf`);
