@@ -3572,13 +3572,15 @@ async function renderUserList(){
 }
 
 function removerNomeUsuario(email){
-  if(!confirm('Remover '+email+' da lista?'))return;
+  if(!confirm('Remover '+email+' da lista?\n\nObs: isso remove só o nome/categoria daqui do sistema. Na tela seguinte você vai apagar o login dele no Firebase também.'))return;
   if(cfg.usuarioNomes)delete cfg.usuarioNomes[email];
   if(cfg.usuarioCats)delete cfg.usuarioCats[email];
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderUserList();
-  toast('Usuário removido','tok');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(email).catch(()=>{});}
+  toast('Usuário removido daqui. E-mail copiado — cole na busca do Firebase que vai abrir para apagar o login também.','twar');
+  setTimeout(()=>{window.open('https://console.firebase.google.com/project/gcore-d45c5/authentication/users','_blank');},900);
 }
 
 async function recriarUsuario(email){
