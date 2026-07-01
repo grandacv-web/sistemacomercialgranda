@@ -358,6 +358,9 @@ select.fc{cursor:pointer}
     </div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-err" id="l-err">E-mail ou senha incorretos.</div>
+    <div style="text-align:center;margin-top:14px">
+      <button onclick="doEsqueciSenha()" style="background:none;border:none;color:#0284c7;font-size:.78rem;cursor:pointer;font-family:inherit;text-decoration:underline">Esqueci minha senha</button>
+    </div>
   </div>
 </div>
 
@@ -2455,7 +2458,7 @@ document.addEventListener('input',function(e){
   if(document.getElementById('em-liq'))updLiq();
   const el=e.target;
   if(el.tagName==='INPUT'||el.tagName==='TEXTAREA'){
-    const skip=el.type==='email'||el.type==='date'||el.type==='file'||el.type==='number'||el.type==='checkbox'||el.type==='radio'||el.type==='password'||el.classList.contains('no-upper')||el.classList.contains('et-inp')||el.id==='et-inp';
+    const skip=el.type==='email'||el.type==='date'||el.type==='file'||el.type==='number'||el.type==='checkbox'||el.type==='radio'||el.type==='password'||el.classList.contains('no-upper')||el.classList.contains('et-inp')||el.id==='et-inp'||el.id==='l-pass'||el.id==='nu-pass'||el.id==='nu-pass2';
     if(!skip&&el.value){const pos=el.selectionStart;el.value=el.value.toUpperCase();try{el.setSelectionRange(pos,pos);}catch(err){}}
   }
 });
@@ -3529,7 +3532,7 @@ async function addUser(){
 }
 async function renderUserList(){
   const el=document.getElementById('user-list');
-  if(el)el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Use o Console do Firebase para listar/remover usuários.</p>';
+  if(el)el.innerHTML='';
   const lista=document.getElementById('cfg-nomes-lista');
   if(lista){
     const nomes=cfg.usuarioNomes||{};
@@ -3539,7 +3542,7 @@ async function renderUserList(){
         `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #b2ebf2;gap:4px">
           <span style="flex:1;min-width:0"><strong>${nome}</strong><br><span style="color:#0891b2;font-size:.70rem">${email}</span></span>
           <div style="display:flex;gap:4px;flex-shrink:0">
-            <button onclick="recriарUsuario('${email}')" style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;cursor:pointer;color:#16a34a;font-size:.7rem;padding:3px 7px;font-weight:600" title="Criar/Redefinir senha manualmente">🔑 Nova Senha</button>
+            <button onclick="recriarUsuario('${email}')" style="background:#f0fdf4;border:1px solid #86efac;border-radius:6px;cursor:pointer;color:#16a34a;font-size:.7rem;padding:3px 7px;font-weight:600" title="Criar/Redefinir senha manualmente">🔑 Nova Senha</button>
             <button onclick="resetarSenhaEmail('${email}')" style="background:#eff6ff;border:1px solid #93c5fd;border-radius:6px;cursor:pointer;color:#1d4ed8;font-size:.7rem;padding:3px 7px;font-weight:600" title="Enviar email de redefinição">📧 Email Reset</button>
             <button onclick="removerNomeUsuario('${email}')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.8rem;padding:2px 6px" title="Remover">✕</button>
           </div>
@@ -3561,18 +3564,24 @@ function removerNomeUsuario(email){
   toast('Usuário removido','tok');
 }
 
-async function recriарUsuario(email){
+async function recriarUsuario(email){
   const nova=prompt('Nova senha para '+email+'\n(mínimo 6 caracteres):');
   if(!nova)return;
   if(nova.length<6){toast('Senha mínimo 6 caracteres!','terr');return;}
   try{
     await window._fbCreateUser(email,nova);
-    toast('✅ Usuário recriado! '+email+' já pode entrar com a nova senha.','tok');
+    toast('✅ Usuário criado! '+email+' já pode entrar com a nova senha.','tok');
   }catch(e){
     if(e.code==='auth/email-already-in-use'){
-      // Usuário já existe no Firebase — não conseguimos trocar senha pelo cliente
-      // Usa a REST API do Firebase para enviar o reset e orientar
-      toast('⚠️ Usuário já existe no Firebase. Use "📧 Email Reset" ou redefina pelo console.firebase.google.com','terr');
+      // Usuário já existe no Firebase — envia reset automático
+      if(confirm('Usuário já existe no Firebase.\n\nEnviar email de redefinição de senha para '+email+'?')){
+        try{
+          await window._fbSendReset(email);
+          toast('📧 Email de redefinição enviado para '+email,'tok');
+        }catch(e2){
+          toast('Erro ao enviar reset: '+(e2.message||e2),'terr');
+        }
+      }
     } else {
       toast('Erro: '+(e.message||e),'terr');
     }
@@ -3586,8 +3595,8 @@ async function resetarSenhaEmail(email){
     toast('📧 Email de redefinição enviado para '+email,'tok');
   }catch(e){
     if(e.code==='auth/user-not-found'){
-      if(confirm('Usuário não encontrado no Firebase Auth.\n\nDeseja RECRIAR o usuário com uma nova senha?')){
-        recriарUsuario(email);
+      if(confirm('Usuário não encontrado no Firebase.\nDeseja criar com uma nova senha?')){
+        recriarUsuario(email);
       }
     } else {
       toast('Erro: '+(e.message||e),'terr');
@@ -3724,6 +3733,18 @@ async function enviarResetSenha(){
 }
 function cio(e,id){if(e.target.id===id)closeM(id);}
 
+async function doEsqueciSenha(){
+  const email=document.getElementById('l-email')?.value?.trim();
+  if(!email){alert('Digite seu e-mail acima antes de clicar em Esqueci minha senha.');return;}
+  try{
+    await window._fbSendReset(email);
+    alert('Email de redefinição enviado para:\n'+email+'\n\nVerifique sua caixa de entrada e spam.');
+  }catch(e){
+    if(e.code==='auth/too-many-requests'){alert('Muitas tentativas. Aguarde alguns minutos.');}
+    else{alert('Erro: '+(e.message||e));}
+  }
+}
+
 async function doLogin(){
   const email=document.getElementById('l-email')?.value?.trim();
   const pass=document.getElementById('l-pass')?.value;
@@ -3733,7 +3754,11 @@ async function doLogin(){
   if(btn){btn.textContent='Entrando...';btn.disabled=true;}
   try{await window._fbSignIn(email,pass);}
   catch(e){
-    if(err){err.textContent='E-mail ou senha incorretos.';err.style.display='block';}
+    let msg='E-mail ou senha incorretos.';
+    if(e.code==='auth/too-many-requests')msg='Acesso bloqueado por muitas tentativas. Aguarde alguns minutos.';
+    else if(e.code==='auth/user-disabled')msg='Esta conta foi desativada.';
+    else if(e.code==='auth/network-request-failed')msg='Sem conexão com a internet.';
+    if(err){err.textContent=msg;err.style.display='block';}
     if(btn){btn.textContent='Entrar';btn.disabled=false;}
   }
 }
@@ -5270,10 +5295,9 @@ function gcRenderVendPaineis(){
   if(kBotV)kBotV.innerHTML=[
     {st:'background:#1a2b5e;border:1px solid #2d4180',l:'Falta para Meta',v:metaMes>0?(faltaMes>0?fmtR(faltaMes):'✅ Meta atingida!'):'—',s:''},
     {st:'background:#0d3347;border:1px solid #1a5270',l:'Projeção do Mês',v:tend>0?fmtR(tend):'—',s:orc>0?'Orc: '+fmtR(orc)+(cv>0?' × '+cv+'%':''):''},
-    {st:'background:'+(gap>0?'#e0245e':'#059669')+';border:1px solid '+(gap>0?'#c01a4e':'#047857'),l:'Gap para Meta',v:gap>0?fmtR(gap):'✅ Projeção ok',s:''},
-  ].map(k=>`<div class="gc-kp" style="${k.st}"><div class="gc-kl" style="color:rgba(255,255,255,.55)">${k.l}</div><div class="gc-kv" style="color:#fff;font-size:16px">${k.v}</div><div class="gc-ks" style="color:rgba(255,255,255,.45)">${k.s}</div></div>`).join('');
-
-  // Evolução anual do vendedor
+    {st:'background:'+(gap>0?'#e0245e':'#059669')+';border:1px solid '+(gap>0?'#c01a4e':'#047857'),l:'Gap para Meta',v:gap>0?fmtR(gap):'ok',s:metaMes>0?'Meta: '+fmtR(metaMes):''}
+  ].map(k=>`<div style="${k.st};border-radius:10px;padding:10px 14px;flex:1;min-width:140px"><div class="gc-kl">${k.l}</div><div class="gc-kv" style="color:#fff;font-size:1rem;font-weight:800;margin:4px 0">${k.v}</div><div class="gc-ks" style="color:rgba(255,255,255,.55);font-size:.68rem">${k.s||''}</div></div>`).join('');
+  // Evolução do vendedor (12 meses)
   const evElV=document.getElementById('gc-cVend');
   if(evElV){
     const subElV=document.getElementById('gc-ev-vend-sub');if(subElV)subElV.textContent=v+' — evolução anual '+y;
