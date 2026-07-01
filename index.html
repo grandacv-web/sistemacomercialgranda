@@ -3485,8 +3485,21 @@ async function addUser(){
   }
   const btn=document.getElementById('btn-add-user');
   if(btn)btn.textContent='Criando...';
+  let jaExistia=false;
   try{
     await window._fbCreateUser(em,pw);
+  }catch(e){
+    if(e.code==='auth/email-already-in-use'){
+      // E-mail já existe no Firebase Auth (ex: criado em outra tentativa).
+      // Não é erro fatal: seguimos e salvamos nome/categoria mesmo assim.
+      jaExistia=true;
+    } else {
+      toast('Erro: '+(e.message||e),'terr');
+      if(btn)btn.textContent='+ Criar Usuário';
+      return;
+    }
+  }
+  try{
     // Salva o nome e a categoria no cfg e sincroniza no Firestore
     if(!cfg.usuarioNomes)cfg.usuarioNomes={};
     cfg.usuarioNomes[em]=nome;
@@ -3510,7 +3523,11 @@ async function addUser(){
     }
     if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
     localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
-    toast('Usuário criado: '+nome+' ('+em+')','tok');
+    if(jaExistia){
+      toast('⚠️ Esse e-mail já existia no Firebase. Nome e categoria salvos. Peça para o usuário clicar em "Esqueci minha senha" na tela de login para definir a senha.','twar');
+    } else {
+      toast('Usuário criado: '+nome+' ('+em+')','tok');
+    }
     document.getElementById('nu-email').value='';
     document.getElementById('nu-pass').value='';
     const p2el=document.getElementById('nu-pass2');if(p2el)p2el.value='';
