@@ -1000,6 +1000,24 @@ select.fc{cursor:pointer}
             <div class="fg"><label>Clabonde - empresa não bateu meta (%)</label><input class="fc no-upper" type="number" min="0" max="100" step="0.01" id="cfg-pct-clab-naobate" placeholder="0,40"></div>
           </div>
         </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid var(--border);margin-top:16px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:6px">🎁 Adicionar Pagamento</div>
+          <p style="font-size:.73rem;color:var(--ink4);margin-bottom:14px">Lance bônus ou qualquer pagamento extra pra um vendedor (ex: R$ 250,00 quando a meta geral da empresa bater no mês). Some junto com a comissão dele em Metas &amp; Comissões, mostrando o motivo.</p>
+          <div class="g2">
+            <div class="fg"><label>Vendedor</label><select class="fc no-upper" id="pe-vendedor"></select></div>
+            <div class="fg"><label>Mês / Ano de referência</label>
+              <div style="display:flex;gap:6px">
+                <select class="fc no-upper" id="pe-mes" style="flex:1"></select>
+                <input class="fc no-upper" type="number" id="pe-ano" style="width:90px" placeholder="2026">
+              </div>
+            </div>
+            <div class="fg"><label>Valor (R$)</label><input class="fc no-upper" type="text" inputmode="numeric" id="pe-valor" oninput="fmtMoney(this)" placeholder="250,00"></div>
+            <div class="fg"><label>Motivo</label><input class="fc no-upper" type="text" id="pe-motivo" placeholder="Ex: Bônus meta geral batida"></div>
+          </div>
+          <button class="btn-next" style="margin-top:6px" onclick="addPagamentoExtra()">+ Adicionar Pagamento</button>
+          <div style="font-size:.68rem;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 8px">Pagamentos lançados</div>
+          <div id="pe-lista"></div>
+        </div>
       </div>
       <!-- EMAIL -->
       <div class="cfg-sec" id="cfg-sec-email">
@@ -3769,6 +3787,7 @@ function setCfgSec(sec,btn){
   if(btn)btn.classList.add('active');
   if(sec==='kanban')renderCfgKanban();
   if(sec==='tipospedido')renderTiposPedido();
+  if(sec==='metas')initPagamentosExtrasForm();
 }
 
 async function enviarResetSenha(){
@@ -4040,6 +4059,99 @@ function getProspectores(){
     }
   });
   return Array.from(result).sort();
+}
+
+// ════════════════════════════════════════
+// PAGAMENTOS EXTRAS (bônus, ajustes, prêmios pontuais etc.)
+// Lançados manualmente em Configurações → Metas → 🎁 Adicionar Pagamento.
+// Somam junto com a comissão do vendedor em Metas & Comissões e no PDF,
+// sempre mostrando o motivo lançado.
+// ════════════════════════════════════════
+function initPagamentosExtrasForm(){
+  const selV=document.getElementById('pe-vendedor');
+  if(selV&&!selV.dataset.filled){
+    selV.innerHTML=getVendedores().map(v=>`<option value="${v}">${v}</option>`).join('');
+    selV.dataset.filled='1';
+  }
+  const selM=document.getElementById('pe-mes');
+  if(selM&&!selM.dataset.filled){
+    selM.innerHTML=MESES_PT.map((nome,i)=>i>0?`<option value="${i}">${nome}</option>`:'').join('');
+    selM.dataset.filled='1';
+  }
+  const anoEl=document.getElementById('pe-ano');
+  if(anoEl&&!anoEl.value)anoEl.value=dashMesAtual.y;
+  if(selM&&!selM.value)selM.value=String(dashMesAtual.m);
+  renderPagamentosExtrasList();
+}
+
+function getPagamentosExtras(){return cfg.pagamentosExtras||[];}
+
+function getPagamentosExtrasMes(y,m){
+  return getPagamentosExtras().filter(p=>p.y===y&&p.m===m);
+}
+
+function getPagamentosExtrasVendedor(y,m,vendedor){
+  return getPagamentosExtrasMes(y,m).filter(p=>vendedorMatch(p.vendedor,vendedor));
+}
+
+async function addPagamentoExtra(){
+  const vendedor=document.getElementById('pe-vendedor')?.value;
+  const m=parseInt(document.getElementById('pe-mes')?.value,10);
+  const y=parseInt(document.getElementById('pe-ano')?.value,10);
+  const valor=parseFloat((document.getElementById('pe-valor')?.value||'').replace(/[R$\s.]/g,'').replace(',','.'))||0;
+  const motivo=document.getElementById('pe-motivo')?.value?.trim();
+  if(!vendedor){toast('Selecione o vendedor!','terr');return;}
+  if(!y||!m){toast('Selecione o mês/ano!','terr');return;}
+  if(valor<=0){toast('Digite um valor maior que zero!','terr');return;}
+  if(!motivo){toast('Descreva o motivo do pagamento!','terr');return;}
+  if(!cfg.pagamentosExtras)cfg.pagamentosExtras=[];
+  cfg.pagamentosExtras.push({id:'pe_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),vendedor,y,m,valor,motivo,status:'pendente',criadoEm:new Date().toISOString()});
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  document.getElementById('pe-valor').value='';
+  document.getElementById('pe-motivo').value='';
+  renderPagamentosExtrasList();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  if(typeof renderDashMetas==='function')renderDashMetas();
+  toast('✅ Pagamento de '+fmtR(valor)+' lançado para '+vendedor,'tok');
+}
+
+function renderPagamentosExtrasList(){
+  const el=document.getElementById('pe-lista');if(!el)return;
+  const lista=[...getPagamentosExtras()].sort((a,b)=>(b.y-a.y)||(b.m-a.m)||a.vendedor.localeCompare(b.vendedor));
+  if(!lista.length){el.innerHTML='<span style="color:#94a3b8;font-size:.75rem">Nenhum pagamento extra lançado ainda.</span>';return;}
+  el.innerHTML=lista.map(p=>{
+    const paga=p.status==='confirmado';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eef2f7">
+      <div style="flex:1;min-width:0">
+        <div><strong>${p.vendedor}</strong> · ${MESES_PT[p.m]} ${p.y} · <span style="color:#7c3aed;font-weight:700">${fmtR(p.valor)}</span></div>
+        <div style="font-size:.72rem;color:#64748b">${p.motivo}</div>
+      </div>
+      <span class="dash-badge ${paga?'ok':'pend'}" style="flex-shrink:0">${paga?'✅ Pago':'⏳ Pendente'}</span>
+      <button onclick="togglePagamentoExtraStatus('${p.id}')" style="background:${paga?'#fff':'#f0fdf4'};border:1px solid ${paga?'#e5e7eb':'#86efac'};border-radius:6px;cursor:pointer;color:${paga?'#64748b':'#16a34a'};font-size:.7rem;padding:3px 7px;font-weight:600;flex-shrink:0">${paga?'↩ Reabrir':'✅ Confirmar'}</button>
+      <button onclick="removerPagamentoExtra('${p.id}')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:.8rem;padding:2px 6px;flex-shrink:0" title="Remover">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function togglePagamentoExtraStatus(id){
+  const p=(cfg.pagamentosExtras||[]).find(x=>x.id===id);if(!p)return;
+  p.status=p.status==='confirmado'?'pendente':'confirmado';
+  if(p.status==='confirmado')p.confirmadoEm=new Date().toISOString();
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderPagamentosExtrasList();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+}
+
+async function removerPagamentoExtra(id){
+  if(!confirm('Remover este pagamento?'))return;
+  cfg.pagamentosExtras=(cfg.pagamentosExtras||[]).filter(x=>x.id!==id);
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderPagamentosExtrasList();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  toast('Pagamento removido','tok');
 }
 
 function getMetaMes(y,m,vendedor){
@@ -4439,7 +4551,7 @@ function renderDashComissoes(){
     </div>`;
   }
 
-  function mkVendResume(items){
+  function mkVendResume(items,incluirExtras){
     if(!items.length)return'';
     const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].filter(v=>!v.toUpperCase().includes('KELLEN')).sort();
     const rows=vends.map(v=>{
@@ -4447,11 +4559,16 @@ function renderDashComissoes(){
       const val=its.reduce((s,i)=>s+i.valor,0);
       const com=its.reduce((s,i)=>s+(i.valor*i.pct/100),0);
       const pend=its.filter(i=>i.status!=='confirmado').reduce((s,i)=>s+(i.valor*i.pct/100),0);
+      const extras=incluirExtras?getPagamentosExtrasVendedor(y,m,v):[];
+      const extraPend=extras.filter(p=>p.status!=='confirmado').reduce((s,p)=>s+p.valor,0);
+      const extraPago=extras.filter(p=>p.status==='confirmado').reduce((s,p)=>s+p.valor,0);
+      const extraTip=extras.length?extras.map(p=>p.motivo+' ('+fmtR(p.valor)+')').join(' · '):'';
       return`<tr>
         <td style="font-weight:600">${v}</td>
         <td style="font-weight:700">${fmtR(val)}</td>
-        <td style="font-weight:700;color:#be185d">${fmtR(pend)}</td>
-        <td style="font-weight:700;color:#7c3aed">${fmtR(com-pend)}</td>
+        <td style="font-weight:700;color:#be185d">${fmtR(pend+extraPend)}</td>
+        <td style="font-weight:700;color:#7c3aed">${fmtR(com-pend+extraPago)}</td>
+        ${incluirExtras?`<td style="font-weight:700;color:#b45309"${extraTip?` title="${extraTip.replace(/"/g,'')}"`:''}>${extras.length?fmtR(extraPend+extraPago):'—'}</td>`:''}
       </tr>`;
     }).join('');
     // Linha do gerente CLABONDE - comissão sobre o total do período, com a alíquota
@@ -4464,14 +4581,41 @@ function renderDashComissoes(){
         <td style="font-weight:700">${fmtR(valClab)}</td>
         <td style="font-weight:700;color:#be185d">${fmtR(pendClab)}</td>
         <td style="font-weight:700;color:#7c3aed">${fmtR(comClab-pendClab)}</td>
+        ${incluirExtras?'<td>—</td>':''}
       </tr>`;
     return`<details style="margin-bottom:12px">
       <summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:6px 0">📊 Resumo por vendedor</summary>
       <div style="overflow-x:auto;margin-top:8px"><table class="dash-table">
-        <thead><tr><th>Vendedor</th><th>Total clientes</th><th>Comissão a pagar</th><th>Comissão paga</th></tr></thead>
+        <thead><tr><th>Vendedor</th><th>Total clientes</th><th>Comissão a pagar</th><th>Comissão paga</th>${incluirExtras?'<th>🎁 Extras</th>':''}</tr></thead>
         <tbody>${rows}${rowClab}</tbody>
       </table></div>
+      ${incluirExtras?'<p style="font-size:.68rem;color:#94a3b8;margin-top:4px">Coluna "Extras" já soma nos totais de comissão ao lado. Passe o mouse sobre o valor pra ver o motivo.</p>':''}
     </details>`;
+  }
+
+  function mkExtras(){
+    let extras=getPagamentosExtrasMes(y,m);
+    if(filV)extras=extras.filter(p=>vendedorMatch(p.vendedor,filV));
+    if(!extras.length)return'';
+    const total=extras.reduce((s,p)=>s+p.valor,0);
+    const pend=extras.filter(p=>p.status!=='confirmado').reduce((s,p)=>s+p.valor,0);
+    const rows=extras.map(p=>{
+      const paga=p.status==='confirmado';
+      return`<tr style="${paga?'background:#fffbeb':''}">
+        <td style="font-weight:600">${p.vendedor}</td>
+        <td style="font-size:.78rem">${p.motivo}</td>
+        <td style="font-weight:700;color:#b45309">${fmtR(p.valor)}</td>
+        <td>${paga?'<span class="dash-badge ok">✅ Pago</span>':'<span class="dash-badge pend">⏳ Pendente</span>'}</td>
+        <td><button class="dash-btn-conf" onclick="togglePagamentoExtraStatus('${p.id}');renderDashComissoes()">${paga?'↩ Reabrir':'✅ Confirmar'}</button></td>
+      </tr>`;
+    }).join('');
+    return`<div style="border:1.5px solid #fde68a;background:#fffdf5;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-size:.8rem;font-weight:700;color:#92400e;margin-bottom:8px">🎁 Pagamentos Extras de ${MESES_PT[m]} ${y} — Total: ${fmtR(total)}${pend>0?' · Pendente: '+fmtR(pend):''}</div>
+      <div style="overflow-x:auto"><table class="dash-table">
+        <thead><tr><th>Vendedor</th><th>Motivo</th><th>Valor</th><th>Status</th><th>Ação</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
   }
 
   const pendI=itemsI.filter(i=>i.status!=='confirmado');
@@ -4481,10 +4625,11 @@ function renderDashComissoes(){
 
   el.innerHTML=
     filterBar+
+    mkExtras()+
     `<div style="border-left:4px solid #111827;padding-left:12px;margin-bottom:16px;margin-top:4px">
        <div style="font-size:.85rem;font-weight:700;color:#111827">1ª Quinzena · pagar dia 5</div>
      </div>
-     ${mkCards(itemsI)}${mkVendResume(itemsI)}
+     ${mkCards(itemsI)}${mkVendResume(itemsI,true)}
      <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendI.length})</div>
      ${mkTable(pendI,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consI)}
      <div style="border-left:4px solid #6366f1;padding-left:12px;margin:24px 0 16px">
@@ -4538,7 +4683,8 @@ async function gerarPDFComissao(vend,quinzena){
     groupByVend=true;
     title='Comissão — Todos os vendedores';
   }
-  if(!items.length){toast('Nenhum lançamento confirmado (pago) para gerar o relatório.','terr');return;}
+  const extrasParaPdf=getPagamentosExtrasMes(y,m).filter(p=>p.status==='confirmado'&&(vend&&vend!=='__CLABONDE__'?vendedorMatch(p.vendedor,vend):vend==='__CLABONDE__'?false:true));
+  if(!items.length&&!extrasParaPdf.length){toast('Nenhum lançamento confirmado (pago) para gerar o relatório.','terr');return;}
 
   const showQCol=!quinzena;
   const head=['Mês Venda','Pedido','Cliente','Valor Pago','%','Comissão',...(showQCol?['Quinzena']:[])];
@@ -4648,9 +4794,39 @@ async function gerarPDFComissao(vend,quinzena){
   if(groupByVend){
     const vendNames=[...new Set(items.map(i=>i.nomeVend||'—'))].sort();
     vendNames.forEach(vn=>drawSection(items.filter(i=>(i.nomeVend||'—')===vn),vn));
-  } else {
+  } else if(items.length){
     drawSection(items,null);
   }
+
+  function drawExtrasSection(){
+    if(!extrasParaPdf.length)return;
+    if(curY>pageH-50){doc.addPage();curY=drawHeader();}
+    doc.setFillColor(217,119,6);
+    doc.rect(14,curY-4.2,pageW-28,6.2,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('BÔNUS / PAGAMENTOS EXTRAS',17,curY);
+    doc.setFont('helvetica','normal');
+    curY+=5;
+    const body=extrasParaPdf.map(p=>[p.vendedor,p.motivo,fmtR(p.valor)]);
+    doc.autoTable({
+      startY:curY,head:[['Vendedor','Motivo','Valor']],body,
+      theme:'grid',
+      styles:{fontSize:7.5,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1},
+      headStyles:{fillColor:[217,119,6],textColor:255,fontStyle:'bold',fontSize:7.8},
+      alternateRowStyles:{fillColor:[255,251,235]},
+      columnStyles:{2:{halign:'right',fontStyle:'bold',textColor:[180,83,9]}},
+      margin:{top:32,left:14,right:14,bottom:20},
+      didDrawPage:(data)=>{
+        if(!drawnHeaderPages.has(data.pageNumber)){drawnHeaderPages.add(data.pageNumber);drawHeader();}
+        drawFooter(data.pageNumber);
+      }
+    });
+    curY=(doc.lastAutoTable?.finalY||curY)+6;
+    grandTotal+=extrasParaPdf.reduce((s,p)=>s+p.valor,0);
+  }
+  drawExtrasSection();
 
   if(curY>pageH-36){doc.addPage();curY=drawHeader();}
   doc.setFillColor(...NAVY);
