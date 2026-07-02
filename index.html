@@ -4790,6 +4790,13 @@ async function gerarPDFComissao(vend,quinzena){
 
   let curY=drawHeader();
   let grandTotal=0;
+  const vendorTotals={}; // nome vendedor -> {comissao, bonus}
+  const addVendorTotal=(nome,campo,val)=>{
+    if(!nome)return;
+    let key=Object.keys(vendorTotals).find(k=>vendedorMatch(k,nome));
+    if(!key){key=nome;vendorTotals[key]={comissao:0,bonus:0};}
+    vendorTotals[key][campo]+=val;
+  };
 
   function drawSection(its,sectionTitle){
     if(curY>pageH-50){doc.addPage();curY=drawHeader();}
@@ -4837,6 +4844,7 @@ async function gerarPDFComissao(vend,quinzena){
     doc.setFont('helvetica','normal');
     curY+=12;
     grandTotal+=subtotal;
+    addVendorTotal(sectionTitle||vend,'comissao',subtotal);
   }
 
   if(groupByVend){
@@ -4872,9 +4880,46 @@ async function gerarPDFComissao(vend,quinzena){
       }
     });
     curY=(doc.lastAutoTable?.finalY||curY)+6;
+    extrasParaPdf.forEach(p=>addVendorTotal(p.vendedor,'bonus',p.valor));
     grandTotal+=extrasParaPdf.reduce((s,p)=>s+p.valor,0);
   }
   drawExtrasSection();
+
+  // Resumo por vendedor: comissão + bônus somados num total único por pessoa,
+  // pra não dar pra pagar só a comissão e esquecer do bônus separado.
+  function drawResumoVendedores(){
+    const nomes=Object.keys(vendorTotals).sort();
+    if(nomes.length<1)return;
+    if(curY>pageH-50){doc.addPage();curY=drawHeader();}
+    doc.setFillColor(...NAVY);
+    doc.rect(14,curY-4.2,pageW-28,6.2,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('RESUMO — TOTAL A PAGAR POR VENDEDOR',17,curY);
+    doc.setFont('helvetica','normal');
+    curY+=5;
+    const body=nomes.map(n=>{
+      const t=vendorTotals[n];
+      const total=t.comissao+t.bonus;
+      return [n,fmtR(t.comissao),fmtR(t.bonus),fmtR(total)];
+    });
+    doc.autoTable({
+      startY:curY,head:[['Vendedor','Comissão','Bônus/Extras','Total a Pagar']],body,
+      theme:'grid',
+      styles:{fontSize:8,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1},
+      headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:8.2},
+      alternateRowStyles:{fillColor:LIGHT},
+      columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right',fontStyle:'bold',textColor:PINK}},
+      margin:{top:32,left:14,right:14,bottom:20},
+      didDrawPage:(data)=>{
+        if(!drawnHeaderPages.has(data.pageNumber)){drawnHeaderPages.add(data.pageNumber);drawHeader();}
+        drawFooter(data.pageNumber);
+      }
+    });
+    curY=(doc.lastAutoTable?.finalY||curY)+9;
+  }
+  drawResumoVendedores();
 
   if(curY>pageH-36){doc.addPage();curY=drawHeader();}
   doc.setFillColor(...NAVY);
