@@ -4459,8 +4459,11 @@ function getComissaoItems(y,m){
         const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
         const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y);
         const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m);
-        // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento
-        const pct=getPctComissao(emY,emM,(p.responsavel||'').toUpperCase().trim());
+        // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento.
+        // Vendedor sempre normalizado a partir da planilha (fonte única) quando existir OS
+        // correspondente — evita qualquer nome divergente/desatualizado salvo no pedido.
+        const vendForPct=xlsxRef?mapVendedorName(xlsxRef.v):(p.responsavel||'').toUpperCase().trim();
+        const pct=getPctComissao(emY,emM,vendForPct);
         const pctClab=getPctComissao(emY,emM,'CLABONDE');
         const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
         const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—'};
@@ -5082,7 +5085,11 @@ function vendedorMatch(resp,vendedor){
   const r=(resp||'').toUpperCase().trim();
   const v=(vendedor||'').toUpperCase().trim();
   if(!r||!v)return false;
-  return r===v||r.startsWith(v+' ')||v.startsWith(r+' ');
+  if(r===v||r.startsWith(v+' ')||v.startsWith(r+' '))return true;
+  // Fallback definitivo: mesmo primeiro nome (ex: "JULIO" da planilha vs "JULIO CESAR DO
+  // NASCIMENTO" cadastrado). Cobre qualquer variação de espaço/cadastro que escape do check acima.
+  const rFirst=r.split(/\s+/)[0],vFirst=v.split(/\s+/)[0];
+  return !!rFirst&&rFirst===vFirst;
 }
 
 async function importarPlanilha(){
