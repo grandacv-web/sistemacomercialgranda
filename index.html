@@ -4189,8 +4189,17 @@ async function removerPagamentoExtra(id){
 
 function getMetaMes(y,m,vendedor){
   const k=dasKey(y,m);
-  const stored=(cfg.metasMes&&cfg.metasMes[k]&&cfg.metasMes[k][(vendedor||'').toUpperCase()])||0;
-  return stored>0?stored:0;
+  const mesMetas=cfg.metasMes&&cfg.metasMes[k];
+  if(!mesMetas)return 0;
+  const vUp=(vendedor||'').toUpperCase().trim();
+  if(mesMetas[vUp]>0)return mesMetas[vUp];
+  // Fallback por aproximação de nome (ex: "JULIO" da planilha vs "JULIO CESAR DO NASCIMENTO"
+  // cadastrado na meta) — mesma regra usada em vendedorMatch, pra não depender de
+  // mapVendedorName achar o cadastro certo em cfg.usuarioCats/usuarioNomes.
+  for(const k2 in mesMetas){
+    if(mesMetas[k2]>0&&vendedorMatch(k2,vUp))return mesMetas[k2];
+  }
+  return 0;
 }
 
 function savePctComissaoPessoal(vendedor,tipo,val){
@@ -4255,8 +4264,14 @@ function getPctComissao(y,m,vendedor){
   const meta=getMetaMes(y,m,vend);
   const vendas=getVendasMes(y,m,vend);
   const bateu=meta>0&&vendas>=meta;
-  // Override pessoal definido no cadastro do usuário (Vendedor)
-  const pessoal=(cfg.pctComissaoPessoal||{})[vend];
+  // Override pessoal definido no cadastro do usuário (Vendedor) — também por aproximação de nome
+  const pctPessoalCfg=cfg.pctComissaoPessoal||{};
+  let pessoal=pctPessoalCfg[vend];
+  if(!pessoal){
+    for(const k2 in pctPessoalCfg){
+      if(vendedorMatch(k2,vend)){pessoal=pctPessoalCfg[k2];break;}
+    }
+  }
   if(pessoal){
     const p=bateu?pessoal.bate:pessoal.naoBate;
     if(p!=null&&p>0)return p;
