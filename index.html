@@ -4157,14 +4157,7 @@ async function removerPagamentoExtra(id){
 function getMetaMes(y,m,vendedor){
   const k=dasKey(y,m);
   const stored=(cfg.metasMes&&cfg.metasMes[k]&&cfg.metasMes[k][(vendedor||'').toUpperCase()])||0;
-  if(stored>0)return stored;
-  // Histórico fixo de metas Jan–Mai/2026
-  const v=(vendedor||'').toUpperCase().trim();
-  if(y===2026){
-    if(v==='JULIO'&&m>=1&&m<=5)return 550000;
-    if(v==='BRUNO'&&m>=4&&m<=5)return 550000;
-  }
-  return 0;
+  return stored>0?stored:0;
 }
 
 function savePctComissaoPessoal(vendedor,tipo,val){
@@ -4191,14 +4184,22 @@ function isComercialPedido(p){
   // Only count pedidos that belong to the commercial workflow
   return !!(p.importadoPlanilha||p.origemComercial);
 }
+// Fonte única de vendas: mescla a planilha (XLSX_VENDAS) com os pedidos do Firestore,
+// sem precisar de nenhum passo de "importar" — é a mesma lista usada na Lista de Vendas.
+function getVendaRowsMerged(){
+  const importadosFS=pedidos.filter(p=>p.importadoPlanilha);
+  const importadosFSOs=new Set(importadosFS.map(p=>String(p.os)));
+  const xlsxSemFS=(typeof XLSX_VENDAS!=='undefined'?XLSX_VENDAS:[]).filter(r=>!importadosFSOs.has(String(r.p)));
+  return [
+    ...xlsxSemFS,
+    ...importadosFS.map(pedidoToVendaRow),
+    ...pedidos.filter(p=>isComercialPedido(p)&&!p.importadoPlanilha).map(pedidoToVendaRow)
+  ];
+}
 function getVendasMes(y,m,vendedor){
-  const mk=dasKey(y,m);
-  return pedidos.filter(p=>{
-    if(!p.emissaoEm||!isComercialPedido(p))return false;
-    const pk=p.emissaoEm.slice(0,7);
-    const resp=(p.responsavel||'').toUpperCase().trim();
-    return pk===mk&&vendedorMatch(resp,vendedor);
-  }).reduce((s,p)=>s+$mDash((p.valores&&p.valores['Valor Líquido do Pedido'])||'0'),0);
+  return getVendaRowsMerged()
+    .filter(r=>r.m===m&&vendedorMatch(r.v,vendedor))
+    .reduce((s,r)=>s+(r.lq||0),0);
 }
 
 const _CLAB=['GUILHERME CLABONDE','CLABONDE'];
@@ -4212,23 +4213,15 @@ function getPctComissao(y,m,vendedor){
   const vendNaoBate=cfg.pctComissaoVendNaoBate??0.15;
   // Fallback for Clabonde (owner share logic) — % aplicado conforme o mês da VENDA (y,m)
   if(isClabonde(vend)){
-    // Histórico fixo: Jan a Mai/2026, todas as metas batidas, exceto Fevereiro
-    if(y===2026&&m>=1&&m<=5)return m===2?clabNaoBate:clabBate;
     const vends=getVendedores().filter(v=>!isClabonde(v));
     const metaEmp=vends.reduce((s,v)=>s+getMetaMes(y,m,v),0);
     const totalEmp=getVendasMes(y,m,null);
     return (metaEmp>0&&totalEmp>=metaEmp)?clabBate:clabNaoBate;
   }
   // Vendedores em geral: % configurável conforme bateu ou não a meta do mês
-  let bateu;
-  if(y===2026&&m>=1&&m<=5){
-    // Histórico fixo: Jan a Mai/2026, todas as metas batidas, exceto Fevereiro
-    bateu=(m!==2);
-  } else {
-    const meta=getMetaMes(y,m,vend);
-    const vendas=getVendasMes(y,m,vend);
-    bateu=meta>0&&vendas>=meta;
-  }
+  const meta=getMetaMes(y,m,vend);
+  const vendas=getVendasMes(y,m,vend);
+  const bateu=meta>0&&vendas>=meta;
   // Override pessoal definido no cadastro do usuário (Vendedor)
   const pessoal=(cfg.pctComissaoPessoal||{})[vend];
   if(pessoal){
@@ -5126,16 +5119,8 @@ function renderDashVendas(){
   if(btnAddVm)btnAddVm.style.display=isAdm?'':'none';
   const selV=document.getElementById('vnd-fil-vend');
   const selC=document.getElementById('vnd-fil-cat');
-  // Pedidos importados via planilha que já estão no Firestore (têm _pid, podem ser editados)
-  const importadosFS=pedidos.filter(p=>p.importadoPlanilha);
-  const importadosFSOs=new Set(importadosFS.map(p=>String(p.os)));
-  // Só usa XLSX_VENDAS para os que NÃO têm versão no Firestore (evita duplicata)
-  const xlsxSemFS=XLSX_VENDAS.filter(r=>!importadosFSOs.has(String(r.p)));
-  const allRowsForFil=[
-    ...xlsxSemFS,
-    ...importadosFS.map(pedidoToVendaRow),
-    ...pedidos.filter(p=>isComercialPedido(p)&&!p.importadoPlanilha).map(pedidoToVendaRow)
-  ];
+  // Mesma fonte usada nos cards/metas/comissões — planilha + pedidos do Firestore mesclados
+  const allRowsForFil=getVendaRowsMerged();
   if(selV&&selV.options.length<=1){
     const vends=[...new Set(allRowsForFil.map(r=>r.v).filter(Boolean))].sort();
     vends.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
@@ -5299,13 +5284,9 @@ function gcSetVend(v){
 }
 
 function getVendasBrutoMes(y,m,vendedor){
-  const mk=dasKey(y,m);
-  return pedidos.filter(p=>{
-    if(!p.emissaoEm||!isComercialPedido(p))return false;
-    const pk=p.emissaoEm.slice(0,7);
-    const resp=(p.responsavel||'').toUpperCase().trim();
-    return pk===mk&&vendedorMatch(resp,vendedor);
-  }).reduce((s,p)=>s+$mDash((p.valores&&p.valores['Valor Bruto'])||'0'),0);
+  return getVendaRowsMerged()
+    .filter(r=>r.m===m&&vendedorMatch(r.v,vendedor))
+    .reduce((s,r)=>s+(r.br||0),0);
 }
 
 function getFaturadoMes(y,m,vendedor){
