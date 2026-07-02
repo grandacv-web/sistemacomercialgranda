@@ -1932,6 +1932,39 @@ function _updEvLiq(){
   el.textContent='R$ '+liq.toLocaleString('pt-BR',{minimumFractionDigits:2});
   el.style.color=liq<0?'#f87171':'#fff';
 }
+// Editar uma linha da Lista de Vendas que ainda só existe na planilha (XLSX_VENDAS),
+// sem pedido correspondente no Firestore. Cria o registro só nesse momento (edição pontual,
+// sem nenhum "importar planilha" em massa) e abre o modal normal de edição de valores.
+async function editarVendaLista(os,pedidoId){
+  if(pedidoId){editarValoresPedido(pedidoId);return;}
+  const {isAdm}=_getUserCat();
+  if(!isAdm){toast('Apenas administradores podem editar valores','terr');return;}
+  const x=XLSX_VENDAS_BY_OS[String(os)];
+  if(!x){toast('Venda não encontrada','terr');return;}
+  const senha=await pedirSenhaAdmin('Editar Valores do Pedido','Digite sua senha de administrador para editar os valores:');
+  if(!senha){toast('Cancelado','tinf');return;}
+  if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');return;}
+  const fmtBR=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pagamento={};
+  (x.parcelas||[]).forEach((parc,idx)=>{pagamento[`Parcela ${idx+1} · ${parc.dataStr}`]=fmtBR(parc.valor);});
+  const emissaoEm=`2026-${String(x.m).padStart(2,'0')}-01`;
+  const valores={'Valor Bruto':fmtBR(x.br),'Valor Líquido do Pedido':fmtBR(x.lq),...(x.el>0?{'Valor das Elevações':fmtBR(x.el)}:{})};
+  const frete=x.ft>0?{'Valor do Frete':fmtBR(x.ft)}:{};
+  const instalacao={
+    ...(x.vi>0?{'Valor da Mobilização':fmtBR(x.vi)}:{}),
+    ...(x.mo>0?{'Valor da Instalação':fmtBR(x.mo)}:{}),
+    ...(x.rem>0?{'Valor da Remoção':fmtBR(x.rem)}:{}),
+    ...(x.med>0?{'Valor da Medição':fmtBR(x.med)}:{})
+  };
+  const projetos=x.art>0?{'Valor da ART':fmtBR(x.art)}:{};
+  const pedido={id:uid(),os:String(x.p),tipo:x.cat,tipoPedido:x.cat,responsavel:mapVendedorName(x.v),
+    cliente:x.cl,emails:[],job:x.cl,prazo:x.entrega||'',etapa:'Pedido Entregue',
+    emissaoEm,obs:'Editado a partir da Lista de Vendas',importadoPlanilha:true,
+    valores,pagamento,instalacao,frete,bases:'',elevacoes:[],remocoes:[],projetos};
+  pedidos.push(pedido);
+  await savePedidoFS(pedido);
+  editarValoresPedido(pedido.id);
+}
 async function editarValoresPedido(pedidoId){
   const {isAdm}=_getUserCat();
   if(!isAdm){toast('Apenas administradores podem editar valores','terr');return;}
@@ -4430,7 +4463,11 @@ function getComissaoItems(y,m){
       const qi=getComissaoQuinzena(synP,dataAtiva);
       if(qi&&qi.y===y&&qi.m===m){
         const emM=x.m,emY=2026;
-        const pct=getPctComissao(emY,emM,(x.v||'').toUpperCase().trim());
+        // x.v é o nome curto da planilha (ex: "JULIO") — precisa mapear pro nome completo
+        // cadastrado (ex: "JULIO CESAR DO NASCIMENTO"), que é a chave usada em cfg.metasMes.
+        // Sem isso, getMetaMes não acha a meta (nome não bate) e sempre cai em "não bateu".
+        const vendNorm=mapVendedorName(x.v);
+        const pct=getPctComissao(emY,emM,vendNorm);
         const pctClab=getPctComissao(emY,emM,'CLABONDE');
         const emMes=MESES_PT[emM]+' '+emY;
         const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p)};
@@ -4966,7 +5003,7 @@ const XLSX_VENDAS=[
   {mes:"MAIO",m:5,p:"148",cl:"BURGER KING MARINGÁ",cat:"MANUTENÇÃO",v:"JULIO",br:146657.0,ft:12000.0,vi:3600.0,el:6000.0,mo:5600.0,art:500.0,ba:0.0,ou:0.0,lq:118957.0,op:27700.0,entrega:"23/06/2026",parcelas:[{dataStr:"15/07/2026",valor:118957.0}]},
   {mes:"MAIO",m:5,p:"130",cl:"DAF MACPONTA PONTA GROSSA - CONCESSIONÁRIO",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:45894.44,ft:1500.0,vi:0.0,el:9000.0,mo:5500.0,art:500.0,ba:0.0,ou:0.0,lq:29394.44,op:16500.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:14697.22},{dataStr:"05/07/2026",valor:14697.22}]},
   {mes:"MAIO",m:5,p:"131",cl:"DAF MACPONTA PONTA GROSSA - FÁBRICA",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:106554.32,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:106554.32,op:0.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:53277.16},{dataStr:"05/07/2026",valor:53277.16}]},
-  {mes:"MAIO",m:5,p:"S/N",cl:"BURGER KING ITAPETININGA",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:19939.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:0.0,op:19939.0,entrega:"",parcelas:[]},
+  {mes:"MAIO",m:5,p:"S/N",cl:"BURGER KING ITAPETININGA",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:-1400.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:21339.0,op:-1400.0,entrega:"",parcelas:[]},
   {mes:"MAIO",m:5,p:"170",cl:"BURGER KING - AV DOS ESTADOS",cat:"BK É FOGO",v:"JULIO",br:213751.64,ft:12000.0,vi:4000.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:171251.64,op:42500.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/07/2026",valor:171251.64}]},
   {mes:"MAIO",m:5,p:"169",cl:"BURGER KING PRESTES MAIA",cat:"BK É FOGO",v:"JULIO",br:100618.64,ft:7000.0,vi:1800.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:75818.64,op:24800.0,entrega:"28/05/2026",parcelas:[{dataStr:"05/07/2026",valor:75818.64}]},
   {mes:"MAIO",m:5,p:"171",cl:"BURGER KING AVENIDA DOM PEDRO II",cat:"BK É FOGO",v:"JULIO",br:222675.0,ft:13000.0,vi:5000.0,el:15000.0,mo:15000.0,art:500.0,ba:0.0,ou:0.0,lq:174175.0,op:48500.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/07/2026",valor:174175.0}]},
@@ -5083,26 +5120,29 @@ async function importarPlanilha(){
 }
 function pedidoToVendaRow(p){
   const v=p.valores||{},inst=p.instalacao||{},fr=p.frete||{},proj=p.projetos||{};
-  const br=moneyToNum(v['Valor Bruto']||v['Valor Total']||'0');
-  let ft=moneyToNum(fr['Valor do Frete']||'0');
-  let vi=moneyToNum(inst['Valor da Mobilização']||'0');
-  let mo=moneyToNum(inst['Valor da Instalação']||'0');
-  let el=moneyToNum(v['Valor das Elevações']||'0');
-  let art=moneyToNum(proj['Valor da ART']||'0');
-  let rem=moneyToNum(inst['Valor da Remoção']||'0');
-  let med=moneyToNum(inst['Valor da Medição']||'0');
-  let op=ft+vi+el+mo+art+rem+med;
-  // Pedido importado da planilha que ficou sem o detalhamento operacional preenchido:
-  // recupera Frete/Mobilização/Elevações/Instalação/ART/Remoção/Medição da planilha original (mesma OS)
-  if(p.importadoPlanilha&&op===0){
-    const x=XLSX_VENDAS_BY_OS[String(p.os)];
-    if(x&&((x.ft||0)+(x.vi||0)+(x.el||0)+(x.mo||0)+(x.art||0)+(x.rem||0)+(x.med||0)>0)){
-      ft=x.ft||0;vi=x.vi||0;el=x.el||0;mo=x.mo||0;art=x.art||0;rem=x.rem||0;med=x.med||0;
-      op=ft+vi+el+mo+art+rem+med;
-    }
+  // Pedido veio da planilha (importadoPlanilha) e ainda existe na planilha atual (mesma OS):
+  // a planilha é a fonte de verdade dos valores financeiros — evita que um registro antigo
+  // salvo no Firestore (bruto/líquido desatualizado) fique divergindo da planilha colada agora.
+  const xlsxRow=(p.importadoPlanilha&&typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
+  let br,ft,vi,mo,el,art,rem,med,op,lq;
+  if(xlsxRow){
+    br=xlsxRow.br||0;ft=xlsxRow.ft||0;vi=xlsxRow.vi||0;el=xlsxRow.el||0;mo=xlsxRow.mo||0;
+    art=xlsxRow.art||0;rem=xlsxRow.rem||0;med=xlsxRow.med||0;
+    op=ft+vi+el+mo+art+rem+med;
+    lq=xlsxRow.lq!=null?xlsxRow.lq:(br-op);
+  } else {
+    br=moneyToNum(v['Valor Bruto']||v['Valor Total']||'0');
+    ft=moneyToNum(fr['Valor do Frete']||'0');
+    vi=moneyToNum(inst['Valor da Mobilização']||'0');
+    mo=moneyToNum(inst['Valor da Instalação']||'0');
+    el=moneyToNum(v['Valor das Elevações']||'0');
+    art=moneyToNum(proj['Valor da ART']||'0');
+    rem=moneyToNum(inst['Valor da Remoção']||'0');
+    med=moneyToNum(inst['Valor da Medição']||'0');
+    op=ft+vi+el+mo+art+rem+med;
+    // Usa o líquido salvo (mesma fonte usada pelo cálculo de comissão), com fallback ao cálculo direto
+    lq=v['Valor Líquido do Pedido']!=null?moneyToNum(v['Valor Líquido do Pedido']):(br-op);
   }
-  // Usa o líquido salvo (mesma fonte usada pelo cálculo de comissão), com fallback ao cálculo direto
-  const lq=v['Valor Líquido do Pedido']!=null?moneyToNum(v['Valor Líquido do Pedido']):(br-op);
   let mes='',m=0;
   if(p.emissaoEm){
     const partes=p.emissaoEm.split('-');
@@ -5195,7 +5235,7 @@ function renderDashVendas(){
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.art)}</td>
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.rem)}</td>
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.med)}</td>
-      ${isAdm?`<td style="white-space:nowrap;background:${zebra}">${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarValoresPedido('${r._pid}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${r._pid}')">Cancelar</button>`:''}</td>`:''}
+      ${isAdm?`<td style="white-space:nowrap;background:${zebra}"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button>${r._pid?`<button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${r._pid}')">Cancelar</button>`:''}</td>`:''}
     </tr>`;
   }).join('');
 
