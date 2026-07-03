@@ -1494,20 +1494,27 @@ async function delP(){
     toast('Excluído','tok');
   }catch(e){toast('Erro ao excluir: '+e.message,'terr');}
 }
-async function cancelarVenda(pedidoId){
+// Cancela uma venda (cliente desistiu/cancelou) e some com ela da Lista de Vendas — funciona
+// tanto pra pedido emitido no sistema quanto pra venda que só existe na planilha colada,
+// porque a marcação é por Nº de OS (getVendasCanceladas/isVendaCancelada), não por id do Firestore.
+async function cancelarVenda(os){
   const {isAdm}=_getUserCat();
   if(!isAdm){toast('Apenas administradores podem cancelar vendas','terr');return;}
-  const p=pedidos.find(x=>x.id===pedidoId);
-  if(!confirm(`Cancelar a venda do pedido OS ${p?.os||'—'} (${p?.cliente||''})? Ele será removido da Lista de Vendas.`))return;
+  const row=getVendaRowsMerged().find(r=>String(r.p)===String(os));
+  if(!confirm(`Cancelar a venda do pedido OS ${os} (${row?.cl||''})? Ela será removida da Lista de Vendas.`))return;
   const senha=await pedirSenhaAdmin('Confirmar cancelamento','Digite sua senha de administrador para confirmar o cancelamento:');
   if(!senha){toast('Cancelamento cancelado','tinf');return;}
   if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');return;}
   try{
-    if(window._fbDeletePedido) await window._fbDeletePedido(pedidoId);
-    pedidos=pedidos.filter(p=>p.id!==pedidoId);
+    if(!cfg.vendasCanceladas)cfg.vendasCanceladas=[];
+    if(!cfg.vendasCanceladas.map(String).includes(String(os)))cfg.vendasCanceladas.push(String(os));
+    if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+    localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
     renderAll();
     if(typeof renderDashVendas==='function')renderDashVendas();
-    toast('Venda cancelada','tok');
+    if(typeof renderDashGraficos==='function')renderDashGraficos();
+    if(typeof renderDashComissoes==='function')renderDashComissoes();
+    toast('Venda cancelada e removida da Lista de Vendas','tok');
   }catch(e){toast('Erro ao cancelar: '+e.message,'terr');}
 }
 // ── EDITAR VALORES (adm) ──────────────────────────────────
@@ -3886,6 +3893,11 @@ function isComercialPedido(p){
   // não entram em Lista de Vendas, Metas nem Comissões (mas continuam existindo como pedidos).
   return !!(p.origemComercial&&p.tipo==='Venda');
 }
+// Vendas canceladas pelo cliente — guardado por Nº de OS (e não por id de pedido), porque
+// vendas vindas só da planilha (XLSX_VENDAS) não têm um documento no Firestore pra apagar.
+// Marcar como cancelada por OS funciona igual pra venda da planilha, venda manual ou pedido emitido.
+function getVendasCanceladas(){return (cfg.vendasCanceladas||[]).map(String);}
+function isVendaCancelada(os){return getVendasCanceladas().includes(String(os));}
 // Fonte única de vendas: mescla a planilha (XLSX_VENDAS) com os pedidos do Firestore,
 // sem precisar de nenhum passo de "importar" — é a mesma lista usada na Lista de Vendas.
 function getVendaRowsMerged(){
@@ -3896,7 +3908,7 @@ function getVendaRowsMerged(){
     ...xlsxSemFS,
     ...importadosFS.map(pedidoToVendaRow),
     ...pedidos.filter(p=>isComercialPedido(p)&&!p.importadoPlanilha).map(pedidoToVendaRow)
-  ];
+  ].filter(r=>!isVendaCancelada(r.p));
 }
 function getVendasMes(y,m,vendedor){
   return getVendaRowsMerged()
@@ -5018,7 +5030,7 @@ function renderDashVendas(){
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.art)}</td>
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.rem)}</td>
       <td style="font-size:.7rem;color:#64748b">${fmtOp(r.med)}</td>
-      ${isAdm?`<td style="white-space:nowrap;background:${zebra}"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button>${r._pid?`<button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${r._pid}')">Cancelar</button>`:''}</td>`:''}
+      ${isAdm?`<td style="white-space:nowrap;background:${zebra}"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button></td>`:''}
     </tr>`;
   }).join('');
 
