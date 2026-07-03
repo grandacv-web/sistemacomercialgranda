@@ -622,6 +622,33 @@ select.fc{cursor:pointer}
         </div>
       </div>
     </div>
+    <!-- FINANCEIRO -->
+    <div id="sec-cat-FINANCEIRO" style="display:none">
+      <div id="dash-financeiro">
+        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+          💰 Contas a Receber — todas as parcelas de vendas (do sistema ou da planilha) que ainda não foram confirmadas como recebidas. Confirmar aqui já libera a comissão do vendedor na quinzena correta.
+        </div>
+        <div id="fin-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <input id="fin-fil-busca" placeholder="Buscar cliente, pedido, OS..." oninput="renderFinanceiro()" style="flex:1;min-width:200px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+          <select id="fin-fil-vend" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+            <option value="">Todos os vendedores</option>
+          </select>
+          <select id="fin-fil-status" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+            <option value="">Todos os status</option>
+            <option value="pendente">⏳ Pendente</option>
+            <option value="atrasado">⚠️ Em atraso</option>
+            <option value="nao_recebido">❌ Não recebido (com motivo)</option>
+            <option value="confirmado">✅ Recebido</option>
+          </select>
+          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">De</span>
+          <input id="fin-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
+          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
+          <input id="fin-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
+        </div>
+        <div id="fin-body"></div>
+      </div>
+    </div>
     <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
     <div id="sec-cat-generic" style="display:none">
       <div style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
@@ -666,6 +693,20 @@ select.fc{cursor:pointer}
   <div class="vm-act">
     <button class="btn-del" onclick="delP()">&#128465; Excluir</button>
     <button class="btn-ed" onclick="editP()">&#9998; Editar</button>
+  </div>
+</div>
+</div>
+
+<!-- VER VENDA (somente visualização, sem ações) -->
+<div class="mov" id="mo-vv" onclick="cio(event,'mo-vv')">
+<div class="vm">
+  <div class="vm-hdr">
+    <div class="vm-ttl" id="vv-t">Venda</div>
+    <div class="vm-sub" id="vv-s"></div>
+  </div>
+  <div class="vm-bd" id="vv-bd"></div>
+  <div class="vm-act">
+    <button class="btn-mv" onclick="closeM('mo-vv')">Fechar</button>
   </div>
 </div>
 </div>
@@ -881,6 +922,22 @@ select.fc{cursor:pointer}
     <select id="pagfut-vend" class="fc no-upper" style="max-width:280px" onchange="renderPagamentosFuturos()"></select>
   </div>
   <div id="pagfut-body" style="overflow-y:auto;flex:1"></div>
+</div>
+</div>
+
+<!-- MOTIVO NÃO RECEBIDO MODAL -->
+<div class="mov" id="mo-motivo-nr" onclick="cio(event,'mo-motivo-nr')">
+<div class="mvmod" style="width:480px;max-width:96vw">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">❌ Marcar como não recebido</h3>
+    <button onclick="closeM('mo-motivo-nr')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div id="mnr-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px"></div>
+  <div class="fg">
+    <label>Motivo <span class="r">*</span></label>
+    <textarea id="mnr-motivo" class="fc" rows="3" placeholder="Ex: cliente pediu prorrogação, boleto não compensou, etc." style="text-transform:none"></textarea>
+  </div>
+  <button onclick="salvarNaoRecebido()" style="margin-top:10px;width:100%;background:#dc2626;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">Salvar</button>
 </div>
 </div>
 
@@ -1276,6 +1333,8 @@ function setupRealtimeSync(){
       }
       const elV=document.getElementById('dash-tab-vendas');
       if(typeof renderDashVendas==='function'&&elV&&elV.style.display!=='none')renderDashVendas();
+      const elFin=document.getElementById('sec-cat-FINANCEIRO');
+      if(typeof renderFinanceiro==='function'&&elFin&&elFin.style.display!=='none')renderFinanceiro();
     }catch(e){}
   });
 }
@@ -1334,7 +1393,12 @@ function atualizarBotaoNovoPedido(){
 function buildSidebarCats(){
   const container=document.getElementById('sb-cats');
   if(!container)return;
-  const cats=CATEGORIAS_USUARIOS.filter(c=>c!=='ADMINISTRADOR');
+  // Menus reduzidos a pedido do usuário (2026-07-03): só Comercial e Financeiro ficam
+  // no menu além do Geral. As demais categorias (RH, Compras, PCP, etc.) continuam
+  // existindo como opção de cadastro de usuário, só não têm mais botão no sidebar.
+  // Financeiro só aparece pra quem é admin ou categoria FINANCEIRO — a lista de Contas a
+  // Receber mostra valor de venda por vendedor, então não pode ficar visível pra vendedor nenhum.
+  const cats=_isFinanceiroUser()?['COMERCIAL','FINANCEIRO']:['COMERCIAL'];
   const catIcons={'COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
   container.innerHTML=cats.map(cat=>`
     <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${cat}" style="font-size:.7rem">
@@ -1367,8 +1431,10 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     const descEl=document.getElementById('cat-hdr-desc');
     if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+cat.charAt(0)+cat.slice(1).toLowerCase();
     if(descEl)descEl.textContent=catDescs[cat]||'';
+    const isFin=cat==='FINANCEIRO';
     document.getElementById('sec-cat-COMERCIAL').style.display=isCom?'':'none';
-    document.getElementById('sec-cat-generic').style.display=isCom?'none':'';
+    document.getElementById('sec-cat-FINANCEIRO').style.display=isFin?'':'none';
+    document.getElementById('sec-cat-generic').style.display=(isCom||isFin)?'none':'';
     // Botão só aparece na seção COMERCIAL
     const btnNovo=document.getElementById('btn-novo-pedido');
     if(!isCom){
@@ -1386,6 +1452,7 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
         if(_dtabGraficos)dashTab('graficos',_dtabGraficos);
       },120);
     }
+    if(isFin&&typeof renderFinanceiro==='function')setTimeout(renderFinanceiro,120);
   }
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
   if(isGeral){
@@ -1779,7 +1846,7 @@ function openEmissao(eid2){
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
       icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',
-      minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',
+      minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:'',arq_chumb:'',os_chumb:'',
       facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
@@ -2230,7 +2297,7 @@ function renderStep(id){
           </div>
         </div>
         <div class="fg"><label>Frete <span class="r">*</span></label>
-          <div class="rc-row">${rRC('rc_frt','Por nossa conta','&#128666; Por nossa conta')}${rRC('rc_frt','Por conta do cliente','&#128100; Por conta do cliente')}</div>
+          <div class="rc-row">${rRC('rc_frt','Por nossa conta','&#128666; Por nossa conta')}${rRC('rc_frt','Por conta do cliente','&#128100; Por conta do cliente')}${rRC('rc_frt','Não tem frete','&#128683; Não tem frete')}</div>
         </div>
         <div id="fm-row" style="display:${sf?'':'none'}">
           <div class="g2">
@@ -2817,6 +2884,7 @@ async function submit(){
   if(ed.remocao==='Sim'&&ed.vrem)inst['Valor da Remoção']=fmtV(moneyToNum(ed.vrem));
   if(ed.medicao)inst['Medição Técnica']=ed.medicao;
   if(ed.medicao==='Sim'&&ed.vmed)inst['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
+  if(ed.medicao==='Sim'&&ed.minfo)inst['Informações sobre a Medição']=ed.minfo;
   if(ed.iacomp)inst['Acompanhante da Obra']=ed.iacomp;
   if(ed.itel)inst['Telefone']=ed.itel;
   const iend=[ed.icep?'CEP '+ed.icep:'',ed.ilog,ed.inum_e,ed.icomp,ed.ibairro,[ed.icidade,ed.iuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
@@ -2958,15 +3026,15 @@ async function submit(){
       </td></tr>
       ${ed.bases?`
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.bases}</td></tr>
-      ${ed.chumbador?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ ENVIADO CHUMBADOR</td></tr>`:''}
+      ${ed.chumbador==='Sim'?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ ENVIADO CHUMBADOR</td></tr>`:''}
       ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
       ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_chumb_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td></tr>`:''}
       `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
 
-      ${ed.art?`
+      ${ed.art==='Sim'?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
       <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ EMITIDA ART</td></tr>
-      ${ed.art==='Sim'&&ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${cldDownload(ed.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
+      ${ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${cldDownload(ed.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
       `:''}
     </table>
 
@@ -3492,6 +3560,14 @@ function dashLockMetas(){
   dashMetasUnlocked=false;
 }
 function dashTryUnlock(){
+  // Metas & Comissões é admin-only, sempre — o PIN aqui não é suficiente sozinho.
+  // Sem essa checagem, qualquer pessoa que soubesse a senha administrativa (usada em
+  // vários outros lugares do sistema) conseguiria ver a comissão de todos os vendedores.
+  if(!_getUserCat().isAdm){
+    const err=document.getElementById('dash-pin-err');
+    if(err){err.textContent='Apenas administradores podem acessar Metas & Comissões.';err.style.display='';}
+    return;
+  }
   const pin=(document.getElementById('dash-pin-inp')?.value||'').trim();
   const correct=cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024';
   if(pin===correct){
@@ -3986,6 +4062,10 @@ function dashTab(tab,btn){
   document.getElementById('dash-tab-vendas').style.display=tab==='vendas'?'':'none';
   document.getElementById('dash-tab-graficos').style.display=tab==='graficos'?'':'none';
   if(tab==='metas'){
+    if(!_getUserCat().isAdm){
+      toast('Apenas administradores podem acessar Metas & Comissões','terr');
+      return;
+    }
     if(!dashMetasUnlocked){
       _dashShowPinModal();
     } else {
@@ -4040,6 +4120,9 @@ function renderDashCards(){
 }
 
 function renderDashMetas(){
+  // Defesa extra (além do PIN + botão escondido): mesmo chamada direto, essa tela nunca
+  // desenha meta/comissão de vendedor nenhum se quem está logado não for admin.
+  if(!_getUserCat().isAdm)return;
   const el=document.getElementById('dash-mes-lbl');if(el)el.textContent=MESES_PT[dashMesAtual.m]+' '+dashMesAtual.y;
   renderDashCards();
   const {y,m}=dashMesAtual;
@@ -4141,7 +4224,7 @@ function getComissaoItemsAll(){
       const pct=getPctComissao(emY,emM,vendForPct);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
-      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -4162,7 +4245,7 @@ function getComissaoItemsAll(){
       const pct=getPctComissao(emY,emM,vendNorm);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=MESES_PT[emM]+' '+emY;
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -4185,9 +4268,155 @@ function getComissaoItemsFuturos(vendedorFiltro){
   return pend.filter(i=>vendedorMatch(i.nomeVend,vendedorFiltro));
 }
 
+// ════════════════════════════════════════
+// FINANCEIRO — CONTAS A RECEBER
+// ════════════════════════════════════════
+// Reaproveita a mesma fonte de dados da Comissões (getComissaoItemsAll) — cada parcela
+// já vem com confKey/status/qy/qm/qhalf, então confirmar aqui já confirma a comissão
+// do vendedor na quinzena certa, sem precisar de nenhum dado novo.
+function _isFinanceiroUser(){
+  const {cat,isAdm}=_getUserCat();
+  return isAdm||cat==='FINANCEIRO';
+}
+function _diasAtraso(dataAtivaStr){
+  const d=parseDataBR(dataAtivaStr);
+  if(!d||isNaN(d))return 0;
+  const hoje=new Date();hoje.setHours(0,0,0,0);d.setHours(0,0,0,0);
+  const diff=Math.round((hoje-d)/86400000);
+  return diff>0?diff:0;
+}
+function getContasReceber(){
+  return getComissaoItemsAll().map(i=>{
+    const diasAtraso=i.status!=='confirmado'?_diasAtraso(i.dataAtiva):0;
+    let statusCalc=i.status;
+    if(statusCalc!=='confirmado'){
+      statusCalc=i.motivoAtraso?'nao_recebido':(diasAtraso>0?'atrasado':'pendente');
+    }
+    return {...i,diasAtraso,statusCalc};
+  });
+}
+let _mnrConfKey=null,_mnrDataStr=null;
+function abrirMotivoNaoRecebido(confKey,dataStr,cliente,valor){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem registrar isso','terr');return;}
+  _mnrConfKey=confKey;_mnrDataStr=dataStr;
+  const info=document.getElementById('mnr-info');
+  if(info)info.innerHTML=`<strong>${cliente||'—'}</strong> · ${fmtR(valor||0)} · previsto para ${dataStr||'—'}`;
+  const ta=document.getElementById('mnr-motivo');if(ta)ta.value='';
+  openM('mo-motivo-nr');
+  setTimeout(()=>ta?.focus(),80);
+}
+function salvarNaoRecebido(){
+  const motivo=(document.getElementById('mnr-motivo')?.value||'').trim();
+  if(!motivo){toast('Informe o motivo — é obrigatório','terr');return;}
+  if(!_mnrConfKey)return;
+  setPagConf(_mnrConfKey,{status:'pendente',novaData:_mnrDataStr,motivoAtraso:motivo,motivoAtrasoEm:new Date().toISOString()});
+  closeM('mo-motivo-nr');
+  toast('Marcado como não recebido — motivo registrado','tok');
+  renderFinanceiro();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+}
+function confirmarRecebimento(confKey,dataStr){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem confirmar recebimento','terr');return;}
+  // Limpa qualquer motivo de atraso registrado antes — o pagamento chegou.
+  setPagConf(confKey,{status:'confirmado',novaData:dataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:''});
+  toast('Recebimento confirmado! Comissão liberada na quinzena. ✅','tok');
+  renderFinanceiro();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  if(typeof renderDashCards==='function')renderDashCards();
+}
+function renderFinanceiro(){
+  const body=document.getElementById('fin-body');if(!body)return;
+  const isFinAdm=_isFinanceiroUser();
+  // Defesa extra: mesmo que alguém chegue nessa tela sem passar pelo botão do sidebar
+  // (ex: console do navegador), só admin/Financeiro veem a lista — ela mostra valor de
+  // venda por vendedor, o que equivale a mostrar a comissão de cada um.
+  if(!isFinAdm){
+    const cardsElBlk=document.getElementById('fin-cards');if(cardsElBlk)cardsElBlk.innerHTML='';
+    body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">🔒 Acesso restrito — apenas Financeiro ou Administrador podem ver as Contas a Receber.</div>';
+    return;
+  }
+  let items=getContasReceber();
+
+  // Popula o dropdown de vendedores uma vez (não sobrescreve seleção atual)
+  const selVend=document.getElementById('fin-fil-vend');
+  if(selVend&&selVend.dataset.built!=='1'){
+    const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].sort();
+    selVend.innerHTML='<option value="">Todos os vendedores</option>'+vends.map(v=>`<option>${v}</option>`).join('');
+    selVend.dataset.built='1';
+  }
+
+  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fv=document.getElementById('fin-fil-vend')?.value||'';
+  const fs=document.getElementById('fin-fil-status')?.value||'';
+  const di=document.getElementById('fin-fil-data-ini')?.value||'';
+  const df=document.getElementById('fin-fil-data-fim')?.value||'';
+  // Datas do item vêm em dd/mm/aaaa; converte pra ISO só pra comparar com os filtros (type=date)
+  const toIso=s=>{const d=parseDataBR(s);return d&&!isNaN(d)?d.toISOString().slice(0,10):'';};
+
+  items=items.filter(i=>{
+    const iso=toIso(i.dataAtiva);
+    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fv||vendedorMatch(i.nomeVend,fv))
+      &&(!fs||i.statusCalc===fs)
+      &&(!di||(iso&&iso>=di))
+      &&(!df||(iso&&iso<=df));
+  });
+  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+
+  // Cards resumo
+  const cardsEl=document.getElementById('fin-cards');
+  if(cardsEl){
+    const totPend=items.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valor,0);
+    const totAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valor,0);
+    const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valor,0);
+    const qtdAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').length;
+    cardsEl.innerHTML=`
+      <div style="background:#dbeafe;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">A receber</div><div style="font-size:1.1rem;font-weight:800;color:#1e40af">${fmtR(totPend)}</div></div>
+      <div style="background:#fee2e2;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Em atraso (${qtdAtraso})</div><div style="font-size:1.1rem;font-weight:800;color:#b91c1c">${fmtR(totAtraso)}</div></div>
+      <div style="background:#dcfce7;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#16a34a">Recebido</div><div style="font-size:1.1rem;font-weight:800;color:#16a34a">${fmtR(totConf)}</div></div>
+      <div style="background:#f1f5f9;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#475569">Total de itens</div><div style="font-size:1.1rem;font-weight:800;color:#475569">${items.length}</div></div>`;
+  }
+
+  if(!items.length){body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhuma conta encontrada com esses filtros.</div>';return;}
+
+  const statusPill=i=>{
+    if(i.statusCalc==='confirmado')return'<span class="dash-badge ok">✅ Recebido</span>';
+    if(i.statusCalc==='nao_recebido')return'<span class="dash-badge no">❌ Não recebido</span>';
+    if(i.statusCalc==='atrasado')return'<span class="dash-badge no">⚠️ Atrasado</span>';
+    return'<span class="dash-badge pend">⏳ Pendente</span>';
+  };
+  const rows=items.map(i=>{
+    const ck=i.confKey.replace(/'/g,"\\'");
+    const da=(i.dataAtiva||'').replace(/'/g,"\\'");
+    const cl=(i.cliente||'').replace(/'/g,"\\'");
+    const acoes=i.statusCalc==='confirmado'?'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>'
+      :(isFinAdm?`<button class="dash-btn-conf" onclick="confirmarRecebimento('${ck}','${da}')">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valor})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
+    return`<tr style="${i.statusCalc==='confirmado'?'background:#f0fdf4;':i.statusCalc==='nao_recebido'||i.statusCalc==='atrasado'?'background:#fef2f2;':''}">
+      <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
+      <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
+      <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
+      <td>${i.nomeVend}</td>
+      <td style="font-size:.72rem">${i.label}</td>
+      <td style="font-weight:700">${fmtR(i.valor)}</td>
+      <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
+      <td style="font-weight:700;color:${i.diasAtraso>0?'#dc2626':'#94a3b8'}">${i.diasAtraso>0?i.diasAtraso+' dia'+(i.diasAtraso>1?'s':''):'—'}</td>
+      <td>${statusPill(i)}</td>
+      <td style="font-size:.7rem;color:#7c3aed;max-width:180px;white-space:normal;word-break:break-word">${i.motivoAtraso||'—'}</td>
+      <td style="white-space:nowrap">${acoes}</td>
+    </tr>`;
+  }).join('');
+  body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+    <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor</th><th>Data prev.</th><th>Atraso</th><th>Status</th><th>Motivo</th><th>Ação</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
 function renderDashComissoes(){
-  const {y,m}=dashMesAtual;
   const el=document.getElementById('dash-comissoes');if(!el)return;
+  // Defesa extra (além do PIN + botão escondido): mesmo chamada direto, essa tela nunca
+  // desenha a comissão de vendedor nenhum se quem está logado não for admin.
+  if(!_getUserCat().isAdm){el.innerHTML='';return;}
+  const {y,m}=dashMesAtual;
   const {itemsI:allItemsI,itemsII:allItemsII}=getComissaoItems(y,m);
 
   // Coletar todos os vendedores únicos
@@ -4387,6 +4616,7 @@ function renderDashComissoes(){
 // em qualquer mês, filtrável por vendedor (ou pelo próprio Clabonde).
 // ════════════════════════════════════════
 function abrirPagamentosFuturos(){
+  if(!_getUserCat().isAdm){toast('Apenas administradores podem ver Pagamentos Futuros','terr');return;}
   const sel=document.getElementById('pagfut-vend');
   if(sel){
     const pend=getComissaoItemsFuturos(null);
@@ -4485,6 +4715,7 @@ async function _getLogoGrandaPDF(){
 }
 
 async function gerarPDFComissao(vend,quinzena){
+  if(!_getUserCat().isAdm){toast('Apenas administradores podem gerar relatório de comissão','terr');return;}
   if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF();
@@ -4670,15 +4901,19 @@ async function gerarPDFComissao(vend,quinzena){
 }
 
 async function confPag(confKey,dataStr){
-  setPagConf(confKey,{status:'confirmado',novaData:dataStr,confirmedAt:new Date().toISOString()});
-  renderDashComissoes();renderDashCards();toast('Pagamento confirmado! ✅','tok');
+  setPagConf(confKey,{status:'confirmado',novaData:dataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:''});
+  renderDashComissoes();renderDashCards();
+  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  toast('Pagamento confirmado! ✅','tok');
 }
 
 async function reabrirPag(confKey){
   if(cfg.pagConf)delete cfg.pagConf[confKey];
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
-  renderDashComissoes();renderDashCards();toast('Pagamento reaberto','tok');
+  renderDashComissoes();renderDashCards();
+  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  toast('Pagamento reaberto','tok');
 }
 
 async function adiarPag(confKey,dataStr){
@@ -4948,6 +5183,92 @@ function pedidoToVendaRow(p){
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
     numOC:p.numOC||'',ocUrl:p.ocUrl||''};
 }
+
+// Resumo de pagamento de uma venda (por Nº de OS) pra mostrar direto na Lista de Vendas —
+// reaproveita a mesma fonte de Financeiro/Comissões (getComissaoItemsAll), então fica sempre
+// em sincronia com o que foi confirmado ali.
+function getProximoPagamento(os){
+  const items=getComissaoItemsAll().filter(i=>String(i.pedidoOs)===String(os));
+  if(!items.length)return null;
+  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+  const pendentes=items.filter(i=>i.status!=='confirmado');
+  if(!pendentes.length)return{tipo:'pago',data:items[items.length-1].dataAtiva,qtd:items.length};
+  const prox=pendentes[0];
+  const atraso=_diasAtraso(prox.dataAtiva);
+  return{tipo:atraso>0?'atrasado':'pendente',data:prox.dataAtiva,diasAtraso:atraso,qtd:pendentes.length,total:items.length};
+}
+function fmtProximoPagamento(os){
+  const pag=getProximoPagamento(os);
+  if(!pag)return'<span style="color:#94a3b8;font-size:.7rem">—</span>';
+  if(pag.tipo==='pago')return`<span style="color:#16a34a;font-weight:700;font-size:.7rem;white-space:nowrap">✅ Pago</span>`;
+  if(pag.tipo==='atrasado')return`<span style="color:#dc2626;font-weight:700;font-size:.7rem;white-space:nowrap" title="${pag.qtd} de ${pag.total} parcela(s) pendente(s)">⚠️ ${pag.data} · ${pag.diasAtraso}d atraso</span>`;
+  return`<span style="color:#334155;font-weight:600;font-size:.7rem;white-space:nowrap" title="${pag.qtd} de ${pag.total} parcela(s) pendente(s)">${pag.data}</span>`;
+}
+
+// Ver detalhes de uma venda (somente visualização) — se já foi emitida pelo sistema,
+// mostra a emissão completa; se só existe na planilha, mostra o resumo disponível dela.
+function verVendaDetalhe(os,pedidoId){
+  const secHtml=(t,obj)=>{
+    const ent=Object.entries(obj||{}).filter(([,v])=>v&&v!=='');
+    if(!ent.length)return'';
+    return`<div class="vm-sec"><h4>${t}</h4><div class="vm-gr">${ent.map(([k,v])=>`<div class="vf"><div class="l">${k}</div><div class="v">${v}</div></div>`).join('')}</div></div>`;
+  };
+  if(pedidoId){
+    const p=pedidos.find(x=>x.id===pedidoId);
+    if(p){
+      document.getElementById('vv-t').textContent=`OS ${p.os||'—'} — ${p.cliente}`;
+      document.getElementById('vv-s').textContent=`${p.tipo} · JOB: ${p.job||'—'} · Emitido no sistema`;
+      const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{};
+      const parcRows=getParcelas(p).map(parc=>{
+        const conf=getPagConf(parc.confKey);
+        const st=conf?.status==='confirmado'?'✅ Recebido':'⏳ Pendente';
+        return{l:`${parc.label} · ${(conf&&conf.novaData)?conf.novaData:parc.dataStr}`,v:`${fmtR(parc.valor)} — ${st}`};
+      });
+      document.getElementById('vv-bd').innerHTML=`
+        <div class="vm-sec"><h4>Dados Gerais</h4><div class="vm-gr">
+          <div class="vf"><div class="l">Tipo</div><div class="v">${p.tipo}</div></div>
+          <div class="vf"><div class="l">Responsável</div><div class="v">${p.responsavel||'—'}</div></div>
+          <div class="vf"><div class="l">Cliente</div><div class="v">${p.cliente}</div></div>
+          <div class="vf"><div class="l">JOB</div><div class="v">${p.job||'—'}</div></div>
+          <div class="vf"><div class="l">Prazo</div><div class="v">${p.prazo?fmtD(p.prazo):'—'}</div></div>
+          <div class="vf"><div class="l">OS Nº</div><div class="v">${p.os||'—'}</div></div>
+          ${p.obs?`<div class="vf" style="grid-column:span 2"><div class="l">Observações</div><div class="v">${p.obs}</div></div>`:''}
+        </div></div>
+        ${secHtml('Valores',v)}
+        ${parcRows.length?`<div class="vm-sec"><h4>Datas de Pagamento</h4><div class="vm-gr">${parcRows.map(r=>`<div class="vf"><div class="l">${r.l}</div><div class="v">${r.v}</div></div>`).join('')}</div></div>`:secHtml('Pagamento',pg)}
+        ${secHtml('Instalação',inst)}${secHtml('Frete',fr)}
+      `;
+      openM('mo-vv');
+      return;
+    }
+  }
+  const x=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(os)]:null;
+  if(!x){toast('Detalhes não encontrados para essa venda','terr');return;}
+  document.getElementById('vv-t').textContent=`OS ${x.p} — ${x.cl}`;
+  document.getElementById('vv-s').textContent=`${x.cat||'—'} · Vinda da planilha (sem emissão no sistema)`;
+  const parcRowsX=(x.parcelas||[]).map((parc,idx)=>{
+    const conf=getPagConf(`xlsxv::${x.p}::${idx}`);
+    const st=conf?.status==='confirmado'?'✅ Recebido':'⏳ Pendente';
+    return{l:`Parcela ${idx+1} · ${(conf&&conf.novaData)?conf.novaData:parc.dataStr}`,v:`${fmtR(parc.valor)} — ${st}`};
+  });
+  document.getElementById('vv-bd').innerHTML=`
+    <div class="vm-sec"><h4>Dados Gerais</h4><div class="vm-gr">
+      <div class="vf"><div class="l">Cliente</div><div class="v">${x.cl}</div></div>
+      <div class="vf"><div class="l">Categoria</div><div class="v">${x.cat||'—'}</div></div>
+      <div class="vf"><div class="l">Vendedor</div><div class="v">${x.v||'—'}</div></div>
+      <div class="vf"><div class="l">Mês</div><div class="v">${MESES_PT[x.m]||'—'}</div></div>
+      <div class="vf"><div class="l">OS Nº</div><div class="v">${x.p||'—'}</div></div>
+    </div></div>
+    ${secHtml('Valores',{'Valor Bruto':fmtR(x.br||0),'Frete':x.ft?fmtR(x.ft):'',
+      'Mobilização':x.vi?fmtR(x.vi):'','Instalação/Montagem':x.mo?fmtR(x.mo):'',
+      'Elevações':x.el?fmtR(x.el):'','ART':x.art?fmtR(x.art):'',
+      'Remoção':x.rem?fmtR(x.rem):'','Medição':x.med?fmtR(x.med):'',
+      'Valor Líquido':fmtR(x.lq!=null?x.lq:0)})}
+    ${parcRowsX.length?`<div class="vm-sec"><h4>Datas de Pagamento</h4><div class="vm-gr">${parcRowsX.map(r=>`<div class="vf"><div class="l">${r.l}</div><div class="v">${r.v}</div></div>`).join('')}</div></div>`:''}
+  `;
+  openM('mo-vv');
+}
+
 function renderDashVendas(){
   const {isAdm}=_getUserCat();
   const btnAddVm=document.getElementById('btn-add-venda-manual');
@@ -4990,7 +5311,15 @@ function renderDashVendas(){
   if(!rows2.length){el.innerHTML='<p style="color:#94a3b8;font-size:.85rem">Nenhum resultado encontrado.</p>';return;}
 
   const fmtOp=v=>v>0?fmtR(v):'—';
-  const tagCor=v=>v==='CLABONDE'?'#fef3c7':v==='BRUNO'?'#dbeafe':v==='JULIO'?'#dcfce7':'#f1f5f9';
+  // Paleta dentro do padrão visual Granda (rosa/marca #e91e63, teal #00bac7, navy) em vez
+  // das cores genéricas amarelo/azul/verde que não tinham nada a ver com a identidade.
+  const tagCor=v=>{
+    const V=(v||'').toUpperCase();
+    if(V.includes('CLABONDE'))return{bg:'#fce4ec',fg:'#c2185b'};
+    if(V.includes('BRUNO'))return{bg:'#e0f9fb',fg:'#0099a8'};
+    if(V.includes('JULIO'))return{bg:'#e2e8f0',fg:'#334155'};
+    return{bg:'#f1f5f9',fg:'#475569'};
+  };
 
   let lastMes='';
   let rowIdx=0;
@@ -5009,17 +5338,19 @@ function renderDashVendas(){
         <td colspan="2" style="font-size:.7rem;color:#fff;padding:5px 8px">Bruto: <strong>${fmtR(grpBr)}</strong></td>
         <td style="font-size:.7rem;color:#c4b5fd;padding:5px 8px;font-weight:600">Op.: ${fmtR(grpOp)}</td>
         <td style="font-size:.7rem;color:#fda4af;padding:5px 8px;font-weight:700">Líq.: ${fmtR(grpLq)}</td>
-        <td colspan="9"></td>${isAdm?'<td></td>':''}
+        <td colspan="10"></td>${isAdm?'<td></td>':''}
       </tr>`;
     }
     const zebra=rowIdx++%2===0?'#ffffff':'#e8eef5';
+    const vCor=tagCor(r.v);
     return header+`<tr style="background:${zebra}">
       <td style="font-size:.68rem;color:#94a3b8;font-weight:500">${r.mes.slice(0,3)}</td>
       <td style="font-size:.72rem;color:#64748b">${pedidoDisplay(r.p)}</td>
       <td style="font-size:.7rem">${r.ocUrl?`<a href="${r.ocUrl}" target="_blank" style="color:#1d4ed8;font-weight:700;text-decoration:underline">${r.numOC?r.numOC:'📎 Ver documento'}</a>`:(r.numOC||'—')}</td>
-      <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px">${r.cl}</td>
+      <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px"><a href="javascript:void(0)" onclick="verVendaDetalhe('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')" style="color:var(--ink);text-decoration:none;border-bottom:1.5px dotted #e91e63" title="Ver detalhes da venda">${r.cl}</a></td>
       <td style="font-size:.7rem;color:#64748b">${r.cat}</td>
-      <td><span style="font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:10px;background:${tagCor(r.v)};color:#1e293b">${r.v||'—'}</span></td>
+      <td style="white-space:nowrap"><span style="font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${vCor.bg};color:${vCor.fg};white-space:nowrap;display:inline-block">${r.v||'—'}</span></td>
+      <td>${fmtProximoPagamento(r.p)}</td>
       <td style="font-weight:700">${fmtR(r.br)}</td>
       <td style="font-weight:700;color:#7c3aed">${fmtOp(r.opAdj)}</td>
       <td style="font-weight:700;color:#e0245e">${fmtR(r.lqAdj)}</td>
@@ -5041,6 +5372,7 @@ function renderDashVendas(){
         <th rowspan="2">Pedido</th>
         <th rowspan="2">Ordem de Compra</th>
         <th rowspan="2">Cliente</th><th rowspan="2">Categoria</th><th rowspan="2">Vendedor</th>
+        <th rowspan="2">Pagamento</th>
         <th rowspan="2">Valor Bruto</th>
         <th rowspan="2" style="color:#7c3aed">Total Oper.</th>
         <th rowspan="2">Valor Líquido</th>
@@ -5053,7 +5385,7 @@ function renderDashVendas(){
     </thead>
     <tbody>${tableRows}</tbody>
     <tfoot><tr style="background:#f8fafc">
-      <td colspan="6" style="font-weight:700">TOTAL (${nPeds} pedidos)</td>
+      <td colspan="7" style="font-weight:700">TOTAL (${nPeds} pedidos)</td>
       <td style="font-weight:800;color:#1a2b5e">${fmtR(totBr)}</td>
       <td style="font-weight:800;color:#7c3aed">${fmtR(totOp)}</td>
       <td style="font-weight:800;color:#e0245e">${fmtR(totLq)}</td>
