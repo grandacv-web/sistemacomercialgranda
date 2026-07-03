@@ -1395,12 +1395,22 @@ function pedidosKanban(){
 }
 
 function renderStats(){
-  const ps=pedidosKanban();
-  const tot=document.getElementById('s-tot');if(tot)tot.textContent=ps.length;
+  // Total do cabeçalho reflete a lista FILTRADA (mesma coisa que aparece na tabela),
+  // pra não mostrar "6 Total" com a tabela vazia por causa do filtro de mês (confuso).
+  const tot=document.getElementById('s-tot');if(tot)tot.textContent=filt().length;
 }
 
 function renderList(){
   const sorted=[...filt()].sort((a,b)=>{let va=a[sf]||'',vb=b[sf]||'';if(sf==='os'){va=+va;vb=+vb;}return va<vb?(sa?-1:1):va>vb?(sa?1:-1):0;});
+  if(!sorted.length){
+    const totalGeral=pedidosKanban().length;
+    const fm=vEl('f-mes');
+    document.getElementById('ltb').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:32px 16px;color:var(--ink4)">
+      <div style="font-size:.9rem;margin-bottom:6px">Nenhum pedido encontrado com os filtros atuais${fm?` (mês selecionado)`:''}.</div>
+      ${totalGeral>0?`<div style="font-size:.8rem">Existem ${totalGeral} pedido${totalGeral>1?'s':''} emitido${totalGeral>1?'s':''} no total — <a href="javascript:void(0)" onclick="limparFiltrosLista()" style="color:#e91e63;font-weight:700;text-decoration:underline">limpar filtros</a> para ver todos.</div>`:''}
+    </td></tr>`;
+    return;
+  }
   document.getElementById('ltb').innerHTML=sorted.map(p=>`<tr>
     <td><b>OS ${p.os||'—'}</b></td><td>${p.cliente}</td><td>${p.job||'—'}</td>
     <td><span class="kc-tipo ${TC[p.tipo]||'tv'}" style="padding:3px 8px;border-radius:8px;font-size:.65rem">${p.tipo}</span></td>
@@ -1408,6 +1418,11 @@ function renderList(){
     <td>${p.prazo?fmtD(p.prazo):'—'}</td><td>${p.responsavel||'—'}</td>
     <td><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600" onclick="viewP('${p.id}')">Ver</button></td>
   </tr>`).join('');
+}
+function limparFiltrosLista(){
+  const ids=['srch','f-tipo','f-mes','f-data-ini','f-data-fim'];
+  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderAll();
 }
 function srt(f){if(sf===f)sa=!sa;else{sf=f;sa=true}renderList()}
 
@@ -4167,19 +4182,28 @@ function dashTab(tab,btn){
   document.getElementById('dash-tab-metas').style.display=tab==='metas'?'':'none';
   document.getElementById('dash-tab-vendas').style.display=tab==='vendas'?'':'none';
   document.getElementById('dash-tab-graficos').style.display=tab==='graficos'?'':'none';
-  if(tab==='metas'){
-    if(!_getUserCat().isAdm){
-      toast('Apenas administradores podem acessar Metas & Comissões','terr');
-      return;
+  // As chamadas de render de cada aba ficam em try/catch: se uma delas der erro,
+  // a aba já trocou visualmente (linhas acima) — sem isso, um erro aqui deixava a
+  // troca "pela metade" (aba clicada some, mas conteúdo não chega a renderizar,
+  // parecendo que o menu travou).
+  try{
+    if(tab==='metas'){
+      if(!_getUserCat().isAdm){
+        toast('Apenas administradores podem acessar Metas & Comissões','terr');
+        return;
+      }
+      if(!dashMetasUnlocked){
+        _dashShowPinModal();
+      } else {
+        renderDashMetas();renderDashComissoes();
+      }
     }
-    if(!dashMetasUnlocked){
-      _dashShowPinModal();
-    } else {
-      renderDashMetas();renderDashComissoes();
-    }
+    if(tab==='vendas')renderDashVendas();
+    if(tab==='graficos')renderDashGraficos();
+  }catch(e){
+    console.error('Erro ao abrir aba '+tab,e);
+    toast('Erro ao carregar esta aba — veja o console (F12) ou avise o suporte','terr');
   }
-  if(tab==='vendas')renderDashVendas();
-  if(tab==='graficos')renderDashGraficos();
 }
 
 function dashMov(dir){
