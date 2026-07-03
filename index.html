@@ -931,6 +931,24 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+<!-- PAGAMENTOS FUTUROS MODAL -->
+<div class="mov" id="mo-pagfut" onclick="cio(event,'mo-pagfut')">
+<div class="mvmod" style="width:720px;max-width:98vw;max-height:88vh;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">🔮 Pagamentos Futuros</h3>
+    <button onclick="closeM('mo-pagfut')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+    Tudo que ainda não foi confirmado (comissão de qualquer mês), pra você acompanhar quanto cada vendedor — e você mesmo — tem pra receber.
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <label style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px">Filtrar por:</label>
+    <select id="pagfut-vend" class="fc no-upper" style="max-width:280px" onchange="renderPagamentosFuturos()"></select>
+  </div>
+  <div id="pagfut-body" style="overflow-y:auto;flex:1"></div>
+</div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="mov" id="mo-set" onclick="cio(event,'mo-set')">
 <div class="setmod" style="width:780px;max-width:98vw;max-height:92vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
@@ -4493,8 +4511,11 @@ function renderDashMetas(){
   }
 }
 
-function getComissaoItems(y,m){
-  const allItemsI=[],allItemsII=[];
+// Coleta TODOS os itens de comissão (qualquer mês/quinzena), cada um já marcado com
+// a janela de pagamento (qy/qm/qhalf). getComissaoItems(y,m) filtra a partir daqui;
+// getComissaoItemsFuturos() usa a lista inteira pra olhar além do mês selecionado.
+function getComissaoItemsAll(){
+  const all=[];
   const osFirestore=new Set();
   pedidos.filter(isComercialPedido).forEach(p=>{
     if(p.os!=null)osFirestore.add(String(p.os));
@@ -4502,21 +4523,20 @@ function getComissaoItems(y,m){
       const conf=getPagConf(parc.confKey);
       const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
       const qi=getComissaoQuinzena(p,dataAtiva);
-      if(qi&&qi.y===y&&qi.m===m){
-        // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
-        const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
-        const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):y);
-        const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):m);
-        // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento.
-        // Vendedor sempre normalizado a partir da planilha (fonte única) quando existir OS
-        // correspondente — evita qualquer nome divergente/desatualizado salvo no pedido.
-        const vendForPct=xlsxRef?mapVendedorName(xlsxRef.v):(p.responsavel||'').toUpperCase().trim();
-        const pct=getPctComissao(emY,emM,vendForPct);
-        const pctClab=getPctComissao(emY,emM,'CLABONDE');
-        const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
-        const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—'};
-        if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
-      }
+      if(!qi)return;
+      // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
+      const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
+      const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):qi.y);
+      const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):qi.m);
+      // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento.
+      // Vendedor sempre normalizado a partir da planilha (fonte única) quando existir OS
+      // correspondente — evita qualquer nome divergente/desatualizado salvo no pedido.
+      const vendForPct=xlsxRef?mapVendedorName(xlsxRef.v):(p.responsavel||'').toUpperCase().trim();
+      const pct=getPctComissao(emY,emM,vendForPct);
+      const pctClab=getPctComissao(emY,emM,'CLABONDE');
+      const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
+      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      all.push(item);
     });
   });
   // Entradas do XLSX_VENDAS sem pedido correspondente no Firestore
@@ -4527,21 +4547,36 @@ function getComissaoItems(y,m){
       const conf=getPagConf(confKey);
       const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
       const qi=getComissaoQuinzena(synP,dataAtiva);
-      if(qi&&qi.y===y&&qi.m===m){
-        const emM=x.m,emY=2026;
-        // x.v é o nome curto da planilha (ex: "JULIO") — precisa mapear pro nome completo
-        // cadastrado (ex: "JULIO CESAR DO NASCIMENTO"), que é a chave usada em cfg.metasMes.
-        // Sem isso, getMetaMes não acha a meta (nome não bate) e sempre cai em "não bateu".
-        const vendNorm=mapVendedorName(x.v);
-        const pct=getPctComissao(emY,emM,vendNorm);
-        const pctClab=getPctComissao(emY,emM,'CLABONDE');
-        const emMes=MESES_PT[emM]+' '+emY;
-        const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p)};
-        if(qi.half==='I')allItemsI.push(item);else allItemsII.push(item);
-      }
+      if(!qi)return;
+      const emM=x.m,emY=2026;
+      // x.v é o nome curto da planilha (ex: "JULIO") — precisa mapear pro nome completo
+      // cadastrado (ex: "JULIO CESAR DO NASCIMENTO"), que é a chave usada em cfg.metasMes.
+      // Sem isso, getMetaMes não acha a meta (nome não bate) e sempre cai em "não bateu".
+      const vendNorm=mapVendedorName(x.v);
+      const pct=getPctComissao(emY,emM,vendNorm);
+      const pctClab=getPctComissao(emY,emM,'CLABONDE');
+      const emMes=MESES_PT[emM]+' '+emY;
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
+      all.push(item);
     });
   });
-  return {itemsI:allItemsI,itemsII:allItemsII};
+  return all;
+}
+
+function getComissaoItems(y,m){
+  const all=getComissaoItemsAll();
+  const itemsI=all.filter(i=>i.qy===y&&i.qm===m&&i.qhalf==='I');
+  const itemsII=all.filter(i=>i.qy===y&&i.qm===m&&i.qhalf==='II');
+  return {itemsI,itemsII};
+}
+
+// Tudo que ainda não foi confirmado, em QUALQUER mês (passado ou futuro) — usado
+// na janela "🔮 Pagamentos Futuros". Cada item já traz pct (vendedor) e pctClab (gerente).
+function getComissaoItemsFuturos(vendedorFiltro){
+  const pend=getComissaoItemsAll().filter(i=>i.status!=='confirmado');
+  if(!vendedorFiltro)return pend;
+  if(vendedorFiltro==='__CLABONDE__')return pend; // Clabonde ganha sobre o total, não por vendedor
+  return pend.filter(i=>vendedorMatch(i.nomeVend,vendedorFiltro));
 }
 
 function renderDashComissoes(){
@@ -4572,6 +4607,7 @@ function renderDashComissoes(){
     </select>
     <button onclick="gerarPDFComissao('${filV.replace(/'/g,"\\'")}',document.getElementById('pdf-quinzena-sel').value)" class="dash-btn-conf">📄 Gerar PDF${filV?' — '+filV:' (Todos)'}</button>
     <button onclick="gerarPDFComissao('__CLABONDE__',document.getElementById('pdf-quinzena-sel')?.value||'')" class="dash-btn-conf">📄 Gerar PDF Clabonde</button>
+    <button onclick="abrirPagamentosFuturos()" class="dash-btn-conf" style="background:#7c3aed">🔮 Pagamentos Futuros</button>
   </div>`;
 
   if(!allItemsI.length&&!allItemsII.length){
@@ -4740,6 +4776,92 @@ function renderDashComissoes(){
      ${mkTable(pendII,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consII)}`;
 }
 
+// ════════════════════════════════════════
+// PAGAMENTOS FUTUROS — janela com tudo que ainda não foi confirmado,
+// em qualquer mês, filtrável por vendedor (ou pelo próprio Clabonde).
+// ════════════════════════════════════════
+function abrirPagamentosFuturos(){
+  const sel=document.getElementById('pagfut-vend');
+  if(sel){
+    const pend=getComissaoItemsFuturos(null);
+    const vends=[...new Set(pend.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].filter(v=>!v.toUpperCase().includes('KELLEN')).sort();
+    sel.innerHTML='<option value="">— Todos os vendedores —</option>'
+      +vends.map(v=>`<option value="${v}">${v}</option>`).join('')
+      +'<option value="__CLABONDE__">GUILHERME CLABONDE (Gerente)</option>';
+  }
+  renderPagamentosFuturos();
+  openM('mo-pagfut');
+}
+
+function renderPagamentosFuturos(){
+  const body=document.getElementById('pagfut-body');if(!body)return;
+  const filV=document.getElementById('pagfut-vend')?.value||'';
+  const useClabPct=filV==='__CLABONDE__';
+  const items=getComissaoItemsFuturos(filV||null)
+    .slice()
+    .sort((a,b)=>(parseDataBR(a.dataAtiva)||0)-(parseDataBR(b.dataAtiva)||0));
+
+  if(!items.length){
+    body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhum pagamento pendente encontrado.</div>';
+    return;
+  }
+
+  if(!filV){
+    // Sem filtro: resumo agrupado por vendedor + Clabonde, cada um com seu total pendente
+    const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].filter(v=>!v.toUpperCase().includes('KELLEN')).sort();
+    const rows=vends.map(v=>{
+      const its=items.filter(i=>vendedorMatch(i.nomeVend,v));
+      const val=its.reduce((s,i)=>s+i.valor,0);
+      const com=its.reduce((s,i)=>s+(i.valor*i.pct/100),0);
+      return`<tr>
+        <td style="font-weight:600">${v}</td>
+        <td style="text-align:center">${its.length}</td>
+        <td style="font-weight:700">${fmtR(val)}</td>
+        <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
+      </tr>`;
+    }).join('');
+    const valClab=items.reduce((s,i)=>s+i.valor,0);
+    const comClab=items.reduce((s,i)=>s+(i.valor*i.pctClab/100),0);
+    const rowClab=`<tr style="background:#fef3c7">
+        <td style="font-weight:700">GUILHERME CLABONDE (Gerente)</td>
+        <td style="text-align:center">${items.length}</td>
+        <td style="font-weight:700">${fmtR(valClab)}</td>
+        <td style="font-weight:700;color:#7c3aed">${fmtR(comClab)}</td>
+      </tr>`;
+    const totalCom=items.reduce((s,i)=>s+(i.valor*i.pct/100),0);
+    body.innerHTML=`<div style="font-size:.78rem;color:#64748b;margin-bottom:8px">Clique num vendedor no filtro acima pra ver a lista detalhada dele.</div>
+      <table class="dash-table">
+        <thead><tr><th>Vendedor</th><th>Parcelas</th><th>Valor total</th><th>Comissão pendente</th></tr></thead>
+        <tbody>${rows}${rowClab}</tbody>
+      </table>
+      <div style="margin-top:10px;font-size:.8rem;font-weight:700;color:#111827">Total comissão de vendedores pendente: <span style="color:#7c3aed">${fmtR(totalCom)}</span></div>`;
+    return;
+  }
+
+  // Com filtro (vendedor específico ou Clabonde): lista detalhada + soma
+  const totalVal=items.reduce((s,i)=>s+i.valor,0);
+  const totalCom=items.reduce((s,i)=>s+(i.valor*(useClabPct?i.pctClab:i.pct)/100),0);
+  const rows=items.map(i=>{
+    const pct=useClabPct?i.pctClab:i.pct;
+    const com=i.valor*pct/100;
+    return`<tr>
+      <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
+      <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
+      <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px">${i.cliente}</td>
+      ${useClabPct?`<td style="font-size:.72rem">${i.nomeVend}</td>`:''}
+      <td style="font-weight:700">${fmtR(i.valor)}</td>
+      <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
+      <td style="font-weight:700;color:#e91e63">${pct>0?pct.toFixed(2).replace('.',',')+'%':'—'}</td>
+      <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
+    </tr>`;
+  }).join('');
+  body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+      <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th>${useClabPct?'<th>Vendedor</th>':''}<th>Valor</th><th>Data prev.</th><th>%</th><th>Comissão</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div style="margin-top:10px;font-size:.8rem;font-weight:700;color:#111827">Total: ${fmtR(totalVal)} · Comissão pendente: <span style="color:#7c3aed">${fmtR(totalCom)}</span></div>`;
+}
+
 async function _getLogoGrandaPDF(){
   if(window._logoGrandaPdfB64!==undefined)return window._logoGrandaPdfB64;
   try{
@@ -4835,7 +4957,7 @@ async function gerarPDFComissao(vend,quinzena){
     doc.setFont('helvetica','normal');
     doc.setFontSize(7.5);
     doc.setTextColor(...GRAY);
-    doc.text('GRANDA Comunicação Visual · Sistema GCore · build 2026-07-02-3',14,pageH-9);
+    doc.text('GRANDA Comunicação Visual · Sistema GCore · build 2026-07-03-1',14,pageH-9);
     doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
     doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
   }
@@ -4930,18 +5052,9 @@ async function gerarPDFComissao(vend,quinzena){
     drawSection(items,null);
   }
 
-  if(curY>pageH-36){doc.addPage();curY=drawHeader();}
-  doc.setFillColor(...NAVY);
-  doc.roundedRect(14,curY-6,pageW-28,12,2,2,'F');
-  doc.setFillColor(...PINK);
-  doc.rect(14,curY-6,3,12,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(11);
-  doc.text('COMISSÃO TOTAL',21,curY+1.3);
-  doc.setFontSize(13);
-  doc.text(fmtR(grandTotal),pageW-20,curY+1.3,{align:'right'});
-  doc.setFont('helvetica','normal');
+  // Removida a caixa de "COMISSÃO TOTAL" geral no fim do relatório — dava a entender
+  // que era o valor a pagar pro vendedor da última seção acima. Fica só a soma por
+  // vendedor (caixa rosa dentro de cada drawSection).
   doc.setTextColor(0,0,0);
 
   for(let p=1;p<=doc.internal.getNumberOfPages();p++)drawFooter(p);
