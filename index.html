@@ -401,7 +401,7 @@ select.fc{cursor:pointer}
     <div class="hdr-l">
       <img src="logo_granda_branca.png" style="height:32px;object-fit:contain;flex-shrink:0">
       <div class="hdr-divider"></div>
-      <div><h2>Painel de Pedidos</h2><p>Acompanhe todos os pedidos em tempo real</p></div>
+      <div><h2>Lista de Emissão</h2><p>Todos os pedidos emitidos, de qualquer categoria</p></div>
       <div class="hdr-divider"></div>
       <div style="display:flex;gap:6px;align-items:center">
         <div class="hdr-stat"><span class="hdr-stat-n" id="s-tot">0</span><span class="hdr-stat-l">Total</span></div>
@@ -413,9 +413,20 @@ select.fc{cursor:pointer}
   <div class="toolbar">
     <input id="srch" placeholder="Buscar cliente, job, OS..." oninput="renderAll()">
     <select id="f-tipo" onchange="renderAll()">
-      <option value="">Todos os tipos</option>
+      <option value="">Todas as categorias</option>
       <option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option><option>Brinde</option>
     </select>
+    <select id="f-mes" onchange="renderAll()">
+      <option value="">Todos os meses</option>
+      <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+      <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+      <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+      <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+    </select>
+    <span style="font-size:.75rem;color:#94a3b8;font-weight:600">De</span>
+    <input id="f-data-ini" type="date" style="width:150px" onchange="renderAll()">
+    <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
+    <input id="f-data-fim" type="date" style="width:150px" onchange="renderAll()">
   </div>
 
   <div class="lv" id="lv">
@@ -423,7 +434,7 @@ select.fc{cursor:pointer}
       <thead><tr>
         <th onclick="srt('os')">OS</th><th onclick="srt('cliente')">Cliente</th>
         <th onclick="srt('job')">JOB</th>
-        <th>Tipo</th><th onclick="srt('prazo')">Prazo</th><th>Resp.</th><th>Ação</th>
+        <th>Categoria</th><th onclick="srt('emissaoEm')">Emissão</th><th onclick="srt('prazo')">Prazo</th><th>Resp.</th><th>Ação</th>
       </tr></thead>
       <tbody id="ltb"></tbody>
     </table>
@@ -1271,9 +1282,15 @@ function setupRealtimeSync(){
 
 function filt(){
   const q=vEl('srch').toLowerCase(),ft=vEl('f-tipo');
+  const fm=vEl('f-mes'),di=vEl('f-data-ini'),df=vEl('f-data-fim');
   return pedidosKanban().filter(p=>{
+    const em=p.emissaoEm||'';
+    const emMes=em?String(parseInt(em.slice(5,7),10)):'';
     return (!q||p.cliente.toLowerCase().includes(q)||String(p.os||'').includes(q)||(p.job||'').toLowerCase().includes(q))
-      &&(!ft||p.tipo===ft);
+      &&(!ft||p.tipo===ft)
+      &&(!fm||emMes===fm)
+      &&(!di||(em&&em>=di))
+      &&(!df||(em&&em<=df));
   });
 }
 
@@ -1291,6 +1308,7 @@ function renderList(){
   document.getElementById('ltb').innerHTML=sorted.map(p=>`<tr>
     <td><b>OS ${p.os||'—'}</b></td><td>${p.cliente}</td><td>${p.job||'—'}</td>
     <td><span class="kc-tipo ${TC[p.tipo]||'tv'}" style="padding:3px 8px;border-radius:8px;font-size:.65rem">${p.tipo}</span></td>
+    <td>${p.emissaoEm?fmtD(p.emissaoEm):'—'}</td>
     <td>${p.prazo?fmtD(p.prazo):'—'}</td><td>${p.responsavel||'—'}</td>
     <td><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600" onclick="viewP('${p.id}')">Ver</button></td>
   </tr>`).join('');
@@ -1721,7 +1739,11 @@ function editP(){closeM('mo-vp');openEmissao(vid)}
 
 // EMISSÃO
 function getTabs(){
-  const t=[{id:'dados',l:'Dados'},{id:'valores',l:'Valores'},{id:'pagamento',l:'Pagamento'},{id:'projetos',l:'Projetos'}];
+  const t=[{id:'dados',l:'Dados'},{id:'valores',l:'Valores'}];
+  // Só pedidos do tipo "Venda" cobram do cliente — Garantia/Retrabalho, Amostra, Interno
+  // e Brinde não têm nada a receber, então a aba de Pagamento nem aparece.
+  if(!ed.tipo||ed.tipo==='Venda')t.push({id:'pagamento',l:'Pagamento'});
+  t.push({id:'projetos',l:'Projetos'});
   if(ed.remocao==='Sim')t.push({id:'remocoes',l:'Remoções'});
   if(ed.i_tipo==='Por nossa conta')t.push({id:'instalacao',l:'Instalação'});
   if(ed.medicao==='Sim')t.push({id:'medicao',l:'Medição'});
@@ -1790,6 +1812,7 @@ function validarAba(id){
     if(!ed.prazo)erros.push('Prazo de entrega não informado');
     if(!ed.email_comprador||!ed.email_comprador.includes('@'))erros.push('E-mail do Comprador(a) não informado ou inválido');
     if(!ed.email_engenheiro||!ed.email_engenheiro.includes('@'))erros.push('E-mail do Engenheiro da Obra não informado ou inválido');
+    if(!ed.os)erros.push('Nº da Ordem de Serviço não informado');
   }
   if(id==='valores'){
     if(!ed.vtotal)erros.push('Valor total do pedido não informado');
@@ -1806,7 +1829,6 @@ function validarAba(id){
     if(ed.art==='Sim'&&!ed.vart)erros.push('Valor da ART não informado');
   }
   if(id==='pagamento'){
-    if(!ed.os)erros.push('Nº da Ordem de Serviço não informado');
     if(!ed.tem_oc)erros.push('Informe se tem Ordem de Compra');
     if(ed.tem_oc==='Sim'&&!ed.arq_oc)erros.push('Faça upload do arquivo da Ordem de Compra');
     if(!ed.tem_ent)erros.push('Informe se o pedido tem entrada');
@@ -1922,6 +1944,8 @@ function saveSt(){
   if(id==='dados'){
     ed.resp=gv('em-rsp');ed.cli=gv('em-cli');ed.job=gv('em-job');ed.prazo=gv('em-prazo');ed.obs=gv('em-obs');
     ed.email_comprador=gv('em-email-comprador').trim();ed.email_engenheiro=gv('em-email-engenheiro').trim();
+    ed.os=gv('em-os');
+    const osF=document.getElementById('em-pdf');if(osF&&osF.files[0])ed.arq_os=osF.files[0].name;
   }else if(id==='valores'){
     const gmv=id=>{const el=document.getElementById(id);return el?el.value:''};
     ed.vtotal=gmv('em-vt');ed.i_tipo=gsel('rc-inst');ed.vinst=gmv('em-vi');ed.vmob=gmv('em-vm');
@@ -1933,7 +1957,7 @@ function saveSt(){
     ed.art=gon('tg_art');
     if(ed.art==='Sim'){const va=gmv('em-vart');if(va)ed.vart=va;}
   }else if(id==='pagamento'){
-    ed.os=gv('em-os');ed.tem_oc=gon('tg_oc');
+    ed.tem_oc=gon('tg_oc');
     const ocF=document.getElementById('em-oc-file');if(ocF&&ocF.files[0])ed.arq_oc=ocF.files[0].name;
     ed.tem_ent=gsel('rc-ent');
     ed.vent=document.getElementById('em-ve')?.value||'';
@@ -2151,6 +2175,21 @@ function renderStep(id){
         <div class="fg"><label>4b. E-mail do Engenheiro da Obra <span class="r">*</span></label><input class="fc" type="email" id="em-email-engenheiro" value="${ed.email_engenheiro||''}" placeholder="engenheiro@exemplo.com" style="text-transform:none"></div>
       </div>
       <div class="fg"><label>7. Observações</label><textarea class="fc" id="em-obs">${ed.obs||''}</textarea></div>
+      <div style="border:1.5px solid #eef0f5;border-radius:12px;padding:16px;margin-bottom:14px">
+        <div class="fsec-t" style="font-size:.65rem;margin-bottom:10px">&#128203; Ordem de Serviço</div>
+        <div class="g2">
+          <div class="fg"><label>Nº da Ordem de Serviço <span class="r">*</span></label><input class="fc" id="em-os" value="${ed.os||''}" placeholder="Número da OS"></div>
+          <div class="fg"><label>PDF da OS</label>
+            <div class="upload-zone" id="uz-os" onclick="document.getElementById('em-pdf').click()">
+              <span class="uz-icon">📄</span>
+              <div class="uz-title">Clique para selecionar ou arraste aqui</div>
+              <div class="uz-sub">PDF · Máx. 10MB</div>
+              <div class="uz-file" id="uz-os-name" style="display:none"></div>
+              <input type="file" accept=".pdf" id="em-pdf" style="display:none" onchange="setUpload('uz-os','uz-os-name',this,'arq_os')">
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="fg"><label>8. Tipo de Pedido <span class="r">*</span></label>
         <select class="fc" id="em-tped" onchange="ed.tipoPedido=this.value">
           <option value="">Selecione o tipo...</option>
@@ -2221,19 +2260,6 @@ function renderStep(id){
     bd.innerHTML=`<div class="fsec">
       <div class="fsec-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> INFORMAÇÕES FINANCEIRAS</div>
       <div style="border:1.5px solid #eef0f5;border-radius:12px;padding:16px;margin-bottom:12px">
-        <div class="fsec-t" style="font-size:.65rem;margin-bottom:10px">&#128196; Documentos</div>
-        <div class="g2">
-          <div class="fg"><label>8. Nº da Ordem de Serviço <span class="r">*</span></label><input class="fc" id="em-os" value="${ed.os||''}" placeholder="Número da OS"></div>
-          <div class="fg"><label>9. PDF da OS</label>
-            <div class="upload-zone" id="uz-os" onclick="document.getElementById('em-pdf').click()">
-              <span class="uz-icon">📄</span>
-              <div class="uz-title">Clique para selecionar ou arraste aqui</div>
-              <div class="uz-sub">PDF · Máx. 10MB</div>
-              <div class="uz-file" id="uz-os-name" style="display:none"></div>
-              <input type="file" accept=".pdf" id="em-pdf" style="display:none" onchange="setUpload('uz-os','uz-os-name',this,'arq_os')">
-            </div>
-          </div>
-        </div>
         <div class="fg"><label>10. Esse pedido tem Ordem de Compra do cliente? <span class="r">*</span></label>
           <div class="tg-grp">${rTG('tg_oc','Sim','Sim',ed.tem_oc,true)}${rTG('tg_oc','Não','Não',ed.tem_oc,false)}</div>
         </div>
@@ -2473,6 +2499,10 @@ function renderStep(id){
 function selTipo(el){
   document.querySelectorAll('#em-bd .rc-list .rc').forEach(e=>{e.style.borderColor='';e.style.background='';e.querySelector('input').checked=false});
   el.style.borderColor='#00bac7';el.style.background='#e0f7fa';el.querySelector('input').checked=true;ed.tipo=el.dataset.val;
+  // Atualiza a barra de abas na hora (a de Pagamento some se o tipo não for "Venda")
+  const _tabs=getTabs();
+  const _sub=document.getElementById('em-sub');if(_sub)_sub.textContent=`Passo ${step+1} de ${_tabs.length} · ${_tabs[step].l}`;
+  const _tb=document.getElementById('em-tabs');if(_tb)_tb.innerHTML=_tabs.map((t,i)=>`<button class="em-tab${i===step?' active':i<step?' done':''}" onclick="goStep(${i})">${t.l}</button>`).join('');
 }
 function togElev(chk){
   const card=chk.closest('.elev-card');
@@ -2705,6 +2735,7 @@ async function submit(){
   if(!ed.prazo)erros.push({msg:'Prazo de entrega não informado',aba:0,label:'Dados Gerais'});
   if(!ed.email_comprador||!ed.email_comprador.includes('@'))erros.push({msg:'E-mail do Comprador(a) não informado ou inválido',aba:0,label:'Dados Gerais'});
   if(!ed.email_engenheiro||!ed.email_engenheiro.includes('@'))erros.push({msg:'E-mail do Engenheiro da Obra não informado ou inválido',aba:0,label:'Dados Gerais'});
+  if(!ed.os)erros.push({msg:'Nº da Ordem de Serviço não informado',aba:0,label:'Dados Gerais'});
   // Aba valores
   const idxVal=idx('valores');
   if(!ed.vtotal)erros.push({msg:'Valor total do pedido não informado',aba:idxVal,label:'Valores'});
@@ -2719,13 +2750,15 @@ async function submit(){
   if(ed.medicao==='Sim'&&!ed.vmed)erros.push({msg:'Valor da medição técnica não informado',aba:idxVal,label:'Valores'});
   if(!ed.art)erros.push({msg:'Informe se há Emissão de ART (TEM ART?)',aba:idxVal,label:'Valores'});
   if(ed.art==='Sim'&&!ed.vart)erros.push({msg:'Valor da ART não informado',aba:idxVal,label:'Valores'});
-  // Aba pagamento
-  const idxPag=idx('pagamento');
-  if(!ed.os)erros.push({msg:'Nº da Ordem de Serviço não informado',aba:idxPag,label:'Pagamento'});
-  if(!ed.tem_oc)erros.push({msg:'Informe se tem Ordem de Compra',aba:idxPag,label:'Pagamento'});
-  if(ed.tem_oc==='Sim'&&!ed.arq_oc)erros.push({msg:'Faça upload do arquivo da Ordem de Compra',aba:idxPag,label:'Pagamento'});
-  if(!ed.tem_ent)erros.push({msg:'Informe se o pedido tem entrada',aba:idxPag,label:'Pagamento'});
-  if(!ed.nf)erros.push({msg:'Informe a Emissão de NF',aba:idxPag,label:'Pagamento'});
+  // Aba pagamento — só existe (e só é exigida) pra pedidos do tipo "Venda"; os demais
+  // tipos (Garantia/Retrabalho, Amostra, Interno, Brinde) não cobram nada do cliente.
+  if(ed.tipo==='Venda'){
+    const idxPag=idx('pagamento');
+    if(!ed.tem_oc)erros.push({msg:'Informe se tem Ordem de Compra',aba:idxPag,label:'Pagamento'});
+    if(ed.tem_oc==='Sim'&&!ed.arq_oc)erros.push({msg:'Faça upload do arquivo da Ordem de Compra',aba:idxPag,label:'Pagamento'});
+    if(!ed.tem_ent)erros.push({msg:'Informe se o pedido tem entrada',aba:idxPag,label:'Pagamento'});
+    if(!ed.nf)erros.push({msg:'Informe a Emissão de NF',aba:idxPag,label:'Pagamento'});
+  }
   // Aba projetos
   const idxProj=idx('projetos');
   if(ed.art==='Sim'&&!ed.cnpj_art)erros.push({msg:'Anexe o Cartão CNPJ da Obra para emissão de ART',aba:idxProj,label:'Projetos'});
@@ -2953,7 +2986,7 @@ async function submit(){
       const _cidade=(ed.icidade||ed.fcidade||'').toUpperCase();
       const _uf=(ed.iuf||ed.fuf||'').toUpperCase();
       const _locStr=_cidade&&_uf?` - ${_cidade}/${_uf}`:_cidade?` - ${_cidade}`:_uf?` - ${_uf}`:'';
-      const _subject=`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente} - ${p.job||''}${_locStr}`.replace(/\s+-\s*$/,'').replace(/\s{2,}/g,' ');
+      const _subject=`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente} - ${p.job||''}${_locStr}`.replace(/\s+-\s*$/,'').replace(/\s{2,}/g,' ').replace(/\//g,'-');
       await emailjs.send(sid,tid,{html_content,to_email:_destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject:_subject,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
       toast(`E-mail enviado para ${_destEmails.length} destinatário(s)!`,'tok');
     }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
@@ -3845,8 +3878,13 @@ function setMetaMes(y,m,vendedor,valor){
 }
 
 function isComercialPedido(p){
-  // Only count pedidos that belong to the commercial workflow
-  return !!(p.importadoPlanilha||p.origemComercial);
+  // importadoPlanilha = veio da planilha de vendas ou foi lançado em "Adicionar Venda Manual"
+  // — aqui o campo "tipo" guarda a CATEGORIA do produto (não Venda/Garantia/etc), então sempre conta.
+  if(p.importadoPlanilha)return true;
+  // origemComercial = emitido pelo fluxo normal de "Novo Pedido" — só conta como venda de fato
+  // se o Tipo escolhido no pedido for "Venda". Garantia/Retrabalho, Amostra, Interno e Brinde
+  // não entram em Lista de Vendas, Metas nem Comissões (mas continuam existindo como pedidos).
+  return !!(p.origemComercial&&p.tipo==='Venda');
 }
 // Fonte única de vendas: mescla a planilha (XLSX_VENDAS) com os pedidos do Firestore,
 // sem precisar de nenhum passo de "importar" — é a mesma lista usada na Lista de Vendas.
