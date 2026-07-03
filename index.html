@@ -732,6 +732,43 @@ select.fc{cursor:pointer}
 <div class="mvmod" style="width:500px;max-width:98vw">
   <h3 style="margin-bottom:6px">✏️ Editar Valores do Pedido</h3>
   <div id="ev-info" style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+
+  <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 Dados do Pedido</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nº da Ordem de Serviço</label>
+      <input id="ev-os" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">JOB</label>
+      <input id="ev-job" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Prazo de Entrega</label>
+      <input id="ev-prazo" type="date" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Vendedor (Responsável)</label>
+      <input id="ev-resp" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div id="ev-tipo-wrap" style="grid-column:span 2">
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>
+    </div>
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nº da Ordem de Compra</label>
+      <input id="ev-numoc" type="text" class="no-upper" placeholder="Opcional" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+    </div>
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Documento da Ordem de Compra</label>
+      <div class="upload-zone" id="ev-oc-zone" onclick="document.getElementById('ev-oc-file').click()" style="padding:9px 11px;min-height:auto">
+        <span class="uz-icon" style="font-size:.95rem">📎</span>
+        <div class="uz-title" style="font-size:.8rem">Clique para selecionar (opcional)</div>
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="ev-oc-file" style="display:none" onchange="uploadEvOc(this)">
+      </div>
+    </div>
+  </div>
+
+  <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px">💰 Valores</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
     <div>
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Valor Bruto (R$)</label>
@@ -1650,8 +1687,62 @@ async function editarValoresPedido(pedidoId){
   setV('ev-art',proj['Valor da ART']);
   setV('ev-rem',inst['Valor da Remoção']);
   setV('ev-med',inst['Valor da Medição']);
+  const setIn2=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  setIn2('ev-os',p.os);
+  setIn2('ev-job',p.job);
+  setIn2('ev-prazo',p.prazo||'');
+  setIn2('ev-resp',p.responsavel||'');
+  setIn2('ev-numoc',p.numOC||'');
+  _evOcUrl=p.ocUrl||'';
+  const ocFile=document.getElementById('ev-oc-file');if(ocFile)ocFile.value='';
+  const ocZone=document.getElementById('ev-oc-zone');
+  if(ocZone){
+    ocZone.classList.toggle('has-file',!!_evOcUrl);
+    const icon=ocZone.querySelector('.uz-icon');if(icon)icon.textContent=_evOcUrl?'✅':'📎';
+    const title=ocZone.querySelector('.uz-title');if(title)title.textContent=_evOcUrl?'Documento já enviado (clique para trocar)':'Clique para selecionar (opcional)';
+    let nm=ocZone.querySelector('.uz-file');if(nm)nm.remove();
+  }
+  // Categoria/Tipo: texto livre se veio da planilha importada, select fechado (TC) se emitido pelo sistema
+  const tipoWrap=document.getElementById('ev-tipo-wrap');
+  if(tipoWrap){
+    if(p.importadoPlanilha){
+      tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>`+
+        `<input id="ev-tipo" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box" value="${(p.tipo||'').replace(/"/g,'&quot;')}">`;
+    }else{
+      const opts=Object.keys(TC).map(k=>`<option value="${k}" ${p.tipo===k?'selected':''}>${k}</option>`).join('');
+      tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>`+
+        `<select id="ev-tipo" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;background:#fff">${opts}</select>`;
+    }
+  }
   _updEvLiq();
   openM('mo-ev');
+}
+let _evOcUrl='';
+async function uploadEvOc(input){
+  const f=input.files[0];if(!f)return;
+  const z=document.getElementById('ev-oc-zone');
+  if(z)z.classList.add('has-file');
+  const icon=z?.querySelector('.uz-icon');if(icon)icon.textContent='⏳';
+  const title=z?.querySelector('.uz-title');if(title)title.textContent='Enviando para a nuvem...';
+  let url='';
+  if(cfg.cld_cloud&&cfg.cld_preset){
+    try{
+      const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
+      const d=await r.json();
+      url=d.secure_url||'';
+    }catch(e){console.error('Cloudinary upload error',e);}
+  }
+  _evOcUrl=url;
+  if(icon)icon.textContent=url?'✅':'📄';
+  if(title)title.textContent=url?'Arquivo enviado com sucesso':'Arquivo selecionado (sem Cloudinary configurado)';
+  if(z){
+    let nm=z.querySelector('.uz-file');
+    if(!nm){nm=document.createElement('div');nm.className='uz-file';z.appendChild(nm);}
+    nm.textContent='✓ '+f.name;
+    nm.style.display='flex';
+  }
 }
 async function salvarValoresPedido(){
   const p=pedidos.find(x=>x.id===_editValId);
@@ -1680,6 +1771,17 @@ async function salvarValoresPedido(){
   if(!p.projetos)p.projetos={};
   if(art>0){p.projetos['art']='Sim';p.projetos['Valor da ART']=fmtV(art);}
   else{delete p.projetos['Valor da ART'];}
+  // Atualiza dados do pedido (OS, Ordem de Compra, JOB, Prazo, Vendedor, Categoria/Tipo) — nome do cliente não é editável aqui
+  const gi=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
+  const novoOs=gi('ev-os');
+  if(novoOs)p.os=novoOs;
+  p.job=gi('ev-job');
+  p.prazo=gi('ev-prazo');
+  p.responsavel=gi('ev-resp');
+  p.numOC=gi('ev-numoc');
+  if(_evOcUrl)p.ocUrl=_evOcUrl;
+  const novoTipo=gi('ev-tipo');
+  if(novoTipo){p.tipo=novoTipo;if(p.tipoPedido!==undefined)p.tipoPedido=novoTipo;}
   closeM('mo-ev');
   await savePedidoFS(p);
   renderAll();
@@ -3523,6 +3625,10 @@ function initAuth(tries){
           usuarioLogado.categoria=catMap[user.email.toLowerCase()]||catMap[user.email]||'';
           atualizarBotaoNovoPedido();
           buildSidebarCats();
+          // Lista de Emissão já abre filtrada no mês atual, sem precisar mexer em filtro nenhum
+          const _fMesEl=document.getElementById('f-mes');
+          if(_fMesEl){_fMesEl.value=String(new Date().getMonth()+1);}
+          renderAll();
           // Tela padrão ao abrir o sistema: direto no Comercial → Gráficos (pra qualquer usuário)
           setSection('cat:COMERCIAL');
         }).catch(()=>{
