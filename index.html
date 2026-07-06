@@ -4097,15 +4097,27 @@ function getVendasCanceladas(){return (cfg.vendasCanceladas||[]).map(String);}
 function isVendaCancelada(os){return getVendasCanceladas().includes(String(os));}
 // Fonte única de vendas: mescla a planilha (XLSX_VENDAS) com os pedidos do Firestore,
 // sem precisar de nenhum passo de "importar" — é a mesma lista usada na Lista de Vendas.
+// Cache de "um cálculo por render" — getVendaRowsMerged/getComissaoItemsAll eram
+// chamadas dezenas de vezes (uma pra cada mês/vendedor) em cada abertura das abas
+// "Vendas do Ano"/"Gráficos", recomputando a mescla planilha+Firestore do zero a
+// cada vez (ficava mais lento conforme o ano acumulava vendas — vendedor via a tela
+// travar ao trocar de aba). _invalidateDashCache() é chamada no topo de cada função
+// de render (renderDashVendas/renderDashGraficos/renderDashMetas/renderDashComissoes),
+// então o cache nunca sobrevive além de um único redesenho da tela — sem risco de
+// mostrar dado desatualizado, só evita recalcular a mesma coisa repetidas vezes.
+let _vrmCache=null,_comItemsCache=null;
+function _invalidateDashCache(){_vrmCache=null;_comItemsCache=null;}
 function getVendaRowsMerged(){
+  if(_vrmCache)return _vrmCache;
   const importadosFS=pedidos.filter(p=>p.importadoPlanilha);
   const importadosFSOs=new Set(importadosFS.map(p=>String(p.os)));
   const xlsxSemFS=(typeof XLSX_VENDAS!=='undefined'?XLSX_VENDAS:[]).filter(r=>!importadosFSOs.has(String(r.p)));
-  return [
+  _vrmCache=[
     ...xlsxSemFS,
     ...importadosFS.map(pedidoToVendaRow),
     ...pedidos.filter(p=>isComercialPedido(p)&&!p.importadoPlanilha).map(pedidoToVendaRow)
   ].filter(r=>!isVendaCancelada(r.p));
+  return _vrmCache;
 }
 function getVendasMes(y,m,vendedor){
   return getVendaRowsMerged()
@@ -4250,6 +4262,7 @@ function renderDashCards(){
 }
 
 function renderDashMetas(){
+  _invalidateDashCache();
   // Defesa extra (além do PIN + botão escondido): mesmo chamada direto, essa tela nunca
   // desenha meta/comissão de vendedor nenhum se quem está logado não for admin.
   if(!_getUserCat().isAdm)return;
@@ -4334,6 +4347,7 @@ function renderDashMetas(){
 // a janela de pagamento (qy/qm/qhalf). getComissaoItems(y,m) filtra a partir daqui;
 // getComissaoItemsFuturos() usa a lista inteira pra olhar além do mês selecionado.
 function getComissaoItemsAll(){
+  if(_comItemsCache)return _comItemsCache;
   const all=[];
   const osFirestore=new Set();
   pedidos.filter(isComercialPedido).forEach(p=>{
@@ -4379,6 +4393,7 @@ function getComissaoItemsAll(){
       all.push(item);
     });
   });
+  _comItemsCache=all;
   return all;
 }
 
@@ -4542,6 +4557,7 @@ function renderFinanceiro(){
 }
 
 function renderDashComissoes(){
+  _invalidateDashCache();
   const el=document.getElementById('dash-comissoes');if(!el)return;
   // Defesa extra (além do PIN + botão escondido): mesmo chamada direto, essa tela nunca
   // desenha a comissão de vendedor nenhum se quem está logado não for admin.
@@ -5400,6 +5416,7 @@ function verVendaDetalhe(os,pedidoId){
 }
 
 function renderDashVendas(){
+  _invalidateDashCache();
   const {isAdm}=_getUserCat();
   const btnAddVm=document.getElementById('btn-add-venda-manual');
   if(btnAddVm)btnAddVm.style.display=isAdm?'':'none';
@@ -5612,6 +5629,7 @@ function gcChartOpts(extraPlugins){
 }
 
 function renderDashGraficos(){
+  _invalidateDashCache();
   // Contador de dias úteis restantes — sempre do mês corrente real (hoje), independente
   // do mês que está sendo navegado nos gráficos abaixo.
   const duEl=document.getElementById('gc-dias-uteis');
