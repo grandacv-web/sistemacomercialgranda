@@ -1390,8 +1390,16 @@ function filt(){
   });
 }
 
+// Cada vendedor só pode ver os próprios pedidos emitidos na Lista de Emissão — admin
+// (isAdm) continua vendo tudo. Casamento por nome usa vendedorMatch() (mesma lógica
+// tolerante a nome curto/completo usada em Vendas/Metas/Comissões), comparado contra
+// o nome de exibição do usuário logado (o mesmo nome travado no campo "Responsável"
+// ao emitir um pedido — ver campo oculto em-rsp).
 function pedidosKanban(){
-  return pedidos.filter(p=>p.origemComercial&&!p.importadoPlanilha);
+  const base=pedidos.filter(p=>p.origemComercial&&!p.importadoPlanilha);
+  if(_getUserCat().isAdm)return base;
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  return meuNome?base.filter(p=>vendedorMatch(p.responsavel,meuNome)):[];
 }
 
 function renderStats(){
@@ -5422,8 +5430,13 @@ function renderDashVendas(){
   if(btnAddVm)btnAddVm.style.display=isAdm?'':'none';
   const selV=document.getElementById('vnd-fil-vend');
   const selC=document.getElementById('vnd-fil-cat');
-  // Mesma fonte usada nos cards/metas/comissões — planilha + pedidos do Firestore mesclados
-  const allRowsForFil=getVendaRowsMerged();
+  // Mesma fonte usada nos cards/metas/comissões — planilha + pedidos do Firestore mesclados.
+  // Não filtra por vendedor aqui dentro de getVendaRowsMerged() (essa função também
+  // alimenta os totais gerais de Metas/Gráficos, que precisam da empresa inteira) —
+  // o corte por vendedor é só na tabela desta tela: cada vendedor só vê a própria
+  // venda, admin continua vendo todas.
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  const allRowsForFil=isAdm?getVendaRowsMerged():(meuNome?getVendaRowsMerged().filter(r=>vendedorMatch(r.v,meuNome)):[]);
   if(selV&&selV.options.length<=1){
     const vends=[...new Set(allRowsForFil.map(r=>r.v).filter(Boolean))].sort();
     vends.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selV.appendChild(o);});
