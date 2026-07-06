@@ -712,6 +712,11 @@ select.fc{cursor:pointer}
           <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
           <input id="fin-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
         </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:10px">
+          <span style="font-size:.78rem;color:#92400e">🧹 Vendas antigas que já foram pagas na vida real mas nunca foram confirmadas aqui (de antes de usar essa tela)? Confirme tudo de uma vez até uma data:</span>
+          <input id="fin-lote-data" type="date" style="width:150px;padding:8px 10px;border-radius:8px;border:1.5px solid #fde68a;font-size:.82rem;font-family:inherit">
+          <button onclick="confirmarEmLoteAteData()" style="background:#92400e;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Confirmar tudo até essa data</button>
+        </div>
         <div id="fin-body"></div>
       </div>
     </div>
@@ -795,10 +800,16 @@ select.fc{cursor:pointer}
 
 <!-- EDITAR VALORES MODAL -->
 <div class="mov" id="mo-ev" onclick="if(event.target.id==='mo-ev')closeM('mo-ev')">
-<div class="mvmod" style="width:500px;max-width:98vw">
-  <h3 style="margin-bottom:6px">✏️ Editar Valores do Pedido</h3>
-  <div id="ev-info" style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+<div class="mvmod" style="width:500px;max-width:98vw;max-height:90vh;display:flex;flex-direction:column;padding:0">
+  <div style="padding:24px 24px 0;flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="margin-bottom:0">✏️ Editar Valores do Pedido</h3>
+      <button onclick="closeM('mo-ev')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div id="ev-info" style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+  </div>
 
+  <div style="overflow-y:auto;flex:1;padding:0 24px 18px">
   <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 Dados do Pedido</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
     <div>
@@ -884,7 +895,8 @@ select.fc{cursor:pointer}
   <div style="font-size:.72rem;color:#92400e;margin-bottom:14px;padding:8px 10px;background:#fefce8;border-radius:8px;border:1px solid #fde68a">
     ⚠️ Ao salvar, as Comissões serão recalculadas automaticamente com o novo valor líquido.
   </div>
-  <div style="display:flex;gap:8px;justify-content:flex-end">
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--border-lt);background:#fafbfc;flex-shrink:0">
     <button class="btn-mv" onclick="closeM('mo-ev')">Cancelar</button>
     <button class="btn-ed" onclick="salvarValoresPedido()">💾 Salvar Alterações</button>
   </div>
@@ -4656,6 +4668,32 @@ function confirmarRecebimento(confKey,dataStr){
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
 }
+// Limpeza em lote pra vendas antigas (de antes da tela de Contas a Receber existir/ser
+// usada) cuja comissão já foi paga na vida real mas nunca foi confirmada aqui — sem isso
+// elas ficam aparecendo pra sempre como "pendente"/"atrasado" mesmo já quitadas de fato.
+// Só marca como confirmado quem ainda não tinha status nenhum (não mexe em quem já foi
+// marcado "não recebido" com motivo — isso é uma decisão explícita que não deve ser
+// sobrescrita silenciosamente).
+function confirmarEmLoteAteData(){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem confirmar recebimento','terr');return;}
+  const dataStr=(document.getElementById('fin-lote-data')||{}).value||'';
+  if(!dataStr){toast('Escolha uma data limite primeiro','terr');return;}
+  const limite=new Date(dataStr+'T00:00:00');
+  const alvo=getContasReceber().filter(i=>{
+    if(i.statusCalc==='confirmado'||i.statusCalc==='nao_recebido')return false;
+    const d=parseDataBR(i.dataAtiva);
+    return d&&!isNaN(d)&&d<=limite;
+  });
+  if(!alvo.length){toast('Nenhum item pendente encontrado até essa data','tinf');return;}
+  if(!confirm(`Confirmar recebimento de ${alvo.length} parcela(s) com vencimento até ${fmtD(dataStr)}, liberando a comissão de cada uma? Isso não mexe em nada marcado como "não recebido".`))return;
+  alvo.forEach(i=>{
+    setPagConf(i.confKey,{status:'confirmado',novaData:i.dataAtiva,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:''});
+  });
+  toast(`${alvo.length} parcela(s) confirmada(s) em lote! ✅`,'tok');
+  renderFinanceiro();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  if(typeof renderDashCards==='function')renderDashCards();
+}
 function renderFinanceiro(){
   const body=document.getElementById('fin-body');if(!body)return;
   const isFinAdm=_isFinanceiroUser();
@@ -5384,7 +5422,6 @@ const XLSX_VENDAS=[
   {mes:"JUNHO",m:6,p:"196",cl:"BURGER KING PATO BRANCO PR",cat:"FRANQUEADO SHOPPING",v:"JULIO",br:38000.0,ft:5280.0,vi:1400.0,el:0.0,mo:7200.0,art:1328.0,ba:0.0,ou:0.0,lq:22792.0,op:15208.0,entrega:"08/07/2026",parcelas:[{dataStr:"05/07/2026",valor:9116.8},{dataStr:"05/08/2026",valor:13675.2}]},
   {mes:"JUNHO",m:6,p:"198",cl:"BURGER KING ADISER BALNEÁRIO CAMBORIÚ SC",cat:"FRANQUEADO SHOPPING",v:"JULIO",br:7400.0,ft:2500.0,vi:1000.0,el:0.0,mo:900.0,art:0.0,ba:0.0,ou:0.0,lq:3000.0,op:4400.0,entrega:"23/07/2026",parcelas:[{dataStr:"05/08/2026",valor:3000.0}]},
   {mes:"JUNHO",m:6,p:"211",cl:"BURGER KING BRAGANÇA PAULISTA",cat:"FRANQUEADO DRIVE",v:"JULIO",br:251224.0,ft:12000.0,vi:4000.0,el:4200.0,mo:13200.0,art:2000.0,ba:0.0,ou:0.0,lq:215824.0,op:35400.0,entrega:"17/07/2026",parcelas:[{dataStr:"05/07/2026",valor:107912.0},{dataStr:"05/08/2026",valor:43164.8},{dataStr:"05/09/2026",valor:64747.2}]},
-  {mes:"JUNHO",m:6,p:"S/N-HORTOLANDIA-JUN",cl:"BURGER KING HORTOLÂNDIA SHOPPING",cat:"BK É FOGO",v:"JULIO",br:40875.91,ft:20000.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:20875.91,op:20000.0,entrega:"06/08/2026",parcelas:[]},
   {mes:"JUNHO",m:6,p:"223",cl:"BURGER KING ASSIS SP",cat:"MANUTENÇÃO",v:"JULIO",br:88848.0,ft:7500.0,vi:1500.0,el:6000.0,mo:4500.0,art:500.0,ba:0.0,ou:0.0,lq:68848.0,op:20000.0,entrega:"20/07/2026",parcelas:[{dataStr:"15/08/2026",valor:68848.0}]},
   {mes:"JUNHO",m:6,p:"219",cl:"BURGER KING BARRETOS SP",cat:"MANUTENÇÃO",v:"JULIO",br:128457.0,ft:9000.0,vi:2200.0,el:6800.0,mo:5000.0,art:500.0,ba:0.0,ou:0.0,lq:104957.0,op:23500.0,entrega:"10/08/2026",parcelas:[{dataStr:"15/08/2026",valor:104957.0}]},
   {mes:"JUNHO",m:6,p:"213",cl:"BURGER KING VILA VELHA",cat:"MANUTENÇÃO",v:"JULIO",br:44142.0,ft:11000.0,vi:2000.0,el:4500.0,mo:4900.0,art:500.0,ba:0.0,ou:0.0,lq:21242.0,op:22900.0,entrega:"05/08/2026",parcelas:[{dataStr:"05/09/2026",valor:21242.0}]},
