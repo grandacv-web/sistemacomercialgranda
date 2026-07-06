@@ -646,7 +646,7 @@ select.fc{cursor:pointer}
                 <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Orçamentos em aberto (R$)</div>
                   <input id="gc-inp-orc" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
                 <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Taxa de conversão (%)</div>
-                  <input id="gc-inp-cv" type="number" placeholder="0" step="0.1" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+                  <input id="gc-inp-cv" type="number" placeholder="0" step="0.1" min="0" max="100" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
                 <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Negócios perdidos (R$)</div>
                   <input id="gc-inp-pd" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
               </div>
@@ -772,6 +772,7 @@ select.fc{cursor:pointer}
   </div>
   <div class="vm-bd" id="vv-bd"></div>
   <div class="vm-act">
+    <button class="btn-mv" id="vv-btn-reenviar" style="display:none;background:#1a2b5e;color:#fff;border-color:#1a2b5e" onclick="reenviarEmailPedido(_vvCurrentPedidoId)">🔁 Reenviar E-mail</button>
     <button class="btn-mv" onclick="closeM('mo-vv')">Fechar</button>
   </div>
 </div>
@@ -3022,6 +3023,185 @@ function addRem(){
   l.appendChild(d);
 }
 
+// Monta o HTML do e-mail de emissão + assunto a partir do PEDIDO JÁ SALVO (p), não do
+// formulário em memória (ed) — assim a mesma função serve tanto pra emissão original
+// quanto pro botão "Reenviar E-mail" (que só tem o pedido salvo, o formulário já não
+// existe mais). Antes essa lógica vivia dentro de submit() e lia ed.* direto; foi
+// extraída porque tinha campo (arq_os_url, arq_oc_url, arq_chumb_url, chumbador,
+// os_chumb, locCidade/locUf) que só existia em ed e nunca tinha sido salvo no pedido —
+// corrigido junto: esses campos agora são persistidos em p (ver construção de p em submit()).
+function buildEmissaoEmailContent(p){
+  const val=p.valores||{},pag=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj=p.projetos||{};
+  const fmtSec=(titulo,obj)=>{
+    if(!Object.keys(obj).length)return'';
+    const rows=Object.entries(obj).map(([k,v],i)=>`
+      <tr style="background:${i%2===0?'#ffffff':'#fafafa'}">
+        <td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">${k}</td>
+        <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600;vertical-align:top">${v}</td>
+      </tr>`).join('');
+    return`
+      <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
+      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">${titulo}</span>
+      </td></tr>
+      <tr><td colspan="2" style="padding:0">${rows?`<table width="100%" cellpadding="0" cellspacing="0">${rows}</table>`:''}</td></tr>`;
+  };
+  const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:40px 16px">
+<tr><td align="center">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+  <!-- HEADER -->
+  <tr><td style="background:#111827;padding:0">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding:32px 40px 24px">
+        <img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
+      </td></tr>
+      <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
+      <tr><td style="padding:24px 40px 28px;background:#111827">
+        <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">EMISSÃO DE PEDIDO</p>
+        <p style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="background:#1f2937;border-radius:20px;padding:5px 14px">
+            <span style="color:#e91e63;font-size:12px;font-weight:700">OS Nº ${p.os}</span>
+            <span style="color:#6b7280;font-size:12px">&nbsp;·&nbsp;${p.tipo}</span>
+          </td>
+        </tr></table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- INFO BAR -->
+  <tr><td style="background:#f8f9fa;border-bottom:1px solid #e9ecef;padding:16px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:12px;color:#6b7280">Responsável &nbsp;<strong style="color:#111827">${p.responsavel||'—'}</strong></td>
+      <td align="center" style="font-size:12px;color:#dee2e6">|</td>
+      <td style="font-size:12px;color:#6b7280">JOB &nbsp;<strong style="color:#111827">${p.job||'—'}</strong></td>
+      <td align="right" style="font-size:12px;color:#6b7280">Prazo de Finalização &nbsp;<strong style="color:#e91e63">${fmtD(p.prazo)||'—'}</strong></td>
+    </tr></table>
+  </td></tr>
+
+  <!-- BODY -->
+  <tr><td style="padding:32px 40px;background:#ffffff">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${p.obs?`
+      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Observações</span>
+      </td></tr>
+      <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
+      ${fmtSec('Valores',val)}
+      ${fmtSec('Pagamento',pag)}
+      ${p.arq_os_url?`
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(p.arq_os_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE SERVIÇO GRANDA ↗</a></td>
+      </tr>`:''}
+      ${p.arq_oc_url?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Compra</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(p.arq_oc_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE COMPRA DO CLIENTE ↗</a></td>
+      </tr>`:''}
+
+      <!-- ELEVAÇÕES -->
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Elevações</span>
+      </td></tr>
+      ${val['Elevações']==='Sim'&&p.elevacoes&&p.elevacoes.length?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Equipamentos</td>
+        <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${p.elevacoes.map(e=>e.tipo+': '+e.qtd+'un × '+e.dias+' diária(s)').join('<br>')}</td>
+      </tr>
+      ${val['Valor das Elevações']?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Valor das Elevações</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${val['Valor das Elevações']}</td></tr>`:''}
+      `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem elevações neste pedido.</td></tr>`}
+
+      ${fmtSec('Instalação',inst)}
+      ${fmtSec('Frete',fr)}
+
+      <!-- BASES E FUNDAÇÕES -->
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Bases e Fundações</span>
+      </td></tr>
+      ${p.bases?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${p.bases}</td></tr>
+      ${p.chumbador==='Sim'?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ ENVIADO CHUMBADOR</td></tr>`:''}
+      ${p.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${p.os_chumb}</td></tr>`:''}
+      ${p.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(p.arq_chumb_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td></tr>`:''}
+      `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
+
+      ${proj.art==='Sim'?`
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
+      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ EMITIDA ART</td></tr>
+      ${proj.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${proj.cnpj_art_url?`<a href="${cldDownload(proj.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${proj.cnpj_art}`}</td></tr>`:''}
+      `:''}
+    </table>
+
+    ${cfg.avisos?`
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
+      <tr><td style="background:#fff8e1;border-left:4px solid #ffa000;border-radius:4px;padding:16px 20px">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#e65100">⚠ OBSERVAÇÕES IMPORTANTES</p>
+        <p style="margin:0;font-size:13px;color:#5d4037;line-height:1.7;white-space:pre-line">${cfg.avisos}</p>
+      </td></tr>
+    </table>`:''}
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#111827;padding:20px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:11px;color:#6b7280">GCore · Sistema Granda · E-mail automático</td>
+      <td align="right"><img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+    </tr></table>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body></html>`;
+  const _cidade=(p.locCidade||'').toUpperCase();
+  const _uf=(p.locUf||'').toUpperCase();
+  const _locStr=_cidade&&_uf?` - ${_cidade}/${_uf}`:_cidade?` - ${_cidade}`:_uf?` - ${_uf}`:'';
+  const subject=`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente} - ${p.job||''}${_locStr}`.replace(/\s+-\s*$/,'').replace(/\s{2,}/g,' ').replace(/\//g,'-');
+  return{html_content,subject};
+}
+
+// Envia (ou reenvia) o e-mail de emissão de um pedido já salvo, e grava o resultado
+// no próprio pedido (p.emailStatus/p.emailEnviadoEm/p.emailErro) — sem isso, uma falha
+// de envio só aparecia num toast passageiro (fácil de não ver) e não deixava nenhum
+// rastro pra conferir depois. Retorna {ok, destinatarios, erro}.
+async function _enviarEmailEmissao(p,destEmailsOverride){
+  const destEmails=destEmailsOverride||[p.email_comprador,p.email_engenheiro,...(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean)].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
+  if(!destEmails.length){
+    return{ok:false,destinatarios:[],erro:'Nenhum e-mail de destino cadastrado neste pedido (comprador/engenheiro/config).'};
+  }
+  try{
+    emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
+    const sid=cfg.s||'service_t99xeta';
+    const tid=cfg.t||'template_8ymz4j4';
+    const{html_content,subject}=buildEmissaoEmailContent(p);
+    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
+    p.emailStatus='enviado';p.emailEnviadoEm=new Date().toISOString();p.emailDestinatarios=destEmails;p.emailErro='';
+    savePedidoFS(p).catch(e=>console.error('Erro ao gravar status de e-mail:',e));
+    return{ok:true,destinatarios:destEmails,erro:''};
+  }catch(e){
+    const msg=(e&&(e.text||e.message))||'Erro desconhecido no envio';
+    p.emailStatus='erro';p.emailErro=String(msg);p.emailErroEm=new Date().toISOString();
+    savePedidoFS(p).catch(e2=>console.error('Erro ao gravar status de e-mail:',e2));
+    console.error('Erro ao enviar e-mail de emissão',e);
+    return{ok:false,destinatarios:destEmails,erro:String(msg)};
+  }
+}
+
+// Botão "🔁 Reenviar E-mail" — manda de novo, exatamente como foi cadastrado, lendo
+// direto do pedido salvo (não depende do formulário de emissão, que já não existe mais
+// depois que a tela foi fechada).
+async function reenviarEmailPedido(pedidoId){
+  if(!_getUserCat().isAdm){toast('Apenas administradores podem reenviar e-mail','terr');return;}
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  toast('Reenviando e-mail...','tinf');
+  const r=await _enviarEmailEmissao(p);
+  if(r.ok){toast(`E-mail reenviado para ${r.destinatarios.length} destinatário(s)!`,'tok');}
+  else{toast('Erro ao reenviar e-mail: '+r.erro,'terr');}
+  // Atualiza o modal de detalhes se ainda estiver aberto nesse mesmo pedido
+  if(_vvCurrentPedidoId===pedidoId)verVendaDetalhe(String(p.os),pedidoId);
+}
+
 async function submit(){
   saveSt();
   const tabs=getTabs();
@@ -3144,7 +3324,15 @@ async function submit(){
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
     elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
-    projetos:proj};
+    projetos:proj,
+    // Campos abaixo só existiam na memória local do formulário (ed.*) durante a emissão
+    // e nunca eram salvos no pedido — sem isso, "Reenviar E-mail" não conseguiria
+    // reconstruir o e-mail original de verdade (faltaria PDF da OS, OC, chumbador e a
+    // cidade/UF do assunto). Sempre com fallback pra string vazia — nunca undefined,
+    // porque undefined no objeto quebra o savePedidoFS (ver [[project_firestore_undefined_fields]]).
+    arq_os_url:ed.arq_os_url||'',arq_oc_url:ed.arq_oc_url||'',arq_chumb_url:ed.arq_chumb_url||'',
+    chumbador:ed.chumbador||'',os_chumb:ed.os_chumb||'',
+    locCidade:(ed.icidade||ed.fcidade||''),locUf:(ed.iuf||ed.fuf||'')};
   const wasEditing=editing;
   editing=null;
   // Fechar modal ANTES do save para não travar
@@ -3152,146 +3340,19 @@ async function submit(){
   if(_moEm)_moEm.classList.remove('open');
   savePedidoFS(p).catch(e=>toast('Erro ao salvar: '+e.message,'terr'));
   toast(wasEditing?'Pedido atualizado!':'Pedido emitido! Enviando e-mail...','tok');
-  // Enviar email via EmailJS
-  const _destEmails=[ed.email_comprador,ed.email_engenheiro,...(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean)].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
-  if(!wasEditing&&_destEmails.length){
-    try{
-      emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
-      const sid=cfg.s||'service_t99xeta';
-      const tid=cfg.t||'template_8ymz4j4';
-      const fmtSec=(titulo,obj)=>{
-        if(!Object.keys(obj).length)return'';
-        const rows=Object.entries(obj).map(([k,v],i)=>`
-          <tr style="background:${i%2===0?'#ffffff':'#fafafa'}">
-            <td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">${k}</td>
-            <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600;vertical-align:top">${v}</td>
-          </tr>`).join('');
-        return`
-          <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
-          <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
-            <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">${titulo}</span>
-          </td></tr>
-          <tr><td colspan="2" style="padding:0">${rows?`<table width="100%" cellpadding="0" cellspacing="0">${rows}</table>`:''}</td></tr>`;
-      };
-      const pdfLinks=[
-        ed.arq_os_url?{label:'PDF da OS',url:ed.arq_os_url}:null,
-        ed.arq_oc_url?{label:'Ordem de Compra',url:ed.arq_oc_url}:null,
-        ed.arq_chumb_url?{label:'PDF Chumbador',url:ed.arq_chumb_url}:null
-      ].filter(Boolean);
-      const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:40px 16px">
-<tr><td align="center">
-<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
-
-  <!-- HEADER -->
-  <tr><td style="background:#111827;padding:0">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td align="center" style="padding:32px 40px 24px">
-        <img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
-      </td></tr>
-      <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
-      <tr><td style="padding:24px 40px 28px;background:#111827">
-        <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">EMISSÃO DE PEDIDO</p>
-        <p style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="background:#1f2937;border-radius:20px;padding:5px 14px">
-            <span style="color:#e91e63;font-size:12px;font-weight:700">OS Nº ${p.os}</span>
-            <span style="color:#6b7280;font-size:12px">&nbsp;·&nbsp;${p.tipo}</span>
-          </td>
-        </tr></table>
-      </td></tr>
-    </table>
-  </td></tr>
-
-  <!-- INFO BAR -->
-  <tr><td style="background:#f8f9fa;border-bottom:1px solid #e9ecef;padding:16px 40px">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:12px;color:#6b7280">Responsável &nbsp;<strong style="color:#111827">${p.responsavel||'—'}</strong></td>
-      <td align="center" style="font-size:12px;color:#dee2e6">|</td>
-      <td style="font-size:12px;color:#6b7280">JOB &nbsp;<strong style="color:#111827">${p.job||'—'}</strong></td>
-      <td align="right" style="font-size:12px;color:#6b7280">Prazo de Finalização &nbsp;<strong style="color:#e91e63">${fmtD(p.prazo)||'—'}</strong></td>
-    </tr></table>
-  </td></tr>
-
-  <!-- BODY -->
-  <tr><td style="padding:32px 40px;background:#ffffff">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      ${p.obs?`
-      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
-        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Observações</span>
-      </td></tr>
-      <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
-      ${fmtSec('Valores',val)}
-      ${fmtSec('Pagamento',pag)}
-      ${ed.arq_os_url?`
-      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_os_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE SERVIÇO GRANDA ↗</a></td>
-      </tr>`:''}
-      ${ed.arq_oc_url?`
-      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Compra</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_oc_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE COMPRA DO CLIENTE ↗</a></td>
-      </tr>`:''}
-
-      <!-- ELEVAÇÕES -->
-      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
-        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Elevações</span>
-      </td></tr>
-      ${ed.elevacoes==='Sim'&&ed.elevs&&ed.elevs.length?`
-      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Equipamentos</td>
-        <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.elevs.map(e=>e.tipo+': '+e.qtd+'un × '+e.dias+' diária(s)').join('<br>')}</td>
-      </tr>
-      ${ed.velev?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Valor das Elevações</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">R$ ${moneyToNum(ed.velev).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td></tr>`:''}
-      `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem elevações neste pedido.</td></tr>`}
-
-      ${fmtSec('Instalação',inst)}
-      ${fmtSec('Frete',fr)}
-
-      <!-- BASES E FUNDAÇÕES -->
-      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
-        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Bases e Fundações</span>
-      </td></tr>
-      ${ed.bases?`
-      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Tipo de Base/Fundação</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.bases}</td></tr>
-      ${ed.chumbador==='Sim'?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ ENVIADO CHUMBADOR</td></tr>`:''}
-      ${ed.os_chumb?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">OS do Chumbador</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${ed.os_chumb}</td></tr>`:''}
-      ${ed.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(ed.arq_chumb_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td></tr>`:''}
-      `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
-
-      ${ed.art==='Sim'?`
-      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
-      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ EMITIDA ART</td></tr>
-      ${ed.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${ed.cnpj_art_url?`<a href="${cldDownload(ed.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${ed.cnpj_art}`}</td></tr>`:''}
-      `:''}
-    </table>
-
-    ${cfg.avisos?`
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px">
-      <tr><td style="background:#fff8e1;border-left:4px solid #ffa000;border-radius:4px;padding:16px 20px">
-        <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#e65100">⚠ OBSERVAÇÕES IMPORTANTES</p>
-        <p style="margin:0;font-size:13px;color:#5d4037;line-height:1.7;white-space:pre-line">${cfg.avisos}</p>
-      </td></tr>
-    </table>`:''}
-  </td></tr>
-
-  <!-- FOOTER -->
-  <tr><td style="background:#111827;padding:20px 40px">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#6b7280">GCore · Sistema Granda · E-mail automático</td>
-      <td align="right"><img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
-    </tr></table>
-  </td></tr>
-
-</table>
-</td></tr></table>
-</body></html>`;
-      const _cidade=(ed.icidade||ed.fcidade||'').toUpperCase();
-      const _uf=(ed.iuf||ed.fuf||'').toUpperCase();
-      const _locStr=_cidade&&_uf?` - ${_cidade}/${_uf}`:_cidade?` - ${_cidade}`:_uf?` - ${_uf}`:'';
-      const _subject=`EMISSÃO DE PEDIDO - OS Nº ${p.os} · ${p.cliente} - ${p.job||''}${_locStr}`.replace(/\s+-\s*$/,'').replace(/\s{2,}/g,' ').replace(/\//g,'-');
-      await emailjs.send(sid,tid,{html_content,to_email:_destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject:_subject,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
-      toast(`E-mail enviado para ${_destEmails.length} destinatário(s)!`,'tok');
-    }catch(e){toast('Pedido salvo, mas erro no e-mail: '+e.text,'twar');console.error(e);}
+  // Enviar email via EmailJS — usa a mesma função de _enviarEmailEmissao() que também
+  // serve o botão "Reenviar E-mail", então qualquer correção feita lá (ou registro de
+  // status de falha) vale igual pra emissão original e pro reenvio.
+  if(!wasEditing){
+    const _destEmails=[p.email_comprador,p.email_engenheiro,...(cfg.e||'').split(',').map(e=>e.trim()).filter(Boolean)].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
+    if(_destEmails.length){
+      _enviarEmailEmissao(p,_destEmails).then(r=>{
+        if(r.ok)toast(`E-mail enviado para ${r.destinatarios.length} destinatário(s)!`,'tok');
+        else toast('Pedido salvo, mas erro no e-mail: '+r.erro,'twar');
+      });
+    } else {
+      toast('Pedido emitido, mas sem e-mail de destino cadastrado — nenhum e-mail foi enviado.','twar');
+    }
   }
 }
 
@@ -5479,6 +5540,15 @@ function fmtProximoPagamento(os){
 
 // Ver detalhes de uma venda (somente visualização) — se já foi emitida pelo sistema,
 // mostra a emissão completa; se só existe na planilha, mostra o resumo disponível dela.
+// Guarda qual pedido está aberto no modal "Ver Detalhes" — o botão "Reenviar E-mail"
+// usa isso pra saber o que reenviar sem precisar reconstruir o onclick a cada abertura.
+// Fica null pra vendas que só existem na planilha (nunca tiveram e-mail de emissão).
+let _vvCurrentPedidoId=null;
+function _fmtEmailStatus(p){
+  if(p.emailStatus==='enviado')return`<span style="color:#16a34a;font-weight:700">✅ Enviado</span> em ${fmtD((p.emailEnviadoEm||'').slice(0,10))||p.emailEnviadoEm||'—'}${p.emailDestinatarios?.length?' · pra '+p.emailDestinatarios.join(', '):''}`;
+  if(p.emailStatus==='erro')return`<span style="color:#dc2626;font-weight:700">⚠️ Falhou</span> — ${p.emailErro||'erro desconhecido'}`;
+  return`<span style="color:#94a3b8;font-weight:700">— Nunca enviado</span> (pedidos emitidos antes desse controle existir)`;
+}
 function verVendaDetalhe(os,pedidoId){
   const secHtml=(t,obj)=>{
     const ent=Object.entries(obj||{}).filter(([,v])=>v&&v!=='');
@@ -5488,6 +5558,10 @@ function verVendaDetalhe(os,pedidoId){
   if(pedidoId){
     const p=pedidos.find(x=>x.id===pedidoId);
     if(p){
+      _vvCurrentPedidoId=pedidoId;
+      const {isAdm}=_getUserCat();
+      const btnRe=document.getElementById('vv-btn-reenviar');
+      if(btnRe)btnRe.style.display=isAdm?'':'none';
       document.getElementById('vv-t').textContent=`OS ${p.os||'—'} — ${p.cliente}`;
       document.getElementById('vv-s').textContent=`${p.tipo} · JOB: ${p.job||'—'} · Emitido no sistema`;
       const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{};
@@ -5504,6 +5578,7 @@ function verVendaDetalhe(os,pedidoId){
           <div class="vf"><div class="l">JOB</div><div class="v">${p.job||'—'}</div></div>
           <div class="vf"><div class="l">Prazo</div><div class="v">${p.prazo?fmtD(p.prazo):'—'}</div></div>
           <div class="vf"><div class="l">OS Nº</div><div class="v">${p.os||'—'}</div></div>
+          <div class="vf" style="grid-column:span 2"><div class="l">E-mail de emissão</div><div class="v" style="font-weight:600">${_fmtEmailStatus(p)}</div></div>
           ${p.obs?`<div class="vf" style="grid-column:span 2"><div class="l">Observações</div><div class="v">${p.obs}</div></div>`:''}
         </div></div>
         ${secHtml('Valores',v)}
@@ -5514,6 +5589,9 @@ function verVendaDetalhe(os,pedidoId){
       return;
     }
   }
+  _vvCurrentPedidoId=null;
+  const btnRe0=document.getElementById('vv-btn-reenviar');
+  if(btnRe0)btnRe0.style.display='none';
   const x=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(os)]:null;
   if(!x){toast('Detalhes não encontrados para essa venda','terr');return;}
   document.getElementById('vv-t').textContent=`OS ${x.p} — ${x.cl}`;
@@ -5682,7 +5760,9 @@ function gcExtraKey(vend,y,m){return vend+'|'+y+'|'+m;}
 function gcGetExtra(vend,y,m){
   const k=gcExtraKey(vend,y,m);
   const raw=(cfg.dashExtra||{})[k]||{};
-  return {orc:raw.orc||0,cv:raw.cv||0,pd:raw.pd||0};
+  // cv (taxa de conversão) nunca pode passar de 100% — valores antigos fora da faixa
+  // (ex: 327%) são saneados aqui na leitura, mesmo que já estejam salvos no Firestore.
+  return {orc:raw.orc||0,cv:Math.min(100,Math.max(0,raw.cv||0)),pd:raw.pd||0};
 }
 function setProspecOrc(nome,y,m,valor){
   if(!cfg.dashExtra)cfg.dashExtra={};
@@ -5704,8 +5784,14 @@ function savePctProspeccao(nome,pct){
 }
 function gcSaveExtra(){
   const orc=parseFloat((document.getElementById('gc-inp-orc')||{}).value)||0;
-  const cv=parseFloat((document.getElementById('gc-inp-cv')||{}).value)||0;
+  let cv=parseFloat((document.getElementById('gc-inp-cv')||{}).value)||0;
   const pd=parseFloat((document.getElementById('gc-inp-pd')||{}).value)||0;
+  if(cv>100){
+    cv=100;
+    const inpCv=document.getElementById('gc-inp-cv');if(inpCv)inpCv.value=100;
+    toast('Taxa de conversão não pode passar de 100% — ajustado automaticamente.','twar');
+  }
+  if(cv<0)cv=0;
   if(!cfg.dashExtra)cfg.dashExtra={};
   cfg.dashExtra[gcExtraKey(gcVendIdx,gcMes.y,gcMes.m)]={orc,cv,pd};
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
@@ -6035,8 +6121,14 @@ function gcRenderVendPaineis(){
   const metaMes=getMetaMes(y,m,v);
   const faltaMes=Math.max(0,metaMes-lqMes);
   const orc=ex.orc,cv=ex.cv,pd=ex.pd;
-  const tend=orc>0&&cv>0?orc*(cv/100):0;
-  const gap=metaMes>0&&tend>0?metaMes-tend:0;
+  // tendPipe = quanto do pipeline em aberto (orçamentos) deve se converter em venda, pela
+  // taxa de conversão informada (0-100%, saneada em gcGetExtra). tend = projeção TOTAL do
+  // mês = o que já foi vendido (lqMes) + o que ainda deve entrar do pipeline. Antes "tend"
+  // só olhava o pipeline e ignorava o realizado, o que deixava "Gap para Meta" ok mesmo com
+  // vendas reais muito abaixo da meta (bastava um orçamento grande em aberto).
+  const tendPipe=orc>0&&cv>0?orc*(cv/100):0;
+  const tend=lqMes+tendPipe;
+  const gap=metaMes>0?Math.max(0,metaMes-tend):0;
   // Conta pedidos da mesma fonte mesclada (Firestore + planilha) usada em vendas/metas —
   // antes só olhava `pedidos` do Firestore com match exato de nome, subcontando pedidos
   // que só existem em XLSX_VENDAS ou com nome curto na planilha (ex: "JULIO").
@@ -6092,7 +6184,9 @@ function gcRenderVendPaineis(){
   const dnEl=document.getElementById('gc-cDn');
   const convAlerta=document.getElementById('gc-conv-alerta');
   if(dnEl&&(orc>0||pd>0)){
-    const cvVal=Math.max(0,tend);
+    // Este doughnut é só sobre o pipeline em aberto (orc), então usa tendPipe (conversão
+    // estimada do pipeline), não tend (que já inclui o realizado lqMes).
+    const cvVal=Math.max(0,tendPipe);
     const pdVal=Math.max(0,pd);
     const rest=Math.max(0,orc-cvVal-pdVal);
     const dnData=[cvVal,pdVal,rest];
@@ -6103,7 +6197,7 @@ function gcRenderVendPaineis(){
           plugins:{legend:{position:'bottom',labels:{font:{size:10},color:'#888',boxWidth:10}},
             tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmtR(ctx.raw)+(dnSum>0?' ('+(ctx.raw/dnSum*100).toFixed(1)+'%)':'')}}}}});
     }
-    if(convAlerta)convAlerta.innerHTML=cv>0?`<span style="color:#64748b">Taxa de conversão: <strong>${cv}%</strong>${tend>0?' — estimado '+fmtR(tend):''}</span>`:'<span style="color:#94a3b8">Preencha a taxa de conversão acima</span>';
+    if(convAlerta)convAlerta.innerHTML=cv>0?`<span style="color:#64748b">Taxa de conversão: <strong>${cv}%</strong>${tendPipe>0?' — estimado '+fmtR(tendPipe):''}</span>`:'<span style="color:#94a3b8">Preencha a taxa de conversão acima</span>';
   } else {
     if(convAlerta)convAlerta.innerHTML='<span style="color:#94a3b8">Preencha os dados para ver a análise de conversão</span>';
   }
