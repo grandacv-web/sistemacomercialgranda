@@ -84,6 +84,31 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .dash-table td{padding:10px 14px;border-bottom:1px solid #f1f5f9;color:#1e293b;vertical-align:middle}
 .dash-table tfoot td{padding:10px 14px;font-weight:700;background:#f8fafc;border-top:1.5px solid #e5e7eb}
 .dash-table tr:last-child td{border-bottom:none}
+/* ── Lista de Vendas (tabela redesenhada) ── */
+.dt-vendas th,.dt-vendas td{vertical-align:top}
+.dt-num{text-align:right;white-space:nowrap}
+.dt-mes-mini{font-size:.68rem;color:#94a3b8;font-weight:600;white-space:nowrap}
+.dt-alt{background:#f8fafc}
+/* .dt-mes-row td vem depois de .dash-table td no CSS mas tem a MESMA especificidade
+   (elemento+classe) — sem isso, o color:#1e293b de .dash-table td ganhava dos textos
+   claros abaixo (classe única = especificidade menor) e ficava letra escura em cima
+   de fundo escuro, ilegível. Por isso as regras de cor aqui são todas escritas como
+   ".dt-mes-row .classe" (duas classes = especificidade maior, sempre vence). */
+.dt-mes-row td{background:#1a2b5e;padding:9px 14px;border-bottom:none;white-space:nowrap}
+.dt-mes-row{border-top:2px solid #0f1c40}
+.dt-mes-row .dt-mes-lbl{font-size:.74rem;font-weight:800;color:#fff;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.dt-mes-row .dt-mes-count{font-size:.7rem;color:#93a5c9;font-weight:600;text-transform:none;letter-spacing:0}
+.dt-mes-row .dt-mes-br{color:#fff;font-weight:700;font-size:.74rem}
+.dt-mes-row .dt-mes-op{color:#c4b5fd;font-weight:700;font-size:.74rem}
+.dt-mes-row .dt-mes-lq{color:#ff8fab;font-weight:800;font-size:.74rem}
+.dt-cliente{max-width:230px}
+.dt-cliente-link{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;font-size:.8rem;color:#1e293b;text-decoration:none;border-bottom:1.5px solid transparent}
+.dt-cliente-link:hover{color:#e91e63;border-bottom-color:#e91e63}
+.dt-cat{font-size:.72rem;color:#64748b;white-space:nowrap}
+.dt-pag{font-size:.76rem;white-space:nowrap}
+.dt-vend-pill{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
+.dt-ver-detalhes{font-size:.63rem;color:#94a3b8;text-decoration:underline;white-space:nowrap}
+.dt-ver-detalhes:hover{color:#e91e63}
 .dash-meta-inp{width:140px;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;font-family:inherit;text-align:right;transition:border .2s}
 .dash-meta-inp:focus{outline:none;border-color:#e91e63}
 .dash-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:.68rem;font-weight:700;white-space:nowrap}
@@ -175,7 +200,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .kc-prazo{font-size:.65rem;color:var(--warning);font-weight:600}
 
 /* ── LIST ── */
-.lv{padding:0 28px 28px;display:none}
+.lv{padding:0 28px 28px}
 .lt{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-sm)}
 .lt th{background:#f8fafc;padding:12px 16px;text-align:left;font-size:.68rem;color:var(--ink4);font-weight:700;cursor:pointer;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
 .lt th:hover{color:var(--brand)}
@@ -401,7 +426,7 @@ select.fc{cursor:pointer}
     <div class="hdr-l">
       <img src="logo_granda_branca.png" style="height:32px;object-fit:contain;flex-shrink:0">
       <div class="hdr-divider"></div>
-      <div><h2>Lista de Emissão</h2><p>Todos os pedidos emitidos, de qualquer categoria</p></div>
+      <div><h2 id="geral-hdr-h2">Vendas do Mês</h2><p id="geral-hdr-p">Vendas da categoria "Venda" — mesma base usada nas comissões</p></div>
       <div class="hdr-divider"></div>
       <div style="display:flex;gap:6px;align-items:center">
         <div class="hdr-stat"><span class="hdr-stat-n" id="s-tot">0</span><span class="hdr-stat-l">Total</span></div>
@@ -410,34 +435,70 @@ select.fc{cursor:pointer}
     <div class="hdr-r"></div>
   </div>
 
-  <div class="toolbar">
-    <input id="srch" placeholder="Buscar cliente, job, OS..." oninput="renderAll()">
-    <select id="f-tipo" onchange="renderAll()">
-      <option value="">Todas as categorias</option>
-      <option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option><option>Brinde</option>
-    </select>
-    <select id="f-mes" onchange="renderAll()">
-      <option value="">Todos os meses</option>
-      <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
-      <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-      <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
-      <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-    </select>
-    <span style="font-size:.75rem;color:#94a3b8;font-weight:600">De</span>
-    <input id="f-data-ini" type="date" style="width:150px" onchange="renderAll()">
-    <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
-    <input id="f-data-fim" type="date" style="width:150px" onchange="renderAll()">
+  <div class="dash-tabs" style="margin:16px 20px 0">
+    <button class="dash-tab active" id="gtab-vendas" onclick="geralTab('vendas',this)">📊 Vendas do Mês</button>
+    <button class="dash-tab" id="gtab-emissao" onclick="geralTab('emissao',this)">📋 Lista de Emissão</button>
   </div>
 
-  <div class="lv" id="lv">
-    <table class="lt">
-      <thead><tr>
-        <th onclick="srt('os')">OS</th><th onclick="srt('cliente')">Cliente</th>
-        <th onclick="srt('job')">JOB</th>
-        <th>Categoria</th><th onclick="srt('emissaoEm')">Emissão</th><th onclick="srt('prazo')">Prazo</th><th>Resp.</th><th>Ação</th>
-      </tr></thead>
-      <tbody id="ltb"></tbody>
-    </table>
+  <!-- SUB-ABA: VENDAS DO MÊS (padrão ao abrir) -->
+  <div id="geral-tab-vendas" style="padding:16px 20px">
+    <div class="dash-card">
+      <div class="dash-sec-title">📊 Lista de Vendas</div>
+      <!-- Filtros -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <select id="vnd-fil-mes" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
+          <option value="">Todos os meses</option>
+          <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
+          <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
+          <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
+        </select>
+        <select id="vnd-fil-vend" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
+          <option value="">Todos os vendedores</option>
+        </select>
+        <select id="vnd-fil-cat" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
+          <option value="">Todas as categorias</option>
+        </select>
+        <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📅 Mostrar Todas (Ano)</button>
+        <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
+      </div>
+      <!-- Totalizadores -->
+      <div id="vnd-totais" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+      <!-- Tabela -->
+      <div id="dash-vendas-content"></div>
+    </div>
+  </div>
+
+  <!-- SUB-ABA: LISTA DE EMISSÃO (todos os pedidos, qualquer categoria) -->
+  <div id="geral-tab-emissao" style="display:none">
+    <div class="toolbar">
+      <input id="srch" placeholder="Buscar cliente, job, OS..." oninput="renderAll()">
+      <select id="f-tipo" onchange="renderAll()">
+        <option value="">Todas as categorias</option>
+        <option>Venda</option><option>Garantia / Retrabalho</option><option>Amostra</option><option>Interno</option><option>Brinde</option>
+      </select>
+      <select id="f-mes" onchange="renderAll()">
+        <option value="">Todos os meses</option>
+        <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+        <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+        <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+        <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+      </select>
+      <span style="font-size:.75rem;color:#94a3b8;font-weight:600">De</span>
+      <input id="f-data-ini" type="date" style="width:150px" onchange="renderAll()">
+      <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
+      <input id="f-data-fim" type="date" style="width:150px" onchange="renderAll()">
+    </div>
+
+    <div class="lv" id="lv">
+      <table class="lt">
+        <thead><tr>
+          <th onclick="srt('os')">OS</th><th onclick="srt('cliente')">Cliente</th>
+          <th onclick="srt('job')">JOB</th>
+          <th>Categoria</th><th onclick="srt('emissaoEm')">Emissão</th><th onclick="srt('prazo')">Prazo</th><th>Resp.</th><th>Ação</th>
+        </tr></thead>
+        <tbody id="ltb"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -464,7 +525,6 @@ select.fc{cursor:pointer}
       <div id="dash-comercial">
         <div class="dash-tabs">
           <button class="dash-tab" id="dtab-metas" onclick="dashTab('metas',this)">🎯 Metas & Comissões</button>
-          <button class="dash-tab" id="dtab-vendas" onclick="dashTab('vendas',this)">📊 Vendas do Ano</button>
           <button class="dash-tab active" id="dtab-graficos" onclick="dashTab('graficos',this)">📈 Gráficos</button>
         </div>
         <!-- TAB METAS -->
@@ -592,32 +652,6 @@ select.fc{cursor:pointer}
                 <div style="position:relative;height:185px"><canvas id="gc-cVendComp"></canvas></div>
               </div>
             </div>
-          </div>
-        </div>
-        <!-- TAB VENDAS -->
-        <div id="dash-tab-vendas" style="display:none">
-          <div class="dash-card">
-            <div class="dash-sec-title">📊 Lista de Vendas</div>
-            <!-- Filtros -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
-              <select id="vnd-fil-mes" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
-                <option value="">Todos os meses</option>
-                <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
-                <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
-                <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
-              </select>
-              <select id="vnd-fil-vend" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
-                <option value="">Todos os vendedores</option>
-              </select>
-              <select id="vnd-fil-cat" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
-                <option value="">Todas as categorias</option>
-              </select>
-              <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
-            </div>
-            <!-- Totalizadores -->
-            <div id="vnd-totais" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
-            <!-- Tabela -->
-            <div id="dash-vendas-content"></div>
           </div>
         </div>
       </div>
@@ -1368,7 +1402,7 @@ function setupRealtimeSync(){
         if(typeof renderDashMetas==='function')renderDashMetas();
         if(typeof renderDashComissoes==='function')renderDashComissoes();
       }
-      const elV=document.getElementById('dash-tab-vendas');
+      const elV=document.getElementById('geral-tab-vendas');
       if(typeof renderDashVendas==='function'&&elV&&elV.style.display!=='none')renderDashVendas();
       const elFin=document.getElementById('sec-cat-FINANCEIRO');
       if(typeof renderFinanceiro==='function'&&elFin&&elFin.style.display!=='none')renderFinanceiro();
@@ -1480,6 +1514,12 @@ function setSection(sec){
 document.getElementById('sec-geral').style.display=isGeral?'':'none';
   const secCat=document.getElementById('sec-cat');
   secCat.style.display=isGeral?'none':'block';
+  if(isGeral){
+    // Atualiza a sub-aba ativa (Vendas do Mês ou Lista de Emissão) toda vez que se volta
+    // pro menu principal, pra nunca mostrar número desatualizado.
+    const vendasAtiva=document.getElementById('geral-tab-vendas')?.style.display!=='none';
+    if(vendasAtiva){try{renderDashVendas();}catch(e){}}else{renderAll();}
+  }
   if(!isGeral){const sbExp=document.getElementById('sidebar')?.classList.contains('expanded');secCat.style.left=sbExp?'220px':'64px';}
   if(!isGeral){
     const cat=sec.replace('cat:','');
@@ -1521,6 +1561,36 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     const cat=sec.replace('cat:','').replace(/\s/g,'_');
     document.getElementById('sb-cat-'+cat)?.classList.add('active');
   }
+}
+
+// Sub-abas da tela Geral (menu principal): "Vendas do Mês" (mesma fonte/valores usados
+// nas comissões) e "Lista de Emissão" (todos os pedidos emitidos, qualquer categoria).
+// Vendas do Mês é a aba padrão — antes vivia só dentro de Comercial > Vendas do Ano.
+function geralTab(tab,btn){
+  document.querySelectorAll('#sec-geral .dash-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const isVendas=tab==='vendas';
+  const elVendas=document.getElementById('geral-tab-vendas');
+  const elEmissao=document.getElementById('geral-tab-emissao');
+  if(elVendas)elVendas.style.display=isVendas?'':'none';
+  if(elEmissao)elEmissao.style.display=isVendas?'none':'';
+  const h2=document.getElementById('geral-hdr-h2'),p=document.getElementById('geral-hdr-p');
+  if(isVendas){
+    if(h2)h2.textContent='Vendas do Mês';
+    if(p)p.textContent='Vendas da categoria "Venda" — mesma base usada nas comissões';
+    try{renderDashVendas();}catch(e){console.error('Erro ao abrir Vendas do Mês',e);}
+  } else {
+    if(h2)h2.textContent='Lista de Emissão';
+    if(p)p.textContent='Todos os pedidos emitidos, de qualquer categoria';
+    renderAll();
+  }
+}
+// Atalho pra ver o ano inteiro consolidado (mesmo efeito de escolher "Todos os meses"
+// no filtro, só que num botão visível — sem isso, o padrão ao abrir é sempre o mês atual).
+function vndMostrarTodas(){
+  const sel=document.getElementById('vnd-fil-mes');
+  if(sel)sel.value='';
+  renderDashVendas();
 }
 
 function toggleSidebar(){
@@ -3651,7 +3721,11 @@ function initAuth(tries){
           // Lista de Emissão já abre filtrada no mês atual, sem precisar mexer em filtro nenhum
           const _fMesEl=document.getElementById('f-mes');
           if(_fMesEl){_fMesEl.value=String(new Date().getMonth()+1);}
+          // Vendas do Mês (Geral) também já abre no mês atual — "Mostrar Todas" consolida o ano
+          const _vFMesEl=document.getElementById('vnd-fil-mes');
+          if(_vFMesEl){_vFMesEl.value=MESES_PT[new Date().getMonth()+1];}
           renderAll();
+          try{renderDashVendas();}catch(e){}
           // Tela padrão ao abrir o sistema: direto no Comercial → Gráficos (pra qualquer usuário)
           setSection('cat:COMERCIAL');
         }).catch(()=>{
@@ -4200,7 +4274,6 @@ function dashTab(tab,btn){
   document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('dash-tab-metas').style.display=tab==='metas'?'':'none';
-  document.getElementById('dash-tab-vendas').style.display=tab==='vendas'?'':'none';
   document.getElementById('dash-tab-graficos').style.display=tab==='graficos'?'':'none';
   // As chamadas de render de cada aba ficam em try/catch: se uma delas der erro,
   // a aba já trocou visualmente (linhas acima) — sem isso, um erro aqui deixava a
@@ -4218,7 +4291,6 @@ function dashTab(tab,btn){
         renderDashMetas();renderDashComissoes();
       }
     }
-    if(tab==='vendas')renderDashVendas();
     if(tab==='graficos')renderDashGraficos();
   }catch(e){
     console.error('Erro ao abrir aba '+tab,e);
@@ -4360,6 +4432,12 @@ function getComissaoItemsAll(){
   const osFirestore=new Set();
   pedidos.filter(isComercialPedido).forEach(p=>{
     if(p.os!=null)osFirestore.add(String(p.os));
+    // Venda cancelada (cfg.vendasCanceladas, marcada por Nº de OS) não entra aqui —
+    // sem isso, cancelar só tirava a venda da Lista de Vendas/Gráficos (que usam
+    // getVendaRowsMerged, já filtrado), mas ela continuava sendo contada em Pagamentos
+    // Futuros, Contas a Receber, Comissões e no PDF de comissão (que usam esta função
+    // direto, sem filtro nenhum de cancelamento).
+    if(isVendaCancelada(p.os))return;
     getParcelas(p).forEach(parc=>{
       const conf=getPagConf(parc.confKey);
       const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
@@ -4372,17 +4450,25 @@ function getComissaoItemsAll(){
       // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento.
       // Vendedor sempre normalizado a partir da planilha (fonte única) quando existir OS
       // correspondente — evita qualquer nome divergente/desatualizado salvo no pedido.
-      const vendForPct=xlsxRef?mapVendedorName(xlsxRef.v):(p.responsavel||'').toUpperCase().trim();
+      // Nome do vendedor sempre passado por mapVendedorName() antes de virar nomeVend —
+      // sem isso, "BRUNO" (nome curto da planilha) e "BRUNO TEIXEIRA" (nome completo
+      // cadastrado, vindo de p.responsavel) apareciam como duas pessoas diferentes em
+      // Pagamentos Futuros: a lista de vendedores é um Set() por string exata, então
+      // as duas variações do mesmo nome geravam duas linhas — e como vendedorMatch()
+      // já casa nome curto com completo, cada uma das duas linhas somava os MESMOS
+      // itens (por isso os totais apareciam idênticos, duplicados).
+      const vendForPct=xlsxRef?mapVendedorName(xlsxRef.v):mapVendedorName(p.responsavel||'');
       const pct=getPctComissao(emY,emM,vendForPct);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
-      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
   // Entradas do XLSX_VENDAS sem pedido correspondente no Firestore
   const synP={importadoPlanilha:true};
   (XLSX_VENDAS||[]).filter(x=>!osFirestore.has(String(x.p))).forEach(x=>{
+    if(isVendaCancelada(x.p))return;
     (x.parcelas||[]).forEach((parc,idx)=>{
       const confKey=`xlsxv::${x.p}::${idx}`;
       const conf=getPagConf(confKey);
@@ -4397,7 +4483,7 @@ function getComissaoItemsAll(){
       const pct=getPctComissao(emY,emM,vendNorm);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=MESES_PT[emM]+' '+emY;
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -5170,7 +5256,7 @@ const XLSX_VENDAS=[
   {mes:"ABRIL",m:4,p:"134",cl:"POPEYES ABC",cat:"LOJA SHOPPING",v:"JULIO",br:105000.0,ft:8000.0,vi:2800.0,el:0.0,mo:5000.0,art:500.0,ba:0.0,ou:0.0,lq:88700.0,op:16300.0,entrega:"10/06/2026",parcelas:[{dataStr:"15/06/2026",valor:53220.0},{dataStr:"15/07/2026",valor:35480.0}]},
   {mes:"MAIO",m:5,p:"107",cl:"BURGER KING SHOP TRÊS LAGOAS",cat:"MANUTENÇÃO",v:"JULIO",br:22900.0,ft:5000.0,vi:1400.0,el:1600.0,mo:2400.0,art:100.0,ba:0.0,ou:0.0,lq:12400.0,op:10500.0,entrega:"26/06/2026",parcelas:[{dataStr:"05/07/2026",valor:12400.0}]},
   {mes:"MAIO",m:5,p:"141",cl:"BURGER KING PELOTAS",cat:"MANUTENÇÃO",v:"JULIO",br:77811.0,ft:14000.0,vi:3900.0,el:0.0,mo:6600.0,art:500.0,ba:0.0,ou:0.0,lq:52811.0,op:25000.0,entrega:"24/06/2026",parcelas:[{dataStr:"15/07/2026",valor:52811.0}]},
-  {mes:"MAIO",m:5,p:"S/N-VITORIA",cl:"BURGER KING VITORIA",cat:"MANUTENÇÃO",v:"JULIO",br:60724.0,ft:29439.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:31285.0,op:29439.0,entrega:"",parcelas:[]},
+  {mes:"MAIO",m:5,p:"S/N-VITORIA",cl:"BURGER KING VITORIA",cat:"MANUTENÇÃO",v:"JULIO",br:60724.0,ft:13000.0,vi:2000.0,el:5500.0,mo:5900.0,art:500.0,ba:0.0,ou:0.0,lq:33824.0,op:26900.0,entrega:"",parcelas:[]},
   {mes:"MAIO",m:5,p:"149",cl:"BURGER KING RAGUEB SP  - ADICIONAL",cat:"LOJA NOVA ZAMP",v:"JULIO",br:11085.31,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:11085.31,op:0.0,entrega:"15/06/2026",parcelas:[{dataStr:"05/07/2026",valor:11085.31}]},
   {mes:"MAIO",m:5,p:"179",cl:"BURGER KING DRIVE CACHOEIRINHA RS",cat:"MANUTENÇÃO",v:"JULIO",br:24902.0,ft:3400.0,vi:1000.0,el:1600.0,mo:2000.0,art:1000.0,ba:0.0,ou:0.0,lq:15902.0,op:9000.0,entrega:"14/07/2026",parcelas:[{dataStr:"15/08/2026",valor:15902.0}]},
   {mes:"MAIO",m:5,p:"177",cl:"BURGER KING DRIVE BELÉM PA",cat:"MANUTENÇÃO",v:"JULIO",br:12600.0,ft:3000.0,vi:1400.0,el:1500.0,mo:1000.0,art:100.0,ba:0.0,ou:0.0,lq:5600.0,op:7000.0,entrega:"15/07/2026",parcelas:[{dataStr:"15/08/2026",valor:5600.0}]},
@@ -5178,12 +5264,12 @@ const XLSX_VENDAS=[
   {mes:"MAIO",m:5,p:"190",cl:"BURGER KING VOLUNTÁRIOS DA PÁTRIA",cat:"MANUTENÇÃO",v:"JULIO",br:19500.0,ft:2700.0,vi:700.0,el:800.0,mo:1200.0,art:500.0,ba:0.0,ou:0.0,lq:13600.0,op:5900.0,entrega:"24/07/2026",parcelas:[{dataStr:"05/08/2026",valor:13600.0}]},
   {mes:"MAIO",m:5,p:"119",cl:"BURGER KING SHOPPING RIO SUL",cat:"MANUTENÇÃO",v:"JULIO",br:18792.0,ft:3000.0,vi:1400.0,el:0.0,mo:2100.0,art:500.0,ba:0.0,ou:0.0,lq:11792.0,op:7000.0,entrega:"25/06/2026",parcelas:[{dataStr:"15/07/2026",valor:11792.0}]},
   {mes:"MAIO",m:5,p:"S/N-DUQUE-BANDEIRANTES",cl:"BURGER KING DUQUE BANDEIRANTES SP",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:6300.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:13639.0,op:6300.0,entrega:"",parcelas:[]},
-  {mes:"MAIO",m:5,p:"S/N-CURITIBA-MAI",cl:"BURGER KING CURITIBA",cat:"MANUTENÇÃO",v:"JULIO",br:145315.0,ft:4800.0,vi:1200.0,el:15000.0,mo:28450.0,art:1404.0,ba:0.0,ou:0.0,lq:94461.0,op:50854.0,entrega:"",parcelas:[]},
+  {mes:"MAIO",m:5,p:"S/N-CURITIBA-MAI",cl:"BURGER KING CURITIBA",cat:"MANUTENÇÃO",v:"JULIO",br:164115.0,ft:4800.0,vi:1200.0,el:15000.0,mo:28450.0,art:1404.0,ba:0.0,ou:0.0,lq:113261.0,op:50854.0,entrega:"",parcelas:[]},
   {mes:"MAIO",m:5,p:"166",cl:"BURGER KING BOITUVA",cat:"MANUTENÇÃO",v:"JULIO",br:139296.0,ft:10500.0,vi:2300.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:110496.0,op:28800.0,entrega:"",parcelas:[]},
   {mes:"MAIO",m:5,p:"148",cl:"BURGER KING MARINGÁ",cat:"MANUTENÇÃO",v:"JULIO",br:146657.0,ft:12000.0,vi:3600.0,el:6000.0,mo:5600.0,art:500.0,ba:0.0,ou:0.0,lq:118957.0,op:27700.0,entrega:"23/06/2026",parcelas:[{dataStr:"15/07/2026",valor:118957.0}]},
   {mes:"MAIO",m:5,p:"130",cl:"DAF MACPONTA PONTA GROSSA - CONCESSIONÁRIO",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:45894.44,ft:1500.0,vi:0.0,el:9000.0,mo:5500.0,art:500.0,ba:0.0,ou:0.0,lq:29394.44,op:16500.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:14697.22},{dataStr:"05/07/2026",valor:14697.22}]},
   {mes:"MAIO",m:5,p:"131",cl:"DAF MACPONTA PONTA GROSSA - FÁBRICA",cat:"RETROFIT CONCESSIONÁRIO",v:"JULIO",br:106554.32,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:106554.32,op:0.0,entrega:"22/06/2026",parcelas:[{dataStr:"05/06/2026",valor:53277.16},{dataStr:"05/07/2026",valor:53277.16}]},
-  {mes:"MAIO",m:5,p:"S/N-ITAPETININGA",cl:"BURGER KING ITAPETININGA",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:-1400.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:21339.0,op:-1400.0,entrega:"",parcelas:[]},
+  {mes:"MAIO",m:5,p:"S/N-ITAPETININGA",cl:"BURGER KING ITAPETININGA",cat:"MANUTENÇÃO",v:"JULIO",br:19939.0,ft:19939.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:0.0,op:19939.0,entrega:"",parcelas:[]},
   {mes:"MAIO",m:5,p:"170",cl:"BURGER KING - AV DOS ESTADOS",cat:"BK É FOGO",v:"JULIO",br:213751.64,ft:12000.0,vi:4000.0,el:15000.0,mo:11000.0,art:500.0,ba:0.0,ou:0.0,lq:171251.64,op:42500.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/07/2026",valor:171251.64}]},
   {mes:"MAIO",m:5,p:"169",cl:"BURGER KING PRESTES MAIA",cat:"BK É FOGO",v:"JULIO",br:100618.64,ft:7000.0,vi:1800.0,el:9000.0,mo:6500.0,art:500.0,ba:0.0,ou:0.0,lq:75818.64,op:24800.0,entrega:"28/05/2026",parcelas:[{dataStr:"05/07/2026",valor:75818.64}]},
   {mes:"MAIO",m:5,p:"171",cl:"BURGER KING AVENIDA DOM PEDRO II",cat:"BK É FOGO",v:"JULIO",br:222675.0,ft:13000.0,vi:5000.0,el:15000.0,mo:15000.0,art:500.0,ba:0.0,ou:0.0,lq:174175.0,op:48500.0,entrega:"27/05/2026",parcelas:[{dataStr:"05/07/2026",valor:174175.0}]},
@@ -5335,7 +5421,7 @@ function pedidoToVendaRow(p){
   }
   return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:p.responsavel||'',
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
-    numOC:p.numOC||'',ocUrl:p.ocUrl||''};
+    numOC:p.numOC||'',ocUrl:p.ocUrl||'',job:p.job||''};
 }
 
 // Resumo de pagamento de uma venda (por Nº de OS) pra mostrar direto na Lista de Vendas —
@@ -5481,6 +5567,13 @@ function renderDashVendas(){
     return{bg:'#f1f5f9',fg:'#475569'};
   };
 
+  // Redesenho: a tabela tinha 17 colunas (9 fixas + 7 "operacionais" sempre visíveis),
+  // e a coluna Cliente ficava tão espremida que o nome quebrava palavra por palavra
+  // (word-break:break-word) — ficava ilegível com nome de cliente longo. O detalhamento
+  // de Frete/Mobilização/Elevações/etc já existe inteiro no modal "Ver detalhes"
+  // (verVendaDetalhe) — então em vez de repetir tudo em 7 colunas fixas, deixamos só o
+  // total de Operacionais na tabela, com um link "ver detalhes" que abre o mesmo modal.
+  // Isso libera espaço de sobra pra Cliente ler numa linha só, com nome completo no title.
   let lastMes='';
   let rowIdx=0;
   const tableRows=rows2.map(r=>{
@@ -5492,64 +5585,61 @@ function renderDashVendas(){
       const grpBr=grp.reduce((s,x)=>s+x.br,0);
       const grpLq=grp.reduce((s,x)=>s+x.lqAdj,0);
       const grpOp=grp.reduce((s,x)=>s+x.opAdj,0);
-      header=`<tr style="background:#94a3b8;border-top:2px solid #64748b">
-        <td style="font-size:.75rem;font-weight:800;color:#fff;padding:6px 10px;letter-spacing:1px;text-transform:uppercase">${r.mes}</td>
-        <td colspan="2" style="font-size:.7rem;color:#e2e8f0;padding:5px 8px">${grp.length} pedido${grp.length!==1?'s':''}</td>
-        <td colspan="2" style="font-size:.7rem;color:#fff;padding:5px 8px">Bruto: <strong>${fmtR(grpBr)}</strong></td>
-        <td style="font-size:.7rem;color:#c4b5fd;padding:5px 8px;font-weight:600">Op.: ${fmtR(grpOp)}</td>
-        <td style="font-size:.7rem;color:#fda4af;padding:5px 8px;font-weight:700">Líq.: ${fmtR(grpLq)}</td>
-        <td colspan="10"></td>${isAdm?'<td></td>':''}
+      header=`<tr class="dt-mes-row">
+        <td colspan="3" class="dt-mes-lbl">${r.mes} <span class="dt-mes-count">· ${grp.length} pedido${grp.length!==1?'s':''}</span></td>
+        <td colspan="3"></td>
+        <td class="dt-num dt-mes-br">${fmtR(grpBr)}</td>
+        <td class="dt-num dt-mes-op">${fmtR(grpOp)}</td>
+        <td class="dt-num dt-mes-lq">${fmtR(grpLq)}</td>
+        ${isAdm?'<td></td>':''}
       </tr>`;
     }
-    const zebra=rowIdx++%2===0?'#ffffff':'#e8eef5';
+    const zebra=rowIdx++%2===0?'':' class="dt-alt"';
     const vCor=tagCor(r.v);
-    return header+`<tr style="background:${zebra}">
-      <td style="font-size:.68rem;color:#94a3b8;font-weight:500">${r.mes.slice(0,3)}</td>
-      <td style="font-size:.72rem;color:#64748b">${pedidoDisplay(r.p)}</td>
-      <td style="font-size:.7rem">${r.ocUrl?`<a href="${r.ocUrl}" target="_blank" style="color:#1d4ed8;font-weight:700;text-decoration:underline">${r.numOC?r.numOC:'📎 Ver documento'}</a>`:(r.numOC||'—')}</td>
-      <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px"><a href="javascript:void(0)" onclick="verVendaDetalhe('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')" style="color:var(--ink);text-decoration:none;border-bottom:1.5px dotted #e91e63" title="Ver detalhes da venda">${r.cl}</a></td>
-      <td style="font-size:.7rem;color:#64748b">${r.cat}</td>
-      <td style="white-space:nowrap"><span style="font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:10px;background:${vCor.bg};color:${vCor.fg};white-space:nowrap;display:inline-block">${r.v||'—'}</span></td>
-      <td>${fmtProximoPagamento(r.p)}</td>
-      <td style="font-weight:700">${fmtR(r.br)}</td>
-      <td style="font-weight:700;color:#7c3aed">${fmtOp(r.opAdj)}</td>
-      <td style="font-weight:700;color:#e0245e">${fmtR(r.lqAdj)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.ft)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.vi)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.el)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.mo)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.art)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.rem)}</td>
-      <td style="font-size:.7rem;color:#64748b">${fmtOp(r.med)}</td>
-      ${isAdm?`<td style="white-space:nowrap;background:${zebra}"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button></td>`:''}
+    const clSafe=String(r.cl||'').replace(/"/g,'&quot;');
+    const verDet=`verVendaDetalhe('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')`;
+    return header+`<tr${zebra}>
+      <td class="dt-mes-mini">${r.mes.slice(0,3)}</td>
+      <td>
+        <div style="font-weight:700;font-size:.76rem;color:#1e293b">${pedidoDisplay(r.p)}</div>
+        ${r.job?`<div style="font-size:.64rem;color:#64748b;white-space:nowrap" title="JOB">🏷️ ${r.job}</div>`:''}
+        ${r.ocUrl?`<a href="${r.ocUrl}" target="_blank" style="font-size:.64rem;color:#1d4ed8;font-weight:600;text-decoration:underline;white-space:nowrap">📎 ${r.numOC||'Ver OC'}</a>`:(r.numOC?`<div style="font-size:.64rem;color:#94a3b8;white-space:nowrap">OC ${r.numOC}</div>`:'')}
+      </td>
+      <td class="dt-cliente">
+        <a href="javascript:void(0)" onclick="${verDet}" class="dt-cliente-link" title="${clSafe} — clique para ver detalhes">${r.cl}</a>
+      </td>
+      <td class="dt-cat">${r.cat}</td>
+      <td style="white-space:nowrap"><span class="dt-vend-pill" style="background:${vCor.bg};color:${vCor.fg}">${r.v||'—'}</span></td>
+      <td class="dt-pag">${fmtProximoPagamento(r.p)}</td>
+      <td class="dt-num" style="font-weight:700;color:#1a2b5e">${fmtR(r.br)}</td>
+      <td class="dt-num">
+        <div style="font-weight:700;color:#7c3aed">${fmtOp(r.opAdj)}</div>
+        ${r.opAdj>0?`<a href="javascript:void(0)" onclick="${verDet}" class="dt-ver-detalhes">ver detalhes</a>`:''}
+      </td>
+      <td class="dt-num" style="font-weight:800;color:#e0245e">${fmtR(r.lqAdj)}</td>
+      ${isAdm?`<td style="white-space:nowrap"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button></td>`:''}
     </tr>`;
   }).join('');
 
-  el.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+  el.innerHTML=`<div style="overflow-x:auto"><table class="dash-table dt-vendas">
     <thead>
       <tr>
-        <th rowspan="2">Mês</th>
-        <th rowspan="2">Pedido</th>
-        <th rowspan="2">Ordem de Compra</th>
-        <th rowspan="2">Cliente</th><th rowspan="2">Categoria</th><th rowspan="2">Vendedor</th>
-        <th rowspan="2">Pagamento</th>
-        <th rowspan="2">Valor Bruto</th>
-        <th rowspan="2" style="color:#7c3aed">Total Oper.</th>
-        <th rowspan="2">Valor Líquido</th>
-        <th colspan="7" style="text-align:center;background:#f3e8ff;color:#7c3aed;font-size:.68rem">OPERACIONAIS</th>
-        ${isAdm?'<th rowspan="2">Ações</th>':''}
-      </tr>
-      <tr style="background:#f3e8ff;color:#7c3aed;font-size:.68rem">
-        <th>Frete</th><th>Mobilização</th><th>Elevações</th><th>Instalação</th><th>ART</th><th>Remoção de Materiais</th><th>Medição Técnica</th>
+        <th colspan="2">Pedido / JOB</th>
+        <th>Cliente</th><th>Categoria</th><th>Vendedor</th>
+        <th>Pagamento</th>
+        <th class="dt-num">Valor Bruto</th>
+        <th class="dt-num" style="color:#7c3aed">Operacionais</th>
+        <th class="dt-num">Valor Líquido</th>
+        ${isAdm?'<th>Ações</th>':''}
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
-    <tfoot><tr style="background:#f8fafc">
-      <td colspan="7" style="font-weight:700">TOTAL (${nPeds} pedidos)</td>
-      <td style="font-weight:800;color:#1a2b5e">${fmtR(totBr)}</td>
-      <td style="font-weight:800;color:#7c3aed">${fmtR(totOp)}</td>
-      <td style="font-weight:800;color:#e0245e">${fmtR(totLq)}</td>
-      <td colspan="7"></td>${isAdm?'<td></td>':''}
+    <tfoot><tr>
+      <td colspan="6" style="font-weight:700">TOTAL (${nPeds} pedido${nPeds!==1?'s':''})</td>
+      <td class="dt-num" style="font-weight:800;color:#1a2b5e">${fmtR(totBr)}</td>
+      <td class="dt-num" style="font-weight:800;color:#7c3aed">${fmtR(totOp)}</td>
+      <td class="dt-num" style="font-weight:800;color:#e0245e">${fmtR(totLq)}</td>
+      ${isAdm?'<td></td>':''}
     </tr></tfoot>
   </table></div>`;
 }
