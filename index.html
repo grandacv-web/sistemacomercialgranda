@@ -150,6 +150,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .gc-leg{display:flex;gap:12px;margin-bottom:8px;font-size:.72rem;color:#64748b}
 .gc-li{display:flex;align-items:center;gap:5px}
 .gc-lsq{width:10px;height:10px;border-radius:3px}
+.gc-comp25-toggle{display:flex;background:#f1f5f9;border-radius:10px;padding:3px;gap:2px;flex-shrink:0}
+.gc-comp25-btn{border:none;background:transparent;padding:7px 16px;border-radius:8px;font-size:.78rem;font-weight:700;color:#64748b;cursor:pointer;transition:all .15s;font-family:inherit}
+.gc-comp25-btn.active{background:#1a2b5e;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.gc-comp25-table th{white-space:nowrap}
+.gc-comp25-table td{white-space:nowrap}
+.gc-comp25-var-up{color:#16a34a;font-weight:700}
+.gc-comp25-var-down{color:#e0245e;font-weight:700}
 .gc-vend-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .gc-vend-tab{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:.74rem;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .2s;font-family:inherit}
 .gc-vend-tab.active{background:#111827;color:#fff;border-color:#111827}
@@ -601,6 +608,31 @@ select.fc{cursor:pointer}
               <div class="gc-chart-sub" id="gc-comp-sub">Todos os meses do ano</div>
               <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:rgba(26,43,94,.7)"></div>Bruto</div><div class="gc-li"><div class="gc-lsq" style="background:rgba(224,36,94,.7)"></div>Líquido</div><div class="gc-li"><div class="gc-lsq" style="background:#f59e0b;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta Anual Liq.</div></div>
               <div style="position:relative;height:200px"><canvas id="gc-cComp"></canvas></div>
+            </div>
+            <!-- Comparativo ano anterior × ano atual -->
+            <div class="gc-chart-card">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+                <div>
+                  <div class="gc-chart-title">Comparativo 2025 × 2026</div>
+                  <div class="gc-chart-sub" style="margin-bottom:0">Vendas brutas e líquidas — mês a mês e acumulado</div>
+                </div>
+                <div class="gc-comp25-toggle">
+                  <button id="gc-comp25-btn-mensal" class="gc-comp25-btn active" onclick="setComp2025Modo('mensal')">Mensal</button>
+                  <button id="gc-comp25-btn-acum" class="gc-comp25-btn" onclick="setComp2025Modo('acumulado')">Acumulado</button>
+                </div>
+              </div>
+              <div class="gc-g2" style="margin-top:14px">
+                <div style="margin-bottom:0">
+                  <div class="gc-chart-sub" style="font-weight:700;color:#64748b;text-transform:uppercase;font-size:.68rem;margin-bottom:6px">Vendas Brutas</div>
+                  <div style="position:relative;height:220px"><canvas id="gc-cComp25Br"></canvas></div>
+                </div>
+                <div style="margin-bottom:0">
+                  <div class="gc-chart-sub" style="font-weight:700;color:#64748b;text-transform:uppercase;font-size:.68rem;margin-bottom:6px">Vendas Líquidas</div>
+                  <div style="position:relative;height:220px"><canvas id="gc-cComp25Lq"></canvas></div>
+                </div>
+              </div>
+              <div class="gc-leg" style="margin-top:14px"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>2026</div><div class="gc-li"><div class="gc-lsq" style="background:#f472b6"></div>2025</div></div>
+              <div style="overflow-x:auto;margin-top:10px"><table class="dash-table gc-comp25-table" id="gc-comp25-table"></table></div>
             </div>
           </div>
 
@@ -5688,6 +5720,83 @@ let gcCharts={};
 const GC_CORES=['#1a2b5e','#e0245e','#059669','#d97706','#7c3aed','#0891b2','#dc2626','#16a34a'];
 const GC_MESES_S=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+// Referência de 2025 pro comparativo ano a ano (valores fornecidos manualmente pelo
+// usuário — não vêm de planilha nem de pedido, é o ano anterior, fora do sistema).
+// Índice 1=Janeiro .. 12=Dezembro.
+const VENDAS_2025_REF={
+  1:{br:833389,lq:555715},2:{br:1079652,lq:864258},3:{br:467767,lq:375216},
+  4:{br:915099,lq:744073},5:{br:801822,lq:642011},6:{br:1689904,lq:1316284},
+  7:{br:795291,lq:682145},8:{br:1026679,lq:811171},9:{br:1130928,lq:894943},
+  10:{br:712034,lq:524562},11:{br:982176,lq:857396},12:{br:481830,lq:346179}
+};
+let comp2025Modo='mensal';
+function setComp2025Modo(modo){
+  comp2025Modo=modo;
+  document.getElementById('gc-comp25-btn-mensal')?.classList.toggle('active',modo==='mensal');
+  document.getElementById('gc-comp25-btn-acum')?.classList.toggle('active',modo==='acumulado');
+  renderComparativo2025();
+}
+// Compara 2026 (dados reais do sistema, mês a mês) com 2025 (referência fixa acima).
+// Meses futuros de 2026 (depois do mês real de hoje) ficam em branco — ainda não
+// aconteceram, então "R$0" seria enganoso misturado com meses que já venderam.
+function renderComparativo2025(){
+  const brEl=document.getElementById('gc-cComp25Br'),lqEl=document.getElementById('gc-cComp25Lq');
+  const tblEl=document.getElementById('gc-comp25-table');
+  if(!brEl||!lqEl||!tblEl)return;
+  const hoje=new Date();
+  const mesRealAtual=hoje.getFullYear()===2026?hoje.getMonth()+1:12;
+  const br26=[],lq26=[],br25=[],lq25=[];
+  for(let m=1;m<=12;m++){
+    const jaAconteceu=m<=mesRealAtual;
+    br26.push(jaAconteceu?getVendasBrutoMes(2026,m,null):null);
+    lq26.push(jaAconteceu?getVendasMes(2026,m,null):null);
+    br25.push(VENDAS_2025_REF[m]?.br||0);
+    lq25.push(VENDAS_2025_REF[m]?.lq||0);
+  }
+  const acumular=arr=>{let s=0;return arr.map(v=>{if(v==null)return null;s+=v;return s;});};
+  const modo=comp2025Modo;
+  const dBr26=modo==='acumulado'?acumular(br26):br26;
+  const dLq26=modo==='acumulado'?acumular(lq26):lq26;
+  const dBr25=modo==='acumulado'?acumular(br25):br25;
+  const dLq25=modo==='acumulado'?acumular(lq25):lq25;
+
+  if(gcCharts.comp25br){try{gcCharts.comp25br.destroy();}catch(e){}}
+  if(gcCharts.comp25lq){try{gcCharts.comp25lq.destroy();}catch(e){}}
+  const cor26=GC_MESES_S.map((_,i)=>i===mesRealAtual-1?'#e0245e':'#1a2b5e');
+  gcCharts.comp25br=new Chart(brEl,{type:'bar',data:{labels:GC_MESES_S,datasets:[
+    {label:'2026',data:dBr26,backgroundColor:cor26,borderWidth:0,borderRadius:4},
+    {label:'2025',data:dBr25,backgroundColor:'#f472b6',borderWidth:0,borderRadius:4}
+  ]},options:gcChartOpts({tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtR(ctx.raw)}}})});
+  gcCharts.comp25lq=new Chart(lqEl,{type:'bar',data:{labels:GC_MESES_S,datasets:[
+    {label:'2026',data:dLq26,backgroundColor:cor26,borderWidth:0,borderRadius:4},
+    {label:'2025',data:dLq25,backgroundColor:'#f472b6',borderWidth:0,borderRadius:4}
+  ]},options:gcChartOpts({tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtR(ctx.raw)}}})});
+
+  const varHtml=(v26,v25)=>{
+    if(v26==null)return'—';
+    if(!v25)return'—';
+    const pct=(v26-v25)/v25*100;
+    const cls=pct>=0?'gc-comp25-var-up':'gc-comp25-var-down';
+    return`<span class="${cls}">${pct>=0?'+':''}${pct.toFixed(1).replace('.',',')}%</span>`;
+  };
+  const rows=GC_MESES_S.map((lbl,i)=>{
+    const m=i+1;
+    return`<tr>
+      <td style="font-weight:700;color:#1a2b5e">${lbl}</td>
+      <td style="text-align:right">${dBr26[i]==null?'—':fmtR(dBr26[i])}</td>
+      <td style="text-align:right;color:#94a3b8">${fmtR(dBr25[i])}</td>
+      <td style="text-align:right">${varHtml(dBr26[i],dBr25[i])}</td>
+      <td style="text-align:right">${dLq26[i]==null?'—':fmtR(dLq26[i])}</td>
+      <td style="text-align:right;color:#94a3b8">${fmtR(dLq25[i])}</td>
+      <td style="text-align:right">${varHtml(dLq26[i],dLq25[i])}</td>
+    </tr>`;
+  }).join('');
+  tblEl.innerHTML=`<thead><tr>
+      <th>Mês</th><th style="text-align:right">Brutas 2026</th><th style="text-align:right">Brutas 2025</th><th style="text-align:right">Var.</th>
+      <th style="text-align:right">Líq. 2026</th><th style="text-align:right">Líq. 2025</th><th style="text-align:right">Var.</th>
+    </tr></thead><tbody>${rows}</tbody>`;
+}
+
 function gcMovMes(dir){
   gcMes.m+=dir;
   if(gcMes.m>12){gcMes.m=1;gcMes.y++;}
@@ -5905,6 +6014,8 @@ function gcRenderGeralPaineis(y,m,todos){
     }
     gcCharts.comp=new Chart(compEl,{type:'bar',data:{labels:GC_MESES_S,datasets},options:{...gcChartOpts({legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtR(ctx.raw)}}})}});
   }
+
+  try{renderComparativo2025();}catch(e){console.error('Erro no comparativo 2025×2026',e);}
 }
 
 function gcRenderVendPaineis(){
