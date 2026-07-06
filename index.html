@@ -772,7 +772,6 @@ select.fc{cursor:pointer}
   </div>
   <div class="vm-bd" id="vv-bd"></div>
   <div class="vm-act">
-    <button class="btn-mv" id="vv-btn-reenviar" style="display:none;background:#1a2b5e;color:#fff;border-color:#1a2b5e" onclick="reenviarEmailPedido(_vvCurrentPedidoId)">🔁 Reenviar E-mail</button>
     <button class="btn-mv" onclick="closeM('mo-vv')">Fechar</button>
   </div>
 </div>
@@ -1486,12 +1485,13 @@ function renderList(){
     </td></tr>`;
     return;
   }
+  const {isAdm:_isAdmLista}=_getUserCat();
   document.getElementById('ltb').innerHTML=sorted.map(p=>`<tr>
     <td><b>OS ${p.os||'—'}</b></td><td>${p.cliente}</td><td>${p.job||'—'}</td>
     <td><span class="kc-tipo ${TC[p.tipo]||'tv'}" style="padding:3px 8px;border-radius:8px;font-size:.65rem">${p.tipo}</span></td>
     <td>${p.emissaoEm?fmtD(p.emissaoEm):'—'}</td>
     <td>${p.prazo?fmtD(p.prazo):'—'}</td><td>${p.responsavel||'—'}</td>
-    <td><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600" onclick="viewP('${p.id}')">Ver</button></td>
+    <td style="white-space:nowrap"><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600;margin-right:4px" onclick="viewP('${p.id}')">Ver</button>${_isAdmLista?`<button style="padding:5px 12px;border:1.5px solid #dbeafe;border-radius:7px;background:#dbeafe;color:#1a2b5e;cursor:pointer;font-size:.75rem;font-weight:600" onclick="reenviarEmailPedido('${p.id}')">🔁 Reenviar Email</button>`:''}</td>
   </tr>`).join('');
 }
 function limparFiltrosLista(){
@@ -5559,9 +5559,6 @@ function verVendaDetalhe(os,pedidoId){
     const p=pedidos.find(x=>x.id===pedidoId);
     if(p){
       _vvCurrentPedidoId=pedidoId;
-      const {isAdm}=_getUserCat();
-      const btnRe=document.getElementById('vv-btn-reenviar');
-      if(btnRe)btnRe.style.display=isAdm?'':'none';
       document.getElementById('vv-t').textContent=`OS ${p.os||'—'} — ${p.cliente}`;
       document.getElementById('vv-s').textContent=`${p.tipo} · JOB: ${p.job||'—'} · Emitido no sistema`;
       const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{};
@@ -5590,8 +5587,6 @@ function verVendaDetalhe(os,pedidoId){
     }
   }
   _vvCurrentPedidoId=null;
-  const btnRe0=document.getElementById('vv-btn-reenviar');
-  if(btnRe0)btnRe0.style.display='none';
   const x=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(os)]:null;
   if(!x){toast('Detalhes não encontrados para essa venda','terr');return;}
   document.getElementById('vv-t').textContent=`OS ${x.p} — ${x.cl}`;
@@ -5727,7 +5722,7 @@ function renderDashVendas(){
         ${r.opAdj>0?`<a href="javascript:void(0)" onclick="${verDet}" class="dt-ver-detalhes">ver detalhes</a>`:''}
       </td>
       <td class="dt-num" style="font-weight:800;color:#e0245e">${fmtR(r.lqAdj)}</td>
-      ${isAdm?`<td style="white-space:nowrap"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button></td>`:''}
+      ${isAdm?`<td style="white-space:nowrap"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button>${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1a2b5e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="reenviarEmailPedido('${r._pid}')">🔁 Reenviar Email</button>`:''}</td>`:''}
     </tr>`;
   }).join('');
 
