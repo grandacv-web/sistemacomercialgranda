@@ -2071,7 +2071,7 @@ function openEmissao(eid2){
   editing=eid2||null;
   if(eid2){
     const p=pedidos.find(x=>x.id===eid2);
-    const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{};
+    const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj=p.projetos||{};
     ed={tipo:p.tipo,resp:p.responsavel,cli:p.cliente,emails:[...(p.emails||[])],email_comprador:p.email_comprador||(p.emails||[])[0]||'',email_engenheiro:p.email_engenheiro||(p.emails||[])[1]||'',job:p.job,prazo:p.prazo,os:p.os,obs:p.obs,
       etapa:p.etapa,tipoPedido:p.tipoPedido||'',vtotal:(v['Valor Total']||'').replace('R$ ','').replace(/\./g,'').replace(',','.'),vmed:'',vart:'',
       i_tipo:v['Instalação']||'Não tem instalação',vinst:'',vmob:'',vrem:'',remocao:'',
@@ -2079,15 +2079,24 @@ function openEmissao(eid2){
       elevacoes:v['Elevações']||'Não',elevs:[...(p.elevacoes||[])],velev:'',
       remocoes:[...(p.remocoes||[])],
       medicao:v['Medição Técnica']||'Não',
-      tem_oc:pg['Tem Ordem de Compra']||'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
+      tem_oc:pg['Tem Ordem de Compra']||'',arq_oc:p.arq_oc_url?'Arquivo já enviado':'',arq_oc_url:p.arq_oc_url||'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
       nparc:'Sem parcelamento',fparc:'',pdatas:[],nf:pg['Emissão de NF']||'',obsfin:'',
-      art:'',cnpj_art:'',cnpj_art_url:'',iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
+      // arq_os_url/arq_oc_url/arq_chumb_url/chumbador/os_chumb/art/cnpj_art*/arq_prod/layout_inst/fotos_orig
+      // precisam vir do pedido salvo (p / p.projetos) — antes essas chaves eram sempre
+      // resetadas pra '' aqui, então qualquer edição de um pedido já emitido apagava o
+      // link do PDF da OS/OC/chumbador e o status de ART/produção/layout/fotos, e o
+      // "Reenviar E-mail" passava a mandar o e-mail sem esses dados (ver relato do
+      // usuário: reenvio saindo sem o PDF do pedido pra baixar).
+      arq_os_url:p.arq_os_url||'',
+      art:proj.art||'',cnpj_art:proj.cnpj_art||'',cnpj_art_url:proj.cnpj_art_url||'',
+      arq_prod:proj.arq_prod||'',layout_inst:proj.layout_inst||'',fotos_orig:proj.fotos_orig||'',
+      iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
       iend:inst['Endereço de Instalação']||'',ihor:inst['Horário']||'Comercial',
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
-      icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',
+      icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',
       minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',
-      fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:'',arq_chumb:'',os_chumb:'',
+      fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:p.chumbador||'',arq_chumb:p.arq_chumb_url?'Arquivo já enviado':'',arq_chumb_url:p.arq_chumb_url||'',os_chumb:p.os_chumb||'',
       facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
     ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],email_comprador:'',email_engenheiro:'',job:'',prazo:'',os:'',obs:'',
@@ -3157,7 +3166,7 @@ function buildEmissaoEmailContent(p){
   <!-- FOOTER -->
   <tr><td style="background:#111827;padding:20px 40px">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#6b7280">GCore · Sistema Granda · E-mail automático</td>
+      <td style="font-size:11px;color:#6b7280">Comercial Granda · E-mail automático</td>
       <td align="right"><img src="https://grandacv-web.github.io/gcoregranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
     </tr></table>
   </td></tr>
@@ -3186,7 +3195,7 @@ async function _enviarEmailEmissao(p,destEmailsOverride){
     const sid=cfg.s||'service_t99xeta';
     const tid=cfg.t||'template_8ymz4j4';
     const{html_content,subject}=buildEmissaoEmailContent(p);
-    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'GCore Sistema Granda',reply_to:'pedidos@granda.ind.br'});
+    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
     p.emailStatus='enviado';p.emailEnviadoEm=new Date().toISOString();p.emailDestinatarios=destEmails;p.emailErro='';
     savePedidoFS(p).catch(e=>console.error('Erro ao gravar status de e-mail:',e));
     return{ok:true,destinatarios:destEmails,erro:''};
