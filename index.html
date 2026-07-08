@@ -445,6 +445,8 @@ select.fc{cursor:pointer}
   <div class="dash-tabs" style="margin:16px 20px 0">
     <button class="dash-tab active" id="gtab-vendas" onclick="geralTab('vendas',this)">📊 Vendas do Mês</button>
     <button class="dash-tab" id="gtab-emissao" onclick="geralTab('emissao',this)">📋 Lista de Emissão</button>
+    <button class="dash-tab" id="gtab-graficos" onclick="geralTab('graficos',this)">📈 Gráficos</button>
+    <button class="dash-tab" id="gtab-tarefas" onclick="geralTab('tarefas',this)" style="display:none">📌 Tarefas Comerciais<span id="gtab-tarefas-badge"></span></button>
   </div>
 
   <!-- SUB-ABA: VENDAS DO MÊS (padrão ao abrir) -->
@@ -507,6 +509,165 @@ select.fc{cursor:pointer}
       </table>
     </div>
   </div>
+
+  <!-- SUB-ABA: GRÁFICOS (movida de Comercial pra ficar junto de Vendas/Emissão — aberta
+       pra todo mundo, sem senha, igual sempre foi) -->
+  <div id="geral-tab-graficos" style="display:none;padding:16px 20px">
+    <div id="dash-tab-graficos">
+      <!-- Contador de dias úteis restantes no mês (mês corrente real, não o navegado abaixo) -->
+      <div id="gc-dias-uteis" style="margin-bottom:12px"></div>
+      <!-- Nav de mês -->
+      <div class="dash-mes-nav" style="margin-bottom:14px">
+        <button onclick="gcMovMes(-1)">◀</button>
+        <div class="dash-mes-label" id="gc-mes-lbl">—</div>
+        <button onclick="gcMovMes(1)">▶</button>
+      </div>
+      <!-- Tabs de vendedor -->
+      <div class="gc-vend-tabs" id="gc-vend-tabs"></div>
+
+      <!-- ═══ PAINEL GERAL ═══ -->
+      <div id="gc-painel-geral">
+        <!-- KPIs geral topo -->
+        <div class="gc-krow" id="gc-kpis-top"></div>
+        <div class="gc-krow-2" id="gc-kpis-bot"></div>
+        <!-- Evolução mensal time -->
+        <div class="gc-chart-card">
+          <div class="gc-chart-title">Evolução Mensal — Time Completo</div>
+          <div class="gc-chart-sub" id="gc-ev-sub">Vendas líquidas vs meta</div>
+          <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>Realizado</div><div class="gc-li"><div class="gc-lsq" style="background:#e0245e;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta</div></div>
+          <div style="position:relative;height:200px"><canvas id="gc-cEv"></canvas></div>
+        </div>
+        <!-- Grid 2: contribuição + progresso -->
+        <div class="gc-g2">
+          <div class="gc-chart-card" style="margin-bottom:0">
+            <div class="gc-chart-title">Contribuição por Vendedor</div>
+            <div class="gc-chart-sub">% vendas líquidas do mês</div>
+            <div style="position:relative;height:180px"><canvas id="gc-cContrib"></canvas></div>
+            <div id="gc-contrib-leg" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.68rem;color:var(--ink4)"></div>
+          </div>
+          <div class="gc-chart-card" style="margin-bottom:0">
+            <div class="gc-chart-title">Progresso para Meta do Mês</div>
+            <div class="gc-chart-sub" id="gc-prog-sub">Time completo — Líquidas vs meta</div>
+            <div id="gc-prog-bars" style="margin-top:8px"></div>
+            <div id="gc-prog-alerta" style="margin-top:10px;font-size:.74rem;font-weight:600"></div>
+          </div>
+        </div>
+        <div style="margin-bottom:14px"></div>
+        <!-- Progresso Meta Anual -->
+        <div class="gc-chart-card">
+          <div class="gc-chart-title">🎯 Progresso da Meta Anual — Vendas Líquidas</div>
+          <div id="gc-prog-ano-bars" style="margin-top:6px"></div>
+          <div id="gc-prog-ano-alerta" style="margin-top:10px;font-size:.74rem;font-weight:600"></div>
+        </div>
+        <!-- Comparativo anual bruto vs líquido (cumulativo) -->
+        <div class="gc-chart-card">
+          <div class="gc-chart-title">Comparativo Anual — Bruto vs Líquido</div>
+          <div class="gc-chart-sub" id="gc-comp-sub">Todos os meses do ano</div>
+          <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:rgba(26,43,94,.7)"></div>Bruto</div><div class="gc-li"><div class="gc-lsq" style="background:rgba(224,36,94,.7)"></div>Líquido</div><div class="gc-li"><div class="gc-lsq" style="background:#f59e0b;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta Anual Liq.</div></div>
+          <div style="position:relative;height:200px"><canvas id="gc-cComp"></canvas></div>
+        </div>
+        <!-- Comparativo ano anterior × ano atual -->
+        <div class="gc-chart-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+            <div>
+              <div class="gc-chart-title">Comparativo 2025 × 2026</div>
+              <div class="gc-chart-sub" style="margin-bottom:0">Vendas brutas e líquidas — mês a mês e acumulado</div>
+            </div>
+            <div class="gc-comp25-toggle">
+              <button id="gc-comp25-btn-mensal" class="gc-comp25-btn active" onclick="setComp2025Modo('mensal')">Mensal</button>
+              <button id="gc-comp25-btn-acum" class="gc-comp25-btn" onclick="setComp2025Modo('acumulado')">Acumulado</button>
+            </div>
+          </div>
+          <div class="gc-g2" style="margin-top:14px">
+            <div style="margin-bottom:0">
+              <div class="gc-chart-sub" style="font-weight:700;color:#64748b;text-transform:uppercase;font-size:.68rem;margin-bottom:6px">Vendas Brutas</div>
+              <div style="position:relative;height:220px"><canvas id="gc-cComp25Br"></canvas></div>
+            </div>
+            <div style="margin-bottom:0">
+              <div class="gc-chart-sub" style="font-weight:700;color:#64748b;text-transform:uppercase;font-size:.68rem;margin-bottom:6px">Vendas Líquidas</div>
+              <div style="position:relative;height:220px"><canvas id="gc-cComp25Lq"></canvas></div>
+            </div>
+          </div>
+          <div class="gc-leg" style="margin-top:14px"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>2026</div><div class="gc-li"><div class="gc-lsq" style="background:#f472b6"></div>2025</div></div>
+          <div style="overflow-x:auto;margin-top:10px"><table class="dash-table gc-comp25-table" id="gc-comp25-table"></table></div>
+        </div>
+      </div>
+
+      <!-- ═══ PAINEL POR VENDEDOR ═══ -->
+      <div id="gc-painel-vend" style="display:none">
+        <!-- Input fields para dados manuais (orc, cv, pd) -->
+        <div class="gc-chart-card" style="background:var(--surface2,#f8fafc)">
+          <div class="gc-chart-title" id="gc-vend-titulo">Vendedor</div>
+          <div class="gc-chart-sub" id="gc-vend-sub2">Dados do mês selecionado</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Orçamentos em aberto (R$)</div>
+              <input id="gc-inp-orc" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Taxa de conversão (%)</div>
+              <input id="gc-inp-cv" type="number" placeholder="0" step="0.1" min="0" max="100" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Negócios perdidos (R$)</div>
+              <input id="gc-inp-pd" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+          </div>
+        </div>
+        <!-- KPIs do vendedor -->
+        <div class="gc-krow" id="gc-vend-kpis-top"></div>
+        <div class="gc-krow-2" id="gc-vend-kpis-bot"></div>
+        <!-- Grid 2: evolução anual + projeção×meta -->
+        <div class="gc-g2">
+          <div class="gc-chart-card" style="margin-bottom:0">
+            <div class="gc-chart-title">Evolução Anual — Líquidas</div>
+            <div class="gc-chart-sub" id="gc-ev-vend-sub">Vendedor — evolução anual</div>
+            <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>Realizado</div><div class="gc-li"><div class="gc-lsq" style="background:#e0245e;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta</div></div>
+            <div style="position:relative;height:190px"><canvas id="gc-cVend"></canvas></div>
+          </div>
+          <div class="gc-chart-card" style="margin-bottom:0">
+            <div class="gc-chart-title">Projeção × Meta</div>
+            <div class="gc-chart-sub">Tendência de fechamento do mês</div>
+            <div id="gc-proj-barras" style="margin-top:8px"></div>
+            <div id="gc-proj-alerta" style="margin-top:10px;font-size:.74rem"></div>
+          </div>
+        </div>
+        <div style="margin-bottom:14px"></div>
+        <!-- Grid 2: doughnut conversão + análise perdidos -->
+        <div class="gc-g2">
+          <div class="gc-chart-card" style="margin-bottom:0">
+            <div class="gc-chart-title">Conversão e Perdas</div>
+            <div class="gc-chart-sub">Composição dos orçamentos</div>
+            <div style="position:relative;height:185px"><canvas id="gc-cDn"></canvas></div>
+            <div id="gc-conv-alerta" style="margin-top:8px;font-size:.72rem"></div>
+          </div>
+          <div class="gc-chart-card" style="margin-bottom:0">
+            <div class="gc-chart-title">Comparativo Anual — Vendedor</div>
+            <div class="gc-chart-sub" id="gc-comp-vend-sub">Bruto vs Líquido por mês</div>
+            <div style="position:relative;height:185px"><canvas id="gc-cVendComp"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUB-ABA: TAREFAS COMERCIAIS (admin only) — pendências operacionais por venda,
+       hoje "Lançar no GCore" (sistema externo), extensível pra outros tipos avulsos. -->
+  <div id="geral-tab-tarefas" style="display:none;padding:16px 20px">
+    <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+      Pendências operacionais por venda — toda venda emitida ou lançada manualmente já entra aqui com "Lançar no GCore". Dá pra criar qualquer outra tarefa avulsa numa venda específica.
+    </div>
+    <div class="dash-tabs" style="margin-bottom:10px">
+      <button class="dash-tab active" id="tf-tab-pend" onclick="tarefasTab('pendentes',this)">⏳ Pendentes</button>
+      <button class="dash-tab" id="tf-tab-conc" onclick="tarefasTab('concluidas',this)">✅ Concluídas</button>
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+      <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa numa venda</div>
+      <div style="display:grid;grid-template-columns:1.4fr 1fr auto;gap:8px">
+        <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+          <option value="">Selecione a venda...</option>
+        </select>
+        <input id="tf-novo-tipo" type="text" list="tf-tipos-list" placeholder="Tipo da tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+        <datalist id="tf-tipos-list"></datalist>
+        <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
+      </div>
+    </div>
+    <div id="tarefas-body"></div>
+  </div>
 </div>
 
 </div><!-- /sec-geral -->
@@ -527,162 +688,34 @@ select.fc{cursor:pointer}
   </div>
   <!-- Conteúdo da categoria -->
   <div class="cat-content">
-    <!-- COMERCIAL -->
+    <!-- COMERCIAL: agora só Metas & Comissões (Gráficos foi pra Geral, pra ficar junto
+         de Lista de Vendas/Emissão) — continua exigindo administrador + PIN, igual antes. -->
     <div id="sec-cat-COMERCIAL" style="display:none">
       <div id="dash-comercial">
-        <div class="dash-tabs">
-          <button class="dash-tab" id="dtab-metas" onclick="dashTab('metas',this)">🎯 Metas & Comissões</button>
-          <button class="dash-tab active" id="dtab-graficos" onclick="dashTab('graficos',this)">📈 Gráficos</button>
+        <div id="dash-comercial-restricted" style="display:none;padding:40px 4px;text-align:center;color:#94a3b8">
+          <div style="font-size:2rem;margin-bottom:8px">🔒</div>
+          <div style="font-size:.85rem;font-weight:600">Área restrita — apenas administradores podem acessar Metas &amp; Comissões.</div>
         </div>
-        <!-- TAB METAS -->
-        <div id="dash-tab-metas" style="display:none">
-          <div class="dash-mes-nav">
-            <button onclick="dashMov(-1)">◀</button>
-            <div class="dash-mes-label" id="dash-mes-lbl">—</div>
-            <button onclick="dashMov(1)">▶</button>
-          </div>
-          <div id="dash-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
-          <div class="dash-card">
-            <div class="dash-sec-title">🎯 Metas do Mês</div>
-            <div style="overflow-x:auto">
-              <table class="dash-table"><thead><tr><th>Vendedor</th><th>Meta do Mês</th><th>Total Vendas</th><th>Status</th><th>% Bateu Meta</th><th>% Não Bateu</th><th>% Comissão</th></tr></thead><tbody id="dash-metas-body"></tbody></table>
+        <div id="dash-comercial-body">
+          <div class="dash-sec-title" style="margin-bottom:14px">🎯 Metas &amp; Comissões</div>
+          <div id="dash-tab-metas">
+            <div class="dash-mes-nav">
+              <button onclick="dashMov(-1)">◀</button>
+              <div class="dash-mes-label" id="dash-mes-lbl">—</div>
+              <button onclick="dashMov(1)">▶</button>
             </div>
-            <div id="dash-empresa-row" style="margin-top:14px;padding:12px 16px;background:#f5f3ff;border-radius:10px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:.82rem;border:1px solid #ede9fe"></div>
-            <div id="dash-prospec-section"></div>
-          </div>
-          <div class="dash-card">
-            <div class="dash-sec-title">💰 Recebimentos & Comissões</div>
-            <div id="dash-comissoes"></div>
-          </div>
-        </div>
-        <!-- TAB GRÁFICOS -->
-        <div id="dash-tab-graficos">
-          <!-- Contador de dias úteis restantes no mês (mês corrente real, não o navegado abaixo) -->
-          <div id="gc-dias-uteis" style="margin-bottom:12px"></div>
-          <!-- Nav de mês -->
-          <div class="dash-mes-nav" style="margin-bottom:14px">
-            <button onclick="gcMovMes(-1)">◀</button>
-            <div class="dash-mes-label" id="gc-mes-lbl">—</div>
-            <button onclick="gcMovMes(1)">▶</button>
-          </div>
-          <!-- Tabs de vendedor -->
-          <div class="gc-vend-tabs" id="gc-vend-tabs"></div>
-
-          <!-- ═══ PAINEL GERAL ═══ -->
-          <div id="gc-painel-geral">
-            <!-- KPIs geral topo -->
-            <div class="gc-krow" id="gc-kpis-top"></div>
-            <div class="gc-krow-2" id="gc-kpis-bot"></div>
-            <!-- Evolução mensal time -->
-            <div class="gc-chart-card">
-              <div class="gc-chart-title">Evolução Mensal — Time Completo</div>
-              <div class="gc-chart-sub" id="gc-ev-sub">Vendas líquidas vs meta</div>
-              <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>Realizado</div><div class="gc-li"><div class="gc-lsq" style="background:#e0245e;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta</div></div>
-              <div style="position:relative;height:200px"><canvas id="gc-cEv"></canvas></div>
+            <div id="dash-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
+            <div class="dash-card">
+              <div class="dash-sec-title">🎯 Metas do Mês</div>
+              <div style="overflow-x:auto">
+                <table class="dash-table"><thead><tr><th>Vendedor</th><th>Meta do Mês</th><th>Total Vendas</th><th>Status</th><th>% Bateu Meta</th><th>% Não Bateu</th><th>% Comissão</th></tr></thead><tbody id="dash-metas-body"></tbody></table>
+              </div>
+              <div id="dash-empresa-row" style="margin-top:14px;padding:12px 16px;background:#f5f3ff;border-radius:10px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:.82rem;border:1px solid #ede9fe"></div>
+              <div id="dash-prospec-section"></div>
             </div>
-            <!-- Grid 2: contribuição + progresso -->
-            <div class="gc-g2">
-              <div class="gc-chart-card" style="margin-bottom:0">
-                <div class="gc-chart-title">Contribuição por Vendedor</div>
-                <div class="gc-chart-sub">% vendas líquidas do mês</div>
-                <div style="position:relative;height:180px"><canvas id="gc-cContrib"></canvas></div>
-                <div id="gc-contrib-leg" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:.68rem;color:var(--ink4)"></div>
-              </div>
-              <div class="gc-chart-card" style="margin-bottom:0">
-                <div class="gc-chart-title">Progresso para Meta do Mês</div>
-                <div class="gc-chart-sub" id="gc-prog-sub">Time completo — Líquidas vs meta</div>
-                <div id="gc-prog-bars" style="margin-top:8px"></div>
-                <div id="gc-prog-alerta" style="margin-top:10px;font-size:.74rem;font-weight:600"></div>
-              </div>
-            </div>
-            <div style="margin-bottom:14px"></div>
-            <!-- Progresso Meta Anual -->
-            <div class="gc-chart-card">
-              <div class="gc-chart-title">🎯 Progresso da Meta Anual — Vendas Líquidas</div>
-              <div id="gc-prog-ano-bars" style="margin-top:6px"></div>
-              <div id="gc-prog-ano-alerta" style="margin-top:10px;font-size:.74rem;font-weight:600"></div>
-            </div>
-            <!-- Comparativo anual bruto vs líquido (cumulativo) -->
-            <div class="gc-chart-card">
-              <div class="gc-chart-title">Comparativo Anual — Bruto vs Líquido</div>
-              <div class="gc-chart-sub" id="gc-comp-sub">Todos os meses do ano</div>
-              <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:rgba(26,43,94,.7)"></div>Bruto</div><div class="gc-li"><div class="gc-lsq" style="background:rgba(224,36,94,.7)"></div>Líquido</div><div class="gc-li"><div class="gc-lsq" style="background:#f59e0b;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta Anual Liq.</div></div>
-              <div style="position:relative;height:200px"><canvas id="gc-cComp"></canvas></div>
-            </div>
-            <!-- Comparativo ano anterior × ano atual -->
-            <div class="gc-chart-card">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
-                <div>
-                  <div class="gc-chart-title">Comparativo 2025 × 2026</div>
-                  <div class="gc-chart-sub" style="margin-bottom:0">Vendas brutas e líquidas — mês a mês e acumulado</div>
-                </div>
-                <div class="gc-comp25-toggle">
-                  <button id="gc-comp25-btn-mensal" class="gc-comp25-btn active" onclick="setComp2025Modo('mensal')">Mensal</button>
-                  <button id="gc-comp25-btn-acum" class="gc-comp25-btn" onclick="setComp2025Modo('acumulado')">Acumulado</button>
-                </div>
-              </div>
-              <div class="gc-g2" style="margin-top:14px">
-                <div style="margin-bottom:0">
-                  <div class="gc-chart-sub" style="font-weight:700;color:#64748b;text-transform:uppercase;font-size:.68rem;margin-bottom:6px">Vendas Brutas</div>
-                  <div style="position:relative;height:220px"><canvas id="gc-cComp25Br"></canvas></div>
-                </div>
-                <div style="margin-bottom:0">
-                  <div class="gc-chart-sub" style="font-weight:700;color:#64748b;text-transform:uppercase;font-size:.68rem;margin-bottom:6px">Vendas Líquidas</div>
-                  <div style="position:relative;height:220px"><canvas id="gc-cComp25Lq"></canvas></div>
-                </div>
-              </div>
-              <div class="gc-leg" style="margin-top:14px"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>2026</div><div class="gc-li"><div class="gc-lsq" style="background:#f472b6"></div>2025</div></div>
-              <div style="overflow-x:auto;margin-top:10px"><table class="dash-table gc-comp25-table" id="gc-comp25-table"></table></div>
-            </div>
-          </div>
-
-          <!-- ═══ PAINEL POR VENDEDOR ═══ -->
-          <div id="gc-painel-vend" style="display:none">
-            <!-- Input fields para dados manuais (orc, cv, pd) -->
-            <div class="gc-chart-card" style="background:var(--surface2,#f8fafc)">
-              <div class="gc-chart-title" id="gc-vend-titulo">Vendedor</div>
-              <div class="gc-chart-sub" id="gc-vend-sub2">Dados do mês selecionado</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
-                <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Orçamentos em aberto (R$)</div>
-                  <input id="gc-inp-orc" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
-                <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Taxa de conversão (%)</div>
-                  <input id="gc-inp-cv" type="number" placeholder="0" step="0.1" min="0" max="100" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
-                <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Negócios perdidos (R$)</div>
-                  <input id="gc-inp-pd" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
-              </div>
-            </div>
-            <!-- KPIs do vendedor -->
-            <div class="gc-krow" id="gc-vend-kpis-top"></div>
-            <div class="gc-krow-2" id="gc-vend-kpis-bot"></div>
-            <!-- Grid 2: evolução anual + projeção×meta -->
-            <div class="gc-g2">
-              <div class="gc-chart-card" style="margin-bottom:0">
-                <div class="gc-chart-title">Evolução Anual — Líquidas</div>
-                <div class="gc-chart-sub" id="gc-ev-vend-sub">Vendedor — evolução anual</div>
-                <div class="gc-leg"><div class="gc-li"><div class="gc-lsq" style="background:#1a2b5e"></div>Realizado</div><div class="gc-li"><div class="gc-lsq" style="background:#e0245e;height:2px;width:14px;border-radius:0;margin:4px 0"></div>Meta</div></div>
-                <div style="position:relative;height:190px"><canvas id="gc-cVend"></canvas></div>
-              </div>
-              <div class="gc-chart-card" style="margin-bottom:0">
-                <div class="gc-chart-title">Projeção × Meta</div>
-                <div class="gc-chart-sub">Tendência de fechamento do mês</div>
-                <div id="gc-proj-barras" style="margin-top:8px"></div>
-                <div id="gc-proj-alerta" style="margin-top:10px;font-size:.74rem"></div>
-              </div>
-            </div>
-            <div style="margin-bottom:14px"></div>
-            <!-- Grid 2: doughnut conversão + análise perdidos -->
-            <div class="gc-g2">
-              <div class="gc-chart-card" style="margin-bottom:0">
-                <div class="gc-chart-title">Conversão e Perdas</div>
-                <div class="gc-chart-sub">Composição dos orçamentos</div>
-                <div style="position:relative;height:185px"><canvas id="gc-cDn"></canvas></div>
-                <div id="gc-conv-alerta" style="margin-top:8px;font-size:.72rem"></div>
-              </div>
-              <div class="gc-chart-card" style="margin-bottom:0">
-                <div class="gc-chart-title">Comparativo Anual — Vendedor</div>
-                <div class="gc-chart-sub" id="gc-comp-vend-sub">Bruto vs Líquido por mês</div>
-                <div style="position:relative;height:185px"><canvas id="gc-cVendComp"></canvas></div>
-              </div>
+            <div class="dash-card">
+              <div class="dash-sec-title">💰 Recebimentos & Comissões</div>
+              <div id="dash-comissoes"></div>
             </div>
           </div>
         </div>
@@ -831,6 +864,14 @@ select.fc{cursor:pointer}
     <div id="ev-tipo-wrap" style="grid-column:span 2">
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>
     </div>
+    <div style="grid-column:span 2">
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pedido em PDF</label>
+      <div class="upload-zone" id="ev-pdf-zone" onclick="document.getElementById('ev-pdf-file').click()" style="padding:9px 11px;min-height:auto">
+        <span class="uz-icon" style="font-size:.95rem">📄</span>
+        <div class="uz-title" style="font-size:.8rem">Clique para selecionar (opcional)</div>
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="ev-pdf-file" style="display:none" onchange="uploadEvPdf(this)">
+      </div>
+    </div>
     <div>
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nº da Ordem de Compra</label>
       <input id="ev-numoc" type="text" class="no-upper" placeholder="Opcional" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
@@ -891,6 +932,32 @@ select.fc{cursor:pointer}
   <div style="background:#111827;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
     <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px">Valor Líquido do Pedido</span>
     <span id="ev-liq" style="font-size:1.1rem;font-weight:800;color:#fff">R$ 0,00</span>
+  </div>
+  <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">💳 Pagamento</div>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px 12px;margin-bottom:14px">
+    <div id="ev-pag-hint" style="font-size:.68rem;color:#1d4ed8;margin-bottom:8px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label id="ev-ve-label" style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Valor de Entrada</label>
+        <input id="ev-ve" type="text" inputmode="numeric" oninput="fmtMoney(this);_updEvPagCheck()" placeholder="0,00"
+          style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+      </div>
+      <div>
+        <label style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Data prevista da Entrada</label>
+        <input id="ev-de" type="date" oninput="_updEvPagCheck()" style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+      </div>
+    </div>
+    <div>
+      <label style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Nº de Parcelas (restante)</label>
+      <select id="ev-np" onchange="updParcEV()" style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+        <option>Sem parcelamento</option>
+        <option>1 parcela</option><option>2 parcelas</option><option>3 parcelas</option><option>4 parcelas</option>
+        <option>5 parcelas</option><option>6 parcelas</option><option>7 parcelas</option><option>8 parcelas</option>
+        <option>9 parcelas</option><option>10 parcelas</option>
+      </select>
+    </div>
+    <div id="ev-parc-c" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+    <div id="ev-pag-check" style="font-size:.68rem;margin-top:8px;font-weight:600"></div>
   </div>
   <div style="font-size:.72rem;color:#92400e;margin-bottom:14px;padding:8px 10px;background:#fefce8;border-radius:8px;border:1px solid #fde68a">
     ⚠️ Ao salvar, as Comissões serão recalculadas automaticamente com o novo valor líquido.
@@ -1078,6 +1145,7 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+
 <!-- MOTIVO NÃO RECEBIDO MODAL -->
 <div class="mov" id="mo-motivo-nr" onclick="cio(event,'mo-motivo-nr')">
 <div class="mvmod" style="width:480px;max-width:96vw">
@@ -1114,6 +1182,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="permissoes" onclick="setCfgSec('permissoes',this)">🔐 Permissões</button>
       <button class="cfg-menu-btn admin-only" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
       <button class="cfg-menu-btn admin-only" data-sec="tipospedido" onclick="setCfgSec('tipospedido',this)">🏷️ Categoria de Pedido</button>
+      <button class="cfg-menu-btn admin-only" data-sec="tarefasauto" onclick="setCfgSec('tarefasauto',this)">📌 Tarefas Automáticas</button>
       <button class="cfg-menu-btn admin-only" data-sec="metas" onclick="setCfgSec('metas',this)">🎯 Metas</button>
     </div>
     <!-- Content -->
@@ -1295,6 +1364,27 @@ select.fc{cursor:pointer}
           <button class="btn-next" onclick="addTipoPedido()" style="white-space:nowrap;padding:9px 16px">+ Adicionar</button>
         </div>
       </div>
+      <div class="cfg-sec" id="cfg-sec-tarefasauto" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Tarefas Automáticas</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Quando um pedido é emitido pelo vendedor ou lançado manualmente, o sistema cria tarefas comerciais sozinho. Cadastre regras por Tipo e/ou Categoria — deixe em "Qualquer" pra regra valer sempre. Sem nenhuma regra cadastrada, o padrão é criar só "Lançar no GCore".</p>
+        <div id="cfg-regras-tarefas-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+        <div style="background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:10px;padding:14px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink3);margin-bottom:10px">+ Nova Regra</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <label style="font-size:.68rem;font-weight:600;color:var(--ink4);display:block;margin-bottom:4px">Tipo</label>
+              <select class="fc" id="cfg-regra-tipo"><option value="">Qualquer</option></select>
+            </div>
+            <div>
+              <label style="font-size:.68rem;font-weight:600;color:var(--ink4);display:block;margin-bottom:4px">Categoria</label>
+              <select class="fc" id="cfg-regra-categoria"><option value="">Qualquer</option></select>
+            </div>
+          </div>
+          <label style="font-size:.68rem;font-weight:600;color:var(--ink4);display:block;margin-bottom:4px">Tarefas (separe por vírgula)</label>
+          <input class="fc" id="cfg-regra-tarefas" placeholder="Ex: Lançar no GCore, Conferir frete" style="width:100%;margin-bottom:10px">
+          <button class="btn-next" onclick="addRegraTarefaAuto()" style="width:100%">+ Adicionar Regra</button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Footer -->
@@ -1390,6 +1480,90 @@ let step=0,ed={},editing=null;
 const uid=()=>'p_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
 const vEl=id=>document.getElementById(id)?.value||'';
 const fmtD=d=>{if(!d)return'';if(d.includes('/'))return d;try{const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`}catch(e){return d}};
+
+// ═══ TAREFAS COMERCIAIS ═══
+// Pendências operacionais por venda (hoje: "Lançar no GCore" — sistema externo onde o
+// Guilherme precisa registrar manualmente cada venda emitida/lançada aqui). Guardadas
+// dentro do próprio pedido (p.tarefasComerciais), pra não precisar de outra coleção no
+// Firestore nem de outra tela de sync. Pensado pra crescer: qualquer string vira um
+// "tipo" de tarefa válido, então dá pra criar "Conferir frete", "Enviar NF" etc. sem
+// mudar código, só usando "+ Nova tarefa" na janela de Tarefas Comerciais.
+const TAREFA_TIPOS_SUGERIDOS=['Lançar no GCore'];
+function novaTarefaComercial(tipo){
+  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null};
+}
+// Regras configuráveis em Configurações > Tarefas Automáticas (cfg.regrasTarefasComerciais).
+// Cada regra: {id, tipo:'' (vazio=qualquer, ou uma chave de TC como "Venda"/"Amostra"),
+// categoria:'' (vazio=qualquer, ou uma das getTiposPedido()), tarefas:['Lançar no GCore',...]}.
+// Ao emitir ou lançar uma venda manual, toda regra cujo tipo/categoria bate (ou está vazia =
+// "qualquer") dispara suas tarefas, sem duplicar nome repetido entre regras. Sem nenhuma regra
+// cadastrada, mantém o comportamento padrão de sempre: só cria "Lançar no GCore".
+function getRegrasTarefasAuto(){
+  return cfg.regrasTarefasComerciais&&cfg.regrasTarefasComerciais.length?cfg.regrasTarefasComerciais:[
+    {id:'default',tipo:'',categoria:'',tarefas:['Lançar no GCore']}
+  ];
+}
+function gerarTarefasAutomaticas(tipo,tipoPedido){
+  const nomes=new Set();
+  getRegrasTarefasAuto().forEach(r=>{
+    const bateTipo=!r.tipo||r.tipo===tipo;
+    const bateCategoria=!r.categoria||r.categoria===tipoPedido;
+    if(bateTipo&&bateCategoria)(r.tarefas||[]).forEach(t=>{if(t&&t.trim())nomes.add(t.trim());});
+  });
+  return[...nomes].map(t=>novaTarefaComercial(t));
+}
+// Todas as tarefas pendentes de todos os pedidos, já com dados da venda pra exibir na
+// janela (cliente/OS/vendedor) — sem isso cada card teria que re-buscar o pedido.
+function getTarefasComerciaisPendentes(){
+  const out=[];
+  pedidos.forEach(p=>{
+    (p.tarefasComerciais||[]).forEach(t=>{
+      if(t.status!=='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||''});
+    });
+  });
+  out.sort((a,b)=>(a.criadaEm||'').localeCompare(b.criadaEm||''));
+  return out;
+}
+function getTarefasComerciaisConcluidas(){
+  const out=[];
+  pedidos.forEach(p=>{
+    (p.tarefasComerciais||[]).forEach(t=>{
+      if(t.status==='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||''});
+    });
+  });
+  out.sort((a,b)=>(b.concluidaEm||'').localeCompare(a.concluidaEm||''));
+  return out;
+}
+async function marcarTarefaComercial(pedidoId,tarefaId,concluida){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p||!p.tarefasComerciais)return;
+  const t=p.tarefasComerciais.find(x=>x.id===tarefaId);
+  if(!t)return;
+  t.status=concluida?'concluida':'pendente';
+  t.concluidaEm=concluida?new Date().toISOString():null;
+  await savePedidoFS(p);
+  renderTarefasComerciais();
+  renderAll();
+  _refreshTarefasBadge();
+}
+// Contador de pendências no botão "📌 Tarefas Comerciais" (ao lado de Gráficos, em Geral)
+function _refreshTarefasBadge(){
+  const badge=document.getElementById('gtab-tarefas-badge');
+  if(!badge)return;
+  const n=getTarefasComerciaisPendentes().length;
+  badge.textContent=n?` (${n})`:'';
+}
+async function adicionarTarefaComercialAvulsa(pedidoId,tipo){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
+  if(!p.tarefasComerciais)p.tarefasComerciais=[];
+  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim()));
+  await savePedidoFS(p);
+  renderTarefasComerciais();
+  _refreshTarefasBadge();
+  toast('Tarefa adicionada!','tok');
+}
 
 async function setUpload(zoneId,nameId,input,edKey){
   const z=document.getElementById(zoneId);
@@ -1624,15 +1798,20 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
       if(btnNovo)btnNovo.style.display='none';
     } else {
       atualizarBotaoNovoPedido();
-      // Aba Metas & Comissões só visível para administrador
-      const _isAdmDash=_getUserCat().isAdm;
-      const _dtabMetas=document.getElementById('dtab-metas');
-      if(_dtabMetas)_dtabMetas.style.display=_isAdmDash?'':'none';
+      // Comercial agora é só Metas & Comissões (Gráficos foi pra Geral) — continua
+      // admin-only, com o mesmo mecanismo de PIN de sempre (dashMetasUnlocked/_dashShowPinModal).
       setTimeout(()=>{
-        initDashComercial();
-        // Gráficos é a tela padrão do Comercial pra todo mundo (admin ou não)
-        const _dtabGraficos=document.getElementById('dtab-graficos');
-        if(_dtabGraficos)dashTab('graficos',_dtabGraficos);
+        const _isAdmDash=_getUserCat().isAdm;
+        const body=document.getElementById('dash-comercial-body');
+        const restr=document.getElementById('dash-comercial-restricted');
+        if(!_isAdmDash){
+          if(body)body.style.display='none';
+          if(restr)restr.style.display='';
+        } else {
+          if(body)body.style.display='';
+          if(restr)restr.style.display='none';
+          initDashComercial();
+        }
       },120);
     }
     if(isFin&&typeof renderFinanceiro==='function')setTimeout(renderFinanceiro,120);
@@ -1647,21 +1826,34 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
 }
 
 // Sub-abas da tela Geral (menu principal): "Vendas do Mês" (mesma fonte/valores usados
-// nas comissões) e "Lista de Emissão" (todos os pedidos emitidos, qualquer categoria).
+// nas comissões), "Lista de Emissão" (todos os pedidos emitidos, qualquer categoria) e
+// "Gráficos" (movida de Comercial pra cá — sempre aberta, sem senha/admin, igual antes).
 // Vendas do Mês é a aba padrão — antes vivia só dentro de Comercial > Vendas do Ano.
 function geralTab(tab,btn){
   document.querySelectorAll('#sec-geral .dash-tab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  const isVendas=tab==='vendas';
   const elVendas=document.getElementById('geral-tab-vendas');
   const elEmissao=document.getElementById('geral-tab-emissao');
-  if(elVendas)elVendas.style.display=isVendas?'':'none';
-  if(elEmissao)elEmissao.style.display=isVendas?'none':'';
+  const elGraficos=document.getElementById('geral-tab-graficos');
+  const elTarefas=document.getElementById('geral-tab-tarefas');
+  if(elVendas)elVendas.style.display=tab==='vendas'?'':'none';
+  if(elEmissao)elEmissao.style.display=tab==='emissao'?'':'none';
+  if(elGraficos)elGraficos.style.display=tab==='graficos'?'':'none';
+  if(elTarefas)elTarefas.style.display=tab==='tarefas'?'':'none';
   const h2=document.getElementById('geral-hdr-h2'),p=document.getElementById('geral-hdr-p');
-  if(isVendas){
+  if(tab==='vendas'){
     if(h2)h2.textContent='Vendas do Mês';
     if(p)p.textContent='Vendas da categoria "Venda" — mesma base usada nas comissões';
     try{renderDashVendas();}catch(e){console.error('Erro ao abrir Vendas do Mês',e);}
+  } else if(tab==='graficos'){
+    if(h2)h2.textContent='Gráficos';
+    if(p)p.textContent='Indicadores comerciais e evolução de vendas';
+    try{renderDashGraficos();}catch(e){console.error('Erro ao abrir Gráficos',e);}
+  } else if(tab==='tarefas'){
+    if(!_getUserCat().isAdm){toast('Apenas administradores podem acessar Tarefas Comerciais','terr');return;}
+    if(h2)h2.textContent='Tarefas Comerciais';
+    if(p)p.textContent='Pendências operacionais por venda';
+    try{abrirTarefasComerciais();}catch(e){console.error('Erro ao abrir Tarefas Comerciais',e);}
   } else {
     if(h2)h2.textContent='Lista de Emissão';
     if(p)p.textContent='Todos os pedidos emitidos, de qualquer categoria';
@@ -1806,6 +1998,53 @@ function _updEvLiq(){
   const el=document.getElementById('ev-liq');if(!el)return;
   el.textContent='R$ '+liq.toLocaleString('pt-BR',{minimumFractionDigits:2});
   el.style.color=liq<0?'#f87171':'#fff';
+  _updEvPagCheck();
+}
+// Converte data BR (DD/MM/YYYY, formato salvo em p.pagamento) pro formato ISO usado
+// pelos <input type=date> — inverso de fmtD(), só usado aqui pra pré-preencher a edição.
+function _brToIso(s){
+  if(!s)return'';
+  const pts=String(s).trim().split('/');
+  if(pts.length!==3)return'';
+  return`${pts[2]}-${pts[1].padStart(2,'0')}-${pts[0].padStart(2,'0')}`;
+}
+// Linhas de valor+data de cada parcela na edição de um pedido já existente — mesmo
+// padrão de updParcVM() (Venda Manual), isolado sob o prefixo ev- pra não colidir com
+// o formulário de emissão (ed/#em-np) nem com o de venda manual (vm-).
+function updParcEV(){
+  const c=document.getElementById('ev-parc-c');if(!c)return;
+  const n=parseInt(document.getElementById('ev-np')?.value)||0;
+  if(!n){c.innerHTML='';_updEvPagCheck();return}
+  c.innerHTML=[...Array(n)].map((_,i)=>
+    `<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;align-items:center">
+      <span style="font-size:.7rem;font-weight:700;color:#1d4ed8;white-space:nowrap">Parc. ${i+1}/${n}</span>
+      <input type="text" inputmode="numeric" placeholder="R$ 0,00" class="fc ev-pd-val" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff" oninput="fmtMoney(this);_updEvPagCheck()">
+      <input type="date" class="fc ev-pd-date" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff" oninput="_updEvPagCheck()">
+    </div>`
+  ).join('');
+  _updEvPagCheck();
+}
+// Indicador (não bloqueia o salvamento) de quanto já foi alocado em entrada+parcelas.
+// Pedido importadoPlanilha (venda manual ou vinda da planilha) guarda parcela em valor
+// LÍQUIDO (ver getParcelas — ratio=1 pra esses casos), então compara com o líquido do
+// topo; pedido emitido pelo fluxo normal guarda parcela em valor BRUTO (ratio de
+// conversão aplicado só na leitura), então compara com o bruto.
+function _updEvPagCheck(){
+  const el=document.getElementById('ev-pag-check');if(!el)return;
+  const gv=id=>{const e=document.getElementById(id);return e?moneyToNum(e.value):0;};
+  const br=gv('ev-br'),ft=gv('ev-ft'),mo=gv('ev-mo'),vi=gv('ev-vi'),el2=gv('ev-el'),art=gv('ev-art'),rem=gv('ev-rem'),med=gv('ev-med');
+  const liqCalc=br-ft-mo-vi-el2-art-rem-med;
+  const p=pedidos.find(x=>x.id===_editValId);
+  const isImp=!!(p&&p.importadoPlanilha);
+  const target=isImp?liqCalc:br;
+  const ve=gv('ev-ve');
+  const parcSum=[...document.querySelectorAll('#ev-parc-c .ev-pd-val')].reduce((s,i)=>s+moneyToNum(i.value),0);
+  const alocado=ve+parcSum;
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if(alocado<=0){el.textContent='';return;}
+  const ok=Math.abs(alocado-target)<0.01;
+  el.style.color=ok?'#16a34a':'#b45309';
+  el.textContent=`${ok?'✅':'⚠️'} Alocado ${fmt(alocado)} de ${fmt(target)} (${isImp?'líquido':'bruto'})`;
 }
 // Editar uma linha da Lista de Vendas que ainda só existe na planilha (XLSX_VENDAS),
 // sem pedido correspondente no Firestore. Cria o registro só nesse momento (edição pontual,
@@ -1878,6 +2117,44 @@ async function editarValoresPedido(pedidoId){
     const title=ocZone.querySelector('.uz-title');if(title)title.textContent=_evOcUrl?'Documento já enviado (clique para trocar)':'Clique para selecionar (opcional)';
     let nm=ocZone.querySelector('.uz-file');if(nm)nm.remove();
   }
+  _evPdfUrl=p.arq_os_url||'';
+  const pdfFile=document.getElementById('ev-pdf-file');if(pdfFile)pdfFile.value='';
+  const pdfZone=document.getElementById('ev-pdf-zone');
+  if(pdfZone){
+    pdfZone.classList.toggle('has-file',!!_evPdfUrl);
+    const icon=pdfZone.querySelector('.uz-icon');if(icon)icon.textContent=_evPdfUrl?'✅':'📄';
+    const title=pdfZone.querySelector('.uz-title');if(title)title.textContent=_evPdfUrl?'Arquivo já enviado (clique para trocar)':'Clique para selecionar (opcional)';
+    let nm=pdfZone.querySelector('.uz-file');if(nm)nm.remove();
+  }
+  // Pagamento: pré-preenche com o que já estiver salvo em p.pagamento (Entrada + Parcelas).
+  // Rótulo/dica mudam conforme o tipo do pedido — importadoPlanilha (venda manual ou vinda
+  // da planilha) guarda parcela em valor LÍQUIDO; pedido emitido pelo fluxo normal guarda
+  // em valor BRUTO (ver comentário de _updEvPagCheck).
+  const pagExist=p.pagamento||{};
+  const evVeLabel=document.getElementById('ev-ve-label'),evPagHint=document.getElementById('ev-pag-hint');
+  if(p.importadoPlanilha){
+    if(evVeLabel)evVeLabel.textContent='Valor de Entrada (líquido)';
+    if(evPagHint)evPagHint.textContent='Venda lançada manualmente: informe os valores já líquidos de cada recebimento (entrada/parcelas) — é o que libera Contas a Receber e a comissão.';
+  } else {
+    if(evVeLabel)evVeLabel.textContent='Valor de Entrada (bruto)';
+    if(evPagHint)evPagHint.textContent='Valores brutos de cada recebimento, igual à aba Pagamento da emissão — o líquido de cada parcela é calculado automaticamente pela proporção bruto/líquido do pedido.';
+  }
+  setV('ev-ve',pagExist['Valor de Entrada']);
+  setIn2('ev-de',_brToIso(pagExist['Data da Entrada']||''));
+  const parcEntries=Object.entries(pagExist).map(([k,val])=>{
+    const mt=k.match(/^Parcela\s+(\d+)\s+·\s+(.+)$/);
+    return mt?{idx:parseInt(mt[1],10),date:mt[2].trim(),val}:null;
+  }).filter(Boolean).sort((a,b)=>a.idx-b.idx);
+  const npSel=document.getElementById('ev-np');
+  if(npSel)npSel.value=parcEntries.length?(parcEntries.length+(parcEntries.length>1?' parcelas':' parcela')):'Sem parcelamento';
+  updParcEV();
+  const parcRows=[...document.querySelectorAll('#ev-parc-c > div')];
+  parcEntries.forEach((pe,i)=>{
+    const row=parcRows[i];if(!row)return;
+    const valInp=row.querySelector('.ev-pd-val'),dateInp=row.querySelector('.ev-pd-date');
+    if(valInp){const n=moneyToNum(pe.val||'0');valInp.value=n>0?n.toLocaleString('pt-BR',{minimumFractionDigits:2}):'';valInp.dataset.raw=String(n);}
+    if(dateInp)dateInp.value=_brToIso(pe.date);
+  });
   // Categoria/Tipo: texto livre se veio da planilha importada, select fechado (TC) se emitido pelo sistema
   const tipoWrap=document.getElementById('ev-tipo-wrap');
   if(tipoWrap){
@@ -1920,6 +2197,33 @@ async function uploadEvOc(input){
     nm.style.display='flex';
   }
 }
+let _evPdfUrl='';
+async function uploadEvPdf(input){
+  const f=input.files[0];if(!f)return;
+  const z=document.getElementById('ev-pdf-zone');
+  if(z)z.classList.add('has-file');
+  const icon=z?.querySelector('.uz-icon');if(icon)icon.textContent='⏳';
+  const title=z?.querySelector('.uz-title');if(title)title.textContent='Enviando para a nuvem...';
+  let url='';
+  if(cfg.cld_cloud&&cfg.cld_preset){
+    try{
+      const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
+      const d=await r.json();
+      url=d.secure_url||'';
+    }catch(e){console.error('Cloudinary upload error',e);}
+  }
+  _evPdfUrl=url;
+  if(icon)icon.textContent=url?'✅':'📄';
+  if(title)title.textContent=url?'Arquivo enviado com sucesso':'Arquivo selecionado (sem Cloudinary configurado)';
+  if(z){
+    let nm=z.querySelector('.uz-file');
+    if(!nm){nm=document.createElement('div');nm.className='uz-file';z.appendChild(nm);}
+    nm.textContent='✓ '+f.name;
+    nm.style.display='flex';
+  }
+}
 async function salvarValoresPedido(){
   const p=pedidos.find(x=>x.id===_editValId);
   if(!p){toast('Pedido não encontrado','terr');return;}
@@ -1947,6 +2251,37 @@ async function salvarValoresPedido(){
   if(!p.projetos)p.projetos={};
   if(art>0){p.projetos['art']='Sim';p.projetos['Valor da ART']=fmtV(art);}
   else{delete p.projetos['Valor da ART'];}
+  // Atualiza pagamento (Entrada + Parcelas) — só reconstrói se o admin preencheu algo
+  // aqui; se os campos ficaram vazios, mantém o pagamento que já estava salvo (não some
+  // com um pagamento lançado por outro caminho, ex.: fluxo normal de emissão).
+  const veVal=gv('ev-ve');
+  const veDataRaw=(document.getElementById('ev-de')||{}).value||'';
+  const parcValsRaw=[...document.querySelectorAll('#ev-parc-c .ev-pd-val')].map(i=>moneyToNum(i.value));
+  const parcDatasRaw=[...document.querySelectorAll('#ev-parc-c .ev-pd-date')].map(i=>i.value);
+  const temPagamentoNovo=(veVal>0&&veDataRaw)||parcValsRaw.some((v,i)=>v>0&&parcDatasRaw[i]);
+  if(temPagamentoNovo){
+    const isImp=!!p.importadoPlanilha;
+    // Pedido importadoPlanilha (venda manual/planilha): data digitada vira marcador de
+    // quinzena (05/15), igual salvarVendaManual() — ver comentário lá pro motivo. Pedido
+    // do fluxo normal: guarda a data real como sempre foi (sem conversão).
+    const marker=rawDateVal=>{
+      if(!isImp)return fmtD(rawDateVal);
+      const qi=getQuinzenaInfo(fmtD(rawDateVal));
+      if(!qi)return fmtD(rawDateVal);
+      return String(qi.half==='II'?15:5).padStart(2,'0')+'/'+String(qi.m).padStart(2,'0')+'/'+qi.y;
+    };
+    const novoPag={};
+    Object.entries(p.pagamento||{}).forEach(([k,v2])=>{
+      if(!/^Parcela\s+\d+\s+·/.test(k)&&k!=='Valor de Entrada'&&k!=='Data da Entrada'&&k!=='Nº de Parcelas')novoPag[k]=v2;
+    });
+    if(veVal>0&&veDataRaw){novoPag['Valor de Entrada']=fmtV(veVal);novoPag['Data da Entrada']=marker(veDataRaw);}
+    let nParc=0;
+    parcValsRaw.forEach((v2,i)=>{
+      if(v2>0&&parcDatasRaw[i]){nParc++;novoPag[`Parcela ${nParc} · ${marker(parcDatasRaw[i])}`]=fmtV(v2);}
+    });
+    if(nParc>0)novoPag['Nº de Parcelas']=nParc+(nParc>1?' parcelas':' parcela');
+    p.pagamento=novoPag;
+  }
   // Atualiza dados do pedido (OS, Ordem de Compra, JOB, Prazo, Vendedor, Categoria/Tipo) — nome do cliente não é editável aqui
   const gi=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
   const novoOs=gi('ev-os');
@@ -1956,6 +2291,7 @@ async function salvarValoresPedido(){
   p.responsavel=gi('ev-resp');
   p.numOC=gi('ev-numoc');
   if(_evOcUrl)p.ocUrl=_evOcUrl;
+  if(_evPdfUrl)p.arq_os_url=_evPdfUrl;
   const novoTipo=gi('ev-tipo');
   if(novoTipo){p.tipo=novoTipo;if(p.tipoPedido!==undefined)p.tipoPedido=novoTipo;}
   closeM('mo-ev');
@@ -2170,7 +2506,8 @@ async function salvarVendaManual(){
     },
     frete:{...(ft>0?{'Valor do Frete':fmtV(ft)}:{})},
     bases:'',elevacoes:[],remocoes:[],
-    projetos:{...(art>0?{'art':'Sim','Valor da ART':fmtV(art)}:{})}
+    projetos:{...(art>0?{'art':'Sim','Valor da ART':fmtV(art)}:{})},
+    tarefasComerciais:gerarTarefasAutomaticas(cat,cat)
   };
   pedidos.push(novo);
   closeM('mo-venda-manual');
@@ -3488,7 +3825,11 @@ async function submit(){
     // porque undefined no objeto quebra o savePedidoFS (ver [[project_firestore_undefined_fields]]).
     arq_os_url:ed.arq_os_url||'',arq_oc_url:ed.arq_oc_url||'',arq_chumb_url:ed.arq_chumb_url||'',
     chumbador:ed.chumbador||'',os_chumb:ed.os_chumb||'',
-    locCidade:(ed.icidade||ed.fcidade||''),locUf:(ed.iuf||ed.fuf||'')};
+    locCidade:(ed.icidade||ed.fcidade||''),locUf:(ed.iuf||ed.fuf||''),
+    // Tarefas Comerciais: pendências operacionais ligadas a esta venda (hoje só "Lançar
+    // no GCore", mas pensado pra crescer — ver novaTarefaComercial()/geral-tab-tarefas). Só cria
+    // a tarefa padrão na emissão original; numa edição, mantém as tarefas que já existiam.
+    tarefasComerciais:_pedidoExistente?(_pedidoExistente.tarefasComerciais||[]):gerarTarefasAutomaticas(ed.tipo,ed.tipoPedido||'')};
   const wasEditing=editing;
   editing=null;
   // Fechar modal ANTES do save para não travar
@@ -3893,6 +4234,7 @@ function setCfgSec(sec,btn){
   if(btn)btn.classList.add('active');
   if(sec==='permissoes')renderCfgPermissoes();
   if(sec==='tipospedido')renderTiposPedido();
+  if(sec==='tarefasauto')renderRegrasTarefasAuto();
   if(sec==='metas')initPagamentosExtrasForm();
 }
 
@@ -3975,8 +4317,13 @@ function initAuth(tries){
           if(_vFMesEl){_vFMesEl.value=MESES_PT[new Date().getMonth()+1];}
           renderAll();
           try{renderDashVendas();}catch(e){}
-          // Tela padrão ao abrir o sistema: direto no Comercial → Gráficos (pra qualquer usuário)
-          setSection('cat:COMERCIAL');
+          // Tela padrão ao abrir o sistema: Geral → Gráficos (pra qualquer usuário) — Gráficos
+          // era o padrão de Comercial antes de virar uma sub-aba de Geral junto de Vendas/Emissão.
+          setSection('geral');
+          setTimeout(()=>{
+            const _btnGraf=document.getElementById('gtab-graficos');
+            if(_btnGraf)geralTab('graficos',_btnGraf);
+          },50);
         }).catch(()=>{
           usuarioLogado.nomeExibicao=user.email.split('@')[0].replace(/[._]/g,' ').toUpperCase();
         });
@@ -4148,6 +4495,49 @@ function removeTipoPedido(t){
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderTiposPedido();
   toast('Categoria removida','tok');
+}
+
+function renderRegrasTarefasAuto(){
+  const selTipo=document.getElementById('cfg-regra-tipo');
+  if(selTipo)selTipo.innerHTML='<option value="">Qualquer</option>'+Object.keys(TC).map(t=>`<option value="${t}">${t}</option>`).join('');
+  const selCat=document.getElementById('cfg-regra-categoria');
+  if(selCat)selCat.innerHTML='<option value="">Qualquer</option>'+getTiposPedido().map(c=>`<option value="${c}">${c}</option>`).join('');
+  const el=document.getElementById('cfg-regras-tarefas-list');if(!el)return;
+  const regras=cfg.regrasTarefasComerciais||[];
+  if(!regras.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhuma regra cadastrada — usando o padrão: sempre criar "Lançar no GCore".</p>';return;}
+  el.innerHTML=regras.map(r=>{
+    const cond=[r.tipo||'Qualquer tipo',r.categoria||'Qualquer categoria'].join(' + ');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;background:#f1f5f9;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 14px">
+      <div>
+        <div style="font-size:.75rem;font-weight:700;color:#374151">${cond}</div>
+        <div style="font-size:.72rem;color:var(--ink3);margin-top:2px">→ ${(r.tarefas||[]).join(', ')}</div>
+      </div>
+      <button onclick="removeRegraTarefaAuto('${r.id}')" title="Remover" style="background:#fff;border:1px solid #e5e7eb;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;color:#dc2626;padding:0;line-height:1;flex-shrink:0">✕</button>
+    </div>`;
+  }).join('');
+}
+function addRegraTarefaAuto(){
+  const tipo=document.getElementById('cfg-regra-tipo')?.value||'';
+  const categoria=document.getElementById('cfg-regra-categoria')?.value||'';
+  const inp=document.getElementById('cfg-regra-tarefas');
+  const tarefas=(inp?.value||'').split(',').map(t=>t.trim()).filter(Boolean);
+  if(!tarefas.length){toast('Descreva ao menos uma tarefa!','terr');return;}
+  const regras=(cfg.regrasTarefasComerciais||[]).slice();
+  regras.push({id:uid(),tipo,categoria,tarefas});
+  cfg.regrasTarefasComerciais=regras;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  if(inp)inp.value='';
+  renderRegrasTarefasAuto();
+  toast('Regra adicionada!','tok');
+}
+function removeRegraTarefaAuto(id){
+  if(!confirm('Remover esta regra?'))return;
+  cfg.regrasTarefasComerciais=(cfg.regrasTarefasComerciais||[]).filter(r=>r.id!==id);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderRegrasTarefasAuto();
+  toast('Regra removida','tok');
 }
 
 function getParcelas(p){
@@ -5213,6 +5603,69 @@ function renderPagamentosFuturos(){
     <div style="margin-top:10px;font-size:.8rem;font-weight:700;color:#111827">Total: ${fmtR(totalVal)} · Comissão pendente: <span style="color:#7c3aed">${fmtR(totalCom)}</span></div>`;
 }
 
+// ── JANELA DE TAREFAS COMERCIAIS ──────────────────────────────
+let _tarefasTabAtual='pendentes';
+function _fmtDataHora(iso){
+  if(!iso)return'—';
+  try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+  catch(e){return'—';}
+}
+function abrirTarefasComerciais(){
+  if(!_getUserCat().isAdm){toast('Apenas administradores podem acessar Tarefas Comerciais','terr');return;}
+  _tarefasTabAtual='pendentes';
+  document.getElementById('tf-tab-pend')?.classList.add('active');
+  document.getElementById('tf-tab-conc')?.classList.remove('active');
+  // Select de vendas: mais recentes primeiro, só pedidos que já existem no Firestore
+  // (venda vinda só da planilha não tem onde guardar a tarefa)
+  const sel=document.getElementById('tf-novo-pedido');
+  if(sel){
+    const ordenados=[...pedidos].sort((a,b)=>(b.emissaoEm||'').localeCompare(a.emissaoEm||''));
+    sel.innerHTML='<option value="">Selecione a venda...</option>'
+      +ordenados.map(p=>`<option value="${p.id}">OS ${p.os||'—'} · ${(p.cliente||'').replace(/</g,'')}</option>`).join('');
+  }
+  // Sugestões de tipo: o padrão + qualquer outro tipo já usado alguma vez
+  const dl=document.getElementById('tf-tipos-list');
+  if(dl){
+    const usados=new Set(TAREFA_TIPOS_SUGERIDOS);
+    pedidos.forEach(p=>(p.tarefasComerciais||[]).forEach(t=>usados.add(t.tipo)));
+    dl.innerHTML=[...usados].map(t=>`<option value="${t}">`).join('');
+  }
+  renderTarefasComerciais();
+}
+function tarefasTab(tab,btn){
+  _tarefasTabAtual=tab;
+  document.querySelectorAll('#geral-tab-tarefas .dash-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderTarefasComerciais();
+}
+function renderTarefasComerciais(){
+  const body=document.getElementById('tarefas-body');if(!body)return;
+  const pendente=_tarefasTabAtual==='pendentes';
+  const lista=pendente?getTarefasComerciaisPendentes():getTarefasComerciaisConcluidas();
+  if(!lista.length){
+    body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.'}</div>`;
+    return;
+  }
+  body.innerHTML=lista.map(t=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border-lt);border-radius:10px;margin-bottom:8px;background:#fff">
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:.82rem;color:#1e293b">${t.tipo}</div>
+        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">OS ${t.os||'—'} · ${t.cliente||'—'} · ${t.vendedor}</div>
+        <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}</div>
+      </div>
+      ${pendente
+        ?`<button onclick="marcarTarefaComercial('${t.pedidoId}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">✅ Concluir</button>`
+        :`<button onclick="marcarTarefaComercial('${t.pedidoId}','${t.id}',false)" style="background:#f1f5f9;color:#475569;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">↩️ Reabrir</button>`}
+    </div>`).join('');
+}
+function _addTarefaAvulsaFromForm(){
+  const pedidoId=document.getElementById('tf-novo-pedido')?.value||'';
+  const tipo=document.getElementById('tf-novo-tipo')?.value||'';
+  if(!pedidoId){toast('Selecione a venda','terr');return;}
+  adicionarTarefaComercialAvulsa(pedidoId,tipo);
+  const tipoInp=document.getElementById('tf-novo-tipo');if(tipoInp)tipoInp.value='';
+}
+
 async function _getLogoGrandaPDF(){
   if(window._logoGrandaPdfB64!==undefined)return window._logoGrandaPdfB64;
   try{
@@ -5800,6 +6253,11 @@ function renderDashVendas(){
   const {isAdm}=_getUserCat();
   const btnAddVm=document.getElementById('btn-add-venda-manual');
   if(btnAddVm)btnAddVm.style.display=isAdm?'':'none';
+  // Aba "Tarefas Comerciais" só aparece pra administrador — é só o Guilherme quem
+  // acompanha/lança no GCore externo.
+  const gtabTarefas=document.getElementById('gtab-tarefas');
+  if(gtabTarefas)gtabTarefas.style.display=isAdm?'':'none';
+  _refreshTarefasBadge();
   const selV=document.getElementById('vnd-fil-vend');
   const selC=document.getElementById('vnd-fil-cat');
   // Mesma fonte usada nos cards/metas/comissões — planilha + pedidos do Firestore mesclados.
