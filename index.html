@@ -905,14 +905,17 @@ select.fc{cursor:pointer}
 
 <!-- ADICIONAR VENDA MANUAL MODAL (admin) -->
 <div class="mov" id="mo-venda-manual">
-<div class="mvmod" style="width:560px;max-width:98vw">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-    <h3 style="margin-bottom:0">➕ Adicionar Venda Manual</h3>
-    <button onclick="closeM('mo-venda-manual')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+<div class="mvmod" style="width:560px;max-width:98vw;max-height:90vh;display:flex;flex-direction:column;padding:0">
+  <div style="padding:24px 24px 0;flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="margin-bottom:0">➕ Adicionar Venda Manual</h3>
+      <button onclick="closeM('mo-venda-manual')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+      Use isso para lançar uma venda já emitida em outro sistema diretamente na Lista de Vendas, sem passar pelo fluxo de emissão de pedido aqui dentro.
+    </div>
   </div>
-  <div style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
-    Use isso para lançar uma venda já emitida em outro sistema diretamente na Lista de Vendas, sem passar pelo fluxo de emissão de pedido aqui dentro.
-  </div>
+  <div style="overflow-y:auto;flex:1;padding:0 24px 4px">
   <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;margin-bottom:10px">
     <div>
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Ano</label>
@@ -994,6 +997,14 @@ select.fc{cursor:pointer}
       </div>
     </div>
   </div>
+  <div style="margin-bottom:14px">
+    <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pedido em PDF</label>
+    <div class="upload-zone" id="vm-pdf-zone" onclick="document.getElementById('vm-pdf-file').click()" style="padding:9px 11px;min-height:auto">
+      <span class="uz-icon" style="font-size:.95rem">📄</span>
+      <div class="uz-title" style="font-size:.8rem">Clique para selecionar (opcional)</div>
+      <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="vm-pdf-file" style="display:none" onchange="uploadVmPdf(this)">
+    </div>
+  </div>
   <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-bottom:14px">
     <div>
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nº da Ordem de Compra</label>
@@ -1012,10 +1023,37 @@ select.fc{cursor:pointer}
     <span style="font-size:.75rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px">Valor Líquido</span>
     <span id="vm-liq" style="font-size:1.1rem;font-weight:800;color:#fff">R$ 0,00</span>
   </div>
+  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px 12px;margin-bottom:14px">
+    <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pagamento <span class="r">*</span></div>
+    <div style="font-size:.68rem;color:#1d4ed8;margin-bottom:8px">Informe pelo menos uma data/valor de recebimento — é o que libera essa venda em Contas a Receber e gera a comissão do vendedor (e a sua). Use sempre o valor líquido de cada parcela.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Valor de Entrada (líquido)</label>
+        <input id="vm-ve" type="text" inputmode="numeric" oninput="fmtMoney(this);_updVendaManualPagCheck()" placeholder="0,00"
+          style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+      </div>
+      <div>
+        <label style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Data prevista da Entrada</label>
+        <input id="vm-de" type="date" oninput="_updVendaManualPagCheck()" style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+      </div>
+    </div>
+    <div>
+      <label style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Nº de Parcelas (restante)</label>
+      <select id="vm-np" onchange="updParcVM()" style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+        <option>Sem parcelamento</option>
+        <option>1 parcela</option><option>2 parcelas</option><option>3 parcelas</option><option>4 parcelas</option>
+        <option>5 parcelas</option><option>6 parcelas</option><option>7 parcelas</option><option>8 parcelas</option>
+        <option>9 parcelas</option><option>10 parcelas</option>
+      </select>
+    </div>
+    <div id="vm-parc-c" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+    <div id="vm-pag-check" style="font-size:.68rem;margin-top:8px;font-weight:600"></div>
+  </div>
   <div style="font-size:.72rem;color:#92400e;margin-bottom:14px;padding:8px 10px;background:#fefce8;border-radius:8px;border:1px solid #fde68a">
     ⚠️ Essa venda entra na Lista de Vendas, nas Comissões e nas Metas do mês selecionado, mas não envia e-mail de emissão.
   </div>
-  <div style="display:flex;gap:8px;justify-content:flex-end">
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--border-lt);background:#fafbfc;flex-shrink:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)">
     <button class="btn-mv" onclick="closeM('mo-venda-manual')">Cancelar</button>
     <button class="btn-ed" onclick="salvarVendaManual()">💾 Adicionar Venda</button>
   </div>
@@ -1929,16 +1967,19 @@ async function salvarValoresPedido(){
   toast('✅ Valores atualizados! Comissões recalculadas.','tok');
 }
 // ── ADICIONAR VENDA MANUAL (adm) — lança venda sem emitir pedido ──
-let _vmOcUrl='';
+let _vmOcUrl='',_vmPdfUrl='';
 function abrirVendaManual(){
   const {isAdm}=_getUserCat();
   if(!isAdm){toast('Apenas administradores podem inserir vendas manualmente','terr');return;}
   const setIn=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};
   setIn('vm-ano',new Date().getFullYear());
   setIn('vm-mes','');setIn('vm-os','');setIn('vm-cliente','');setIn('vm-vend','');setIn('vm-cat','');setIn('vm-oc-num','');
-  ['vm-br','vm-ft','vm-vi','vm-el','vm-mo','vm-art','vm-rem','vm-med'].forEach(id=>{
+  ['vm-br','vm-ft','vm-vi','vm-el','vm-mo','vm-art','vm-rem','vm-med','vm-ve'].forEach(id=>{
     const el=document.getElementById(id);if(el){el.value='';el.dataset.raw='0';}
   });
+  setIn('vm-de','');setIn('vm-np','Sem parcelamento');
+  const parcC=document.getElementById('vm-parc-c');if(parcC)parcC.innerHTML='';
+  const pagCheck=document.getElementById('vm-pag-check');if(pagCheck)pagCheck.textContent='';
   _vmOcUrl='';
   const ocFile=document.getElementById('vm-oc-file');if(ocFile)ocFile.value='';
   const ocZone=document.getElementById('vm-oc-zone');
@@ -1947,6 +1988,15 @@ function abrirVendaManual(){
     const icon=ocZone.querySelector('.uz-icon');if(icon)icon.textContent='📎';
     const title=ocZone.querySelector('.uz-title');if(title)title.textContent='Clique para selecionar (opcional)';
     const nm=ocZone.querySelector('.uz-file');if(nm)nm.remove();
+  }
+  _vmPdfUrl='';
+  const pdfFile=document.getElementById('vm-pdf-file');if(pdfFile)pdfFile.value='';
+  const pdfZone=document.getElementById('vm-pdf-zone');
+  if(pdfZone){
+    pdfZone.classList.remove('has-file');
+    const icon=pdfZone.querySelector('.uz-icon');if(icon)icon.textContent='📄';
+    const title=pdfZone.querySelector('.uz-title');if(title)title.textContent='Clique para selecionar (opcional)';
+    const nm=pdfZone.querySelector('.uz-file');if(nm)nm.remove();
   }
   const dlVend=document.getElementById('vm-vend-list');
   if(dlVend)dlVend.innerHTML=getVendedores().map(v=>`<option value="${v}">`).join('');
@@ -1981,6 +2031,32 @@ async function uploadVmOc(input){
     nm.style.display='flex';
   }
 }
+async function uploadVmPdf(input){
+  const f=input.files[0];if(!f)return;
+  const z=document.getElementById('vm-pdf-zone');
+  if(z)z.classList.add('has-file');
+  const icon=z?.querySelector('.uz-icon');if(icon)icon.textContent='⏳';
+  const title=z?.querySelector('.uz-title');if(title)title.textContent='Enviando para a nuvem...';
+  let url='';
+  if(cfg.cld_cloud&&cfg.cld_preset){
+    try{
+      const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
+      const d=await r.json();
+      url=d.secure_url||'';
+    }catch(e){console.error('Cloudinary upload error',e);}
+  }
+  _vmPdfUrl=url;
+  if(icon)icon.textContent=url?'✅':'📄';
+  if(title)title.textContent=url?'Arquivo enviado com sucesso':'Arquivo selecionado (sem Cloudinary configurado)';
+  if(z){
+    let nm=z.querySelector('.uz-file');
+    if(!nm){nm=document.createElement('div');nm.className='uz-file';z.appendChild(nm);}
+    nm.textContent='✓ '+f.name;
+    nm.style.display='flex';
+  }
+}
 function _updVendaManualLiq(){
   const gv=id=>{const el=document.getElementById(id);return el?moneyToNum(el.value):0;};
   const br=gv('vm-br'),ft=gv('vm-ft'),mo=gv('vm-mo'),vi=gv('vm-vi'),el2=gv('vm-el'),art=gv('vm-art'),rem=gv('vm-rem'),med=gv('vm-med');
@@ -1988,6 +2064,39 @@ function _updVendaManualLiq(){
   const el=document.getElementById('vm-liq');if(!el)return;
   el.textContent='R$ '+liq.toLocaleString('pt-BR',{minimumFractionDigits:2});
   el.style.color=liq<0?'#f87171':'#fff';
+  _updVendaManualPagCheck();
+}
+// Gera as linhas de valor+data de cada parcela restante (além da entrada), no mesmo
+// padrão do fluxo de emissão normal (updParc()), mas isolado sob o prefixo vm- pra não
+// colidir com os ids/estado do formulário de emissão (ed, #em-np, .pd-val etc.).
+function updParcVM(){
+  const c=document.getElementById('vm-parc-c');if(!c)return;
+  const n=parseInt(document.getElementById('vm-np')?.value)||0;
+  if(!n){c.innerHTML='';_updVendaManualPagCheck();return}
+  c.innerHTML=[...Array(n)].map((_,i)=>
+    `<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;align-items:center">
+      <span style="font-size:.7rem;font-weight:700;color:#1d4ed8;white-space:nowrap">Parc. ${i+1}/${n}</span>
+      <input type="text" inputmode="numeric" placeholder="R$ 0,00" class="fc vm-pd-val" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff" oninput="fmtMoney(this);_updVendaManualPagCheck()">
+      <input type="date" class="fc vm-pd-date" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff" oninput="_updVendaManualPagCheck()">
+    </div>`
+  ).join('');
+  _updVendaManualPagCheck();
+}
+// Indicador (não bloqueia o salvamento) de quanto já foi alocado em entrada+parcelas
+// vs. o valor líquido total do topo — só pra ajudar o admin a não esquecer parcela.
+function _updVendaManualPagCheck(){
+  const el=document.getElementById('vm-pag-check');if(!el)return;
+  const gv=id=>{const e=document.getElementById(id);return e?moneyToNum(e.value):0;};
+  const br=gv('vm-br'),ft=gv('vm-ft'),mo=gv('vm-mo'),vi=gv('vm-vi'),el2=gv('vm-el'),art=gv('vm-art'),rem=gv('vm-rem'),med=gv('vm-med');
+  const liq=br-ft-mo-vi-el2-art-rem-med;
+  const ve=gv('vm-ve');
+  const parcSum=[...document.querySelectorAll('#vm-parc-c .vm-pd-val')].reduce((s,i)=>s+moneyToNum(i.value),0);
+  const alocado=ve+parcSum;
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if(alocado<=0){el.textContent='';return;}
+  const ok=Math.abs(alocado-liq)<0.01;
+  el.style.color=ok?'#16a34a':'#b45309';
+  el.textContent=`${ok?'✅':'⚠️'} Alocado ${fmt(alocado)} de ${fmt(liq)} (líquido)`;
 }
 async function salvarVendaManual(){
   const {isAdm}=_getUserCat();
@@ -2001,32 +2110,58 @@ async function salvarVendaManual(){
   const numOC=((document.getElementById('vm-oc-num')||{}).value||'').trim();
   const gv=id=>{const el=document.getElementById(id);return el?moneyToNum(el.value):0;};
   const br=gv('vm-br'),ft=gv('vm-ft'),mo=gv('vm-mo'),vi=gv('vm-vi'),el2=gv('vm-el'),art=gv('vm-art'),rem=gv('vm-rem'),med=gv('vm-med');
+  const veVal=gv('vm-ve');
+  const veDataRaw=(document.getElementById('vm-de')||{}).value||'';
+  const parcValsRaw=[...document.querySelectorAll('#vm-parc-c .vm-pd-val')].map(i=>moneyToNum(i.value));
+  const parcDatasRaw=[...document.querySelectorAll('#vm-parc-c .vm-pd-date')].map(i=>i.value);
+  const temPagamento=(veVal>0&&veDataRaw)||parcValsRaw.some((v,i)=>v>0&&parcDatasRaw[i]);
   if(!mes){toast('Selecione o mês da venda','terr');return;}
   if(!os){toast('Informe o número do pedido','terr');return;}
   if(!cliente){toast('Informe o cliente','terr');return;}
   if(!cat){toast('Informe a categoria','terr');return;}
   if(!vend){toast('Informe o vendedor','terr');return;}
   if(!br){toast('Informe o valor bruto','terr');return;}
+  if(!temPagamento){toast('Informe ao menos um valor e data de recebimento (Entrada ou Parcela) — sem isso a venda não entra em Contas a Receber nem gera comissão.','terr');return;}
   closeM('mo-venda-manual');
   const senha=await pedirSenhaAdmin('Adicionar Venda Manual','Digite sua senha de administrador para confirmar a inserção desta venda na Lista de Vendas:');
   if(!senha){toast('Cancelado','tinf');openM('mo-venda-manual');return;}
   if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');openM('mo-venda-manual');return;}
   const liq=br-ft-mo-vi-el2-art-rem-med;
   const fmtV=val=>'R$ '+val.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  // Datas digitadas pelo admin (data real prevista de recebimento) são convertidas pra
+  // marcador de quinzena (05 ou 15) ANTES de salvar — porque esta venda é gravada com
+  // importadoPlanilha:true (precisa ser, pra contar em Lista de Vendas/Metas/Comissões,
+  // ver isComercialPedido), e getComissaoQuinzena() trata pedidos importadoPlanilha
+  // como se a data já fosse o dia de corte (dia≤7→1ª quinzena, dia>7→2ª quinzena),
+  // igual os dados que sempre vieram da planilha. Sem essa conversão, uma data real
+  // tipo dia 20 cairia na quinzena errada (usaria a regra "crua" em vez da janela
+  // cliente-paga-dia-X→comissão-cai-dia-5-ou-15 usada pro resto do sistema).
+  const marker=rawDateVal=>{
+    const qi=getQuinzenaInfo(fmtD(rawDateVal));
+    if(!qi)return fmtD(rawDateVal);
+    return String(qi.half==='II'?15:5).padStart(2,'0')+'/'+String(qi.m).padStart(2,'0')+'/'+qi.y;
+  };
+  const pag={};
+  if(veVal>0&&veDataRaw){pag['Valor de Entrada']=fmtV(veVal);pag['Data da Entrada']=marker(veDataRaw);}
+  let nParc=0;
+  parcValsRaw.forEach((v,i)=>{
+    if(v>0&&parcDatasRaw[i]){nParc++;pag[`Parcela ${nParc} · ${marker(parcDatasRaw[i])}`]=fmtV(v);}
+  });
+  if(nParc>0)pag['Nº de Parcelas']=nParc+(nParc>1?' parcelas':' parcela');
   const novo={
     id:uid(),os,tipo:cat,tipoPedido:cat,responsavel:vend,
     cliente,emails:[],job:cliente,prazo:'',etapa:'Pedido Entregue',
     emissaoEm:`${ano}-${String(mes).padStart(2,'0')}-01`,
     obs:'Venda inserida manualmente pelo administrador (sem emissão de pedido no sistema)',
     importadoPlanilha:true,
-    numOC:numOC||'',ocUrl:_vmOcUrl||'',
+    numOC:numOC||'',ocUrl:_vmOcUrl||'',arq_os_url:_vmPdfUrl||'',
     valores:{
       'Valor Bruto':fmtV(br),
       'Valor Líquido do Pedido':fmtV(liq),
       'Elevações':el2>0?'Sim':'Não',
       ...(el2>0?{'Valor das Elevações':fmtV(el2)}:{})
     },
-    pagamento:{},
+    pagamento:pag,
     instalacao:{
       ...(mo>0?{'Valor da Instalação':fmtV(mo)}:{}),
       ...(vi>0?{'Valor da Mobilização':fmtV(vi)}:{}),
@@ -5560,7 +5695,7 @@ function pedidoToVendaRow(p){
   }
   return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:p.responsavel||'',
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
-    numOC:p.numOC||'',ocUrl:p.ocUrl||'',job:p.job||''};
+    numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||''};
 }
 
 // Resumo de pagamento de uma venda (por Nº de OS) pra mostrar direto na Lista de Vendas —
@@ -5755,6 +5890,7 @@ function renderDashVendas(){
         <div style="font-weight:700;font-size:.76rem;color:#1e293b">${pedidoDisplay(r.p)}</div>
         ${r.job?`<div style="font-size:.64rem;color:#64748b;white-space:nowrap" title="JOB">🏷️ ${r.job}</div>`:''}
         ${r.ocUrl?`<a href="${r.ocUrl}" target="_blank" style="font-size:.64rem;color:#1d4ed8;font-weight:600;text-decoration:underline;white-space:nowrap">📎 ${r.numOC||'Ver OC'}</a>`:(r.numOC?`<div style="font-size:.64rem;color:#94a3b8;white-space:nowrap">OC ${r.numOC}</div>`:'')}
+        ${r.pedidoPdfUrl?`<a href="${r.pedidoPdfUrl}" target="_blank" style="font-size:.64rem;color:#e91e63;font-weight:600;text-decoration:underline;white-space:nowrap;display:block">📄 Ver Pedido</a>`:''}
       </td>
       <td class="dt-cliente">
         <a href="javascript:void(0)" onclick="${verDet}" class="dt-cliente-link" title="${clSafe} — clique para ver detalhes">${r.cl}</a>
