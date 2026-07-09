@@ -107,6 +107,11 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .dt-cat{font-size:.72rem;color:#64748b;white-space:nowrap}
 .dt-pag{font-size:.76rem;white-space:nowrap}
 .dt-vend-pill{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
+.dt-cat-pill{font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;display:inline-block}
+/* Divisor visual entre as colunas "de identificação" (pedido/cliente/categoria/vendedor/
+   pagamento) e as colunas de valores financeiros — sem isso a tabela inteira parecia um
+   bloco só de texto cinza, difícil de escanear rápido. */
+.dt-vendas th.dt-fin,.dt-vendas td.dt-fin{border-left:1.5px solid #e5e7eb;background:#fafbfd}
 .dt-ver-detalhes{font-size:.63rem;color:#94a3b8;text-decoration:underline;white-space:nowrap}
 .dt-ver-detalhes:hover{color:#e91e63}
 .dash-meta-inp{width:140px;padding:7px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:.82rem;font-family:inherit;text-align:right;transition:border .2s}
@@ -458,21 +463,29 @@ select.fc{cursor:pointer}
   <div id="geral-tab-vendas" style="padding:16px 20px">
     <div class="dash-card">
       <div class="dash-sec-title">📊 Lista de Vendas</div>
+      <!-- Busca -->
+      <div style="margin-bottom:10px">
+        <div style="position:relative;max-width:440px">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.85rem;color:#94a3b8;pointer-events:none">🔍</span>
+          <input id="vnd-fil-busca" oninput="renderDashVendas()" placeholder="Buscar por OS, cliente, JOB, cidade..."
+            style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px 9px 36px;font-size:.82rem;background:var(--surface);color:var(--ink2);box-sizing:border-box">
+        </div>
+      </div>
       <!-- Filtros -->
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;padding-top:10px;border-top:1px solid var(--border-lt)">
         <select id="vnd-fil-mes" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
-          <option value="">Todos os meses</option>
+          <option value="">📅 Todos os meses</option>
           <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
           <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
           <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
         </select>
         <select id="vnd-fil-vend" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
-          <option value="">Todos os vendedores</option>
+          <option value="">🧑‍💼 Todos os vendedores</option>
         </select>
         <select id="vnd-fil-cat" onchange="renderDashVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:var(--surface);color:var(--ink2)">
-          <option value="">Todas as categorias</option>
+          <option value="">🏷️ Todas as categorias</option>
         </select>
-        <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📅 Mostrar Todas (Ano)</button>
+        <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📆 Mostrar Todas (Ano)</button>
         <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
       </div>
       <!-- Totalizadores -->
@@ -866,6 +879,15 @@ select.fc{cursor:pointer}
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Vendedor (Responsável)</label>
       <input id="ev-resp" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
     </div>
+    <div style="grid-column:span 2;background:#fff7ed;border:1.5px solid #fdba74;border-radius:9px;padding:10px 11px">
+      <label style="font-size:.7rem;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">📅 Mês da Venda (Metas / Lista de Vendas)</label>
+      <select id="ev-mes-venda" style="width:100%;padding:8px 10px;border:1.5px solid #fdba74;border-radius:7px;font-size:.86rem;font-family:inherit;box-sizing:border-box;background:#fff">
+        <option value="1">JANEIRO</option><option value="2">FEVEREIRO</option><option value="3">MARÇO</option><option value="4">ABRIL</option>
+        <option value="5">MAIO</option><option value="6">JUNHO</option><option value="7">JULHO</option><option value="8">AGOSTO</option>
+        <option value="9">SETEMBRO</option><option value="10">OUTUBRO</option><option value="11">NOVEMBRO</option><option value="12">DEZEMBRO</option>
+      </select>
+      <div style="font-size:.66rem;color:#9a3412;margin-top:5px;line-height:1.4">Use isto quando a venda foi fechada num mês mas só emitida depois — a emissão continua com a data de hoje, só o mês que conta pra Metas/Comissões/Lista de Vendas muda.</div>
+    </div>
     <div id="ev-tipo-wrap" style="grid-column:span 2">
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>
     </div>
@@ -888,6 +910,22 @@ select.fc{cursor:pointer}
         <div class="uz-title" style="font-size:.8rem">Clique para selecionar (opcional)</div>
         <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="ev-oc-file" style="display:none" onchange="uploadEvOc(this)">
       </div>
+    </div>
+  </div>
+
+  <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📧 Contatos (E-mails do Pedido)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">E-mail do Comprador(a)</label>
+      <input id="ev-email-comprador" type="email" class="no-upper" placeholder="comprador@exemplo.com" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;text-transform:none">
+    </div>
+    <div>
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">E-mail do Engenheiro da Obra</label>
+      <input id="ev-email-engenheiro" type="email" class="no-upper" placeholder="engenheiro@exemplo.com" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;text-transform:none">
+    </div>
+    <div style="grid-column:span 2">
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">E-mail Financeiro (envio de NF's)</label>
+      <input id="ev-email-financeiro" type="email" class="no-upper" placeholder="financeiro@exemplo.com" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;text-transform:none">
     </div>
   </div>
 
@@ -1552,7 +1590,7 @@ function getTarefasComerciaisPendentes(){
   const out=[];
   pedidos.forEach(p=>{
     (p.tarefasComerciais||[]).forEach(t=>{
-      if(t.status!=='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||''});
+      if(t.status!=='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||'',job:p.job||'',prazo:p.prazo||''});
     });
   });
   out.sort((a,b)=>(a.criadaEm||'').localeCompare(b.criadaEm||''));
@@ -1562,7 +1600,7 @@ function getTarefasComerciaisConcluidas(){
   const out=[];
   pedidos.forEach(p=>{
     (p.tarefasComerciais||[]).forEach(t=>{
-      if(t.status==='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||''});
+      if(t.status==='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||'',job:p.job||'',prazo:p.prazo||''});
     });
   });
   out.sort((a,b)=>(b.concluidaEm||'').localeCompare(a.concluidaEm||''));
@@ -2144,6 +2182,13 @@ async function editarValoresPedido(pedidoId){
   setIn2('ev-prazo',p.prazo||'');
   setIn2('ev-resp',p.responsavel||'');
   setIn2('ev-numoc',p.numOC||'');
+  // Mês que a venda deve contar nas Metas/Lista de Vendas — usa o override se já foi
+  // setado antes, senão cai pro mês real de emissão (comportamento de sempre).
+  const _mesNatural=p.emissaoEm?(parseInt(p.emissaoEm.split('-')[1],10)||0):0;
+  setIn2('ev-mes-venda',String(p.mesVendaOverride||_mesNatural||(new Date().getMonth()+1)));
+  setIn2('ev-email-comprador',p.email_comprador||'');
+  setIn2('ev-email-engenheiro',p.email_engenheiro||'');
+  setIn2('ev-email-financeiro',p.email_financeiro||'');
   _evOcUrl=p.ocUrl||'';
   const ocFile=document.getElementById('ev-oc-file');if(ocFile)ocFile.value='';
   const ocZone=document.getElementById('ev-oc-zone');
@@ -2325,6 +2370,21 @@ async function salvarValoresPedido(){
   p.prazo=gi('ev-prazo');
   p.responsavel=gi('ev-resp');
   p.numOC=gi('ev-numoc');
+  // Mês da venda pra Metas/Comissões/Lista de Vendas — independente da data real de
+  // emissão (ver comentário em pedidoToVendaRow). Só grava override se o mês escolhido
+  // for diferente do mês natural de emissão; se voltou a ser igual, remove o override
+  // pra não deixar lixo salvo à toa.
+  const mesEscolhido=parseInt(gi('ev-mes-venda'),10)||0;
+  const mesNaturalSalvo=p.emissaoEm?(parseInt(p.emissaoEm.split('-')[1],10)||0):0;
+  if(mesEscolhido&&mesEscolhido!==mesNaturalSalvo)p.mesVendaOverride=mesEscolhido;
+  else delete p.mesVendaOverride;
+  // E-mails de contato do pedido — antes só existiam no formulário original de Emissão,
+  // sem jeito nenhum de completar/corrigir depois (ex.: pedido antigo ou importado que
+  // nunca teve Comprador/Engenheiro cadastrado). Editável aqui agora; entram juntos no
+  // resumo do e-mail de emissão (seção "Contatos" em buildEmissaoEmailContent).
+  p.email_comprador=gi('ev-email-comprador');
+  p.email_engenheiro=gi('ev-email-engenheiro');
+  p.email_financeiro=gi('ev-email-financeiro');
   if(_evOcUrl)p.ocUrl=_evOcUrl;
   if(_evPdfUrl)p.arq_os_url=_evPdfUrl;
   const novoTipo=gi('ev-tipo');
@@ -5763,7 +5823,7 @@ function renderTarefasComerciais(){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border-lt);border-radius:10px;margin-bottom:8px;background:#fff">
       <div style="min-width:0">
         <div style="font-weight:700;font-size:.82rem;color:#1e293b">${t.tipo}</div>
-        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">OS ${t.os||'—'} · ${t.cliente||'—'} · ${t.vendedor}</div>
+        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">OS ${t.os||'—'} · ${t.cliente||'—'}${t.job?' · JOB: '+t.job:''} · ${t.vendedor}${t.prazo?' · Prazo: '+fmtD(t.prazo):''}</div>
         <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}</div>
       </div>
       ${pendente
@@ -6254,14 +6314,23 @@ function pedidoToVendaRow(p){
     lq=v['Valor Líquido do Pedido']!=null?moneyToNum(v['Valor Líquido do Pedido']):(br-op);
   }
   let mes='',m=0;
-  if(p.emissaoEm){
+  // mesVendaOverride: mês em que a venda deve CONTAR pra Metas/Comissões/Lista de Vendas,
+  // independente da data real de emissão (p.emissaoEm) — pro caso de pedido vendido num
+  // mês mas só emitido depois (ex.: vendeu em maio, problema com o cliente, só emitiu em
+  // julho — sem isso a venda contaria em julho e duplicaria/desalinharia a meta de maio
+  // já lançada). Editável em "Editar Valores" na Lista de Vendas.
+  if(p.mesVendaOverride){
+    m=parseInt(p.mesVendaOverride,10)||0;
+    mes=MESES_PT[m]||'';
+  } else if(p.emissaoEm){
     const partes=p.emissaoEm.split('-');
     m=parseInt(partes[1],10)||0;
     mes=MESES_PT[m]||'';
   }
   return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:p.responsavel||'',
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
-    numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||''};
+    numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||'',cidade:p.locCidade||'',
+    mesAjustado:!!p.mesVendaOverride};
 }
 
 // Resumo de pagamento de uma venda (por Nº de OS) pra mostrar direto na Lista de Vendas —
@@ -6391,7 +6460,11 @@ function renderDashVendas(){
   const filMes=(document.getElementById('vnd-fil-mes')||{}).value||'';
   const filVend=(document.getElementById('vnd-fil-vend')||{}).value||'';
   const filCat=(document.getElementById('vnd-fil-cat')||{}).value||'';
-  let rows2=allRowsForFil.filter(r=>(!filMes||r.mes===filMes)&&(!filVend||r.v===filVend)&&(!filCat||r.cat===filCat));
+  const filBusca=norm((document.getElementById('vnd-fil-busca')||{}).value||'');
+  // Busca livre: OS, cliente, JOB, cidade, vendedor, categoria e Nº de OC — tudo num campo só,
+  // sem acento/maiúsculas (norm()) pra não depender de digitar exatamente igual.
+  const _buscaMatch=r=>!filBusca||[r.p,r.cl,r.job,r.cidade,r.v,r.cat,r.numOC].some(v=>v&&norm(String(v)).includes(filBusca));
+  let rows2=allRowsForFil.filter(r=>(!filMes||r.mes===filMes)&&(!filVend||r.v===filVend)&&(!filCat||r.cat===filCat)&&_buscaMatch(r));
   rows2=rows2.map(r=>{
     const ba=r.ba||0,ou=r.ou||0;
     return {...r,rem:r.rem||0,med:r.med||0,opAdj:(r.op||0),lqAdj:(r.lq||0)};
@@ -6404,14 +6477,14 @@ function renderDashVendas(){
   const nPeds=rows2.length;
   const tot=document.getElementById('vnd-totais');
   if(tot)tot.innerHTML=[
-    {cls:'az',l:'Total Bruto',v:fmtR(totBr)},
-    {cls:'ro',l:'Total Líquido',v:fmtR(totLq)},
-    {cls:'dk',l:'Total Operacionais',v:fmtR(totOp)},
-    {cls:'wn',l:'Pedidos / Vendedores',v:nPeds+' / '+nVends},
-  ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv" style="font-size:1rem">${k.v}</div></div>`).join('');
+    {cls:'az',ic:'💰',l:'Total Bruto',v:fmtR(totBr)},
+    {cls:'ro',ic:'💵',l:'Total Líquido',v:fmtR(totLq)},
+    {cls:'dk',ic:'🔧',l:'Total Operacionais',v:fmtR(totOp)},
+    {cls:'wn',ic:'📦',l:'Pedidos / Vendedores',v:nPeds+' / '+nVends},
+  ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.ic} ${k.l}</div><div class="gc-kv" style="font-size:1rem">${k.v}</div></div>`).join('');
 
   const el=document.getElementById('dash-vendas-content');if(!el)return;
-  if(!rows2.length){el.innerHTML='<p style="color:#94a3b8;font-size:.85rem">Nenhum resultado encontrado.</p>';return;}
+  if(!rows2.length){el.innerHTML=`<p style="color:#94a3b8;font-size:.85rem">${filBusca?'Nenhum resultado para "'+(document.getElementById('vnd-fil-busca')||{}).value+'".':'Nenhum resultado encontrado.'}</p>`;return;}
 
   const fmtOp=v=>v>0?fmtR(v):'—';
   // Paleta dentro do padrão visual Granda (rosa/marca #e91e63, teal #00bac7, navy) em vez
@@ -6422,6 +6495,17 @@ function renderDashVendas(){
     if(V.includes('BRUNO'))return{bg:'#e0f9fb',fg:'#0099a8'};
     if(V.includes('JULIO'))return{bg:'#e2e8f0',fg:'#334155'};
     return{bg:'#f1f5f9',fg:'#475569'};
+  };
+  // Categoria também vira "pill" colorida (antes era texto cinza igual a tudo mais na
+  // linha — misturava visualmente com Cliente/Vendedor). Cores fixas por categoria pra
+  // reconhecer o tipo de pedido num piscar de olho, sem depender de ler o texto.
+  const catCor=v=>{
+    const V=(v||'').toUpperCase();
+    if(V.includes('GARANTIA')||V.includes('RETRABALHO'))return{bg:'#fee2e2',fg:'#b91c1c'};
+    if(V.includes('AMOSTRA'))return{bg:'#ede9fe',fg:'#6d28d9'};
+    if(V.includes('INTERNO'))return{bg:'#f1f5f9',fg:'#475569'};
+    if(V.includes('BRINDE'))return{bg:'#fce4ec',fg:'#c2185b'};
+    return{bg:'#dcfce7',fg:'#166534'};// Venda (padrão)
   };
 
   // Redesenho: a tabela tinha 17 colunas (9 fixas + 7 "operacionais" sempre visíveis),
@@ -6453,10 +6537,11 @@ function renderDashVendas(){
     }
     const zebra=rowIdx++%2===0?'':' class="dt-alt"';
     const vCor=tagCor(r.v);
+    const catCorV=catCor(r.cat);
     const clSafe=String(r.cl||'').replace(/"/g,'&quot;');
     const verDet=`verVendaDetalhe('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')`;
     return header+`<tr${zebra}>
-      <td class="dt-mes-mini">${r.mes.slice(0,3)}</td>
+      <td class="dt-mes-mini">${r.mes.slice(0,3)}${r.mesAjustado?` <span title="Mês da venda ajustado manualmente — diferente do mês real de emissão">✏️</span>`:''}</td>
       <td>
         <div style="font-weight:700;font-size:.76rem;color:#1e293b">${pedidoDisplay(r.p)}</div>
         ${r.job?`<div style="font-size:.64rem;color:#64748b;white-space:nowrap" title="JOB">🏷️ ${r.job}</div>`:''}
@@ -6466,15 +6551,15 @@ function renderDashVendas(){
       <td class="dt-cliente">
         <a href="javascript:void(0)" onclick="${verDet}" class="dt-cliente-link" title="${clSafe} — clique para ver detalhes">${r.cl}</a>
       </td>
-      <td class="dt-cat">${r.cat}</td>
+      <td class="dt-cat"><span class="dt-cat-pill" style="background:${catCorV.bg};color:${catCorV.fg}">${r.cat}</span></td>
       <td style="white-space:nowrap"><span class="dt-vend-pill" style="background:${vCor.bg};color:${vCor.fg}">${r.v||'—'}</span></td>
       <td class="dt-pag">${fmtProximoPagamento(r.p)}</td>
-      <td class="dt-num" style="font-weight:700;color:#1a2b5e">${fmtR(r.br)}</td>
-      <td class="dt-num">
+      <td class="dt-num dt-fin" style="font-weight:700;color:#1a2b5e">${fmtR(r.br)}</td>
+      <td class="dt-num dt-fin">
         <div style="font-weight:700;color:#7c3aed">${fmtOp(r.opAdj)}</div>
         ${r.opAdj>0?`<a href="javascript:void(0)" onclick="${verDet}" class="dt-ver-detalhes">ver detalhes</a>`:''}
       </td>
-      <td class="dt-num" style="font-weight:800;color:#e0245e">${fmtR(r.lqAdj)}</td>
+      <td class="dt-num dt-fin" style="font-weight:800;color:#e0245e">${fmtR(r.lqAdj)}</td>
       <td style="white-space:nowrap">${isAdm?`<button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button>`:''}${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1a2b5e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="reenviarEmailPedido('${r._pid}')">🔁 Reenviar Email</button>`:''}</td>
     </tr>`;
   }).join('');
@@ -6482,12 +6567,12 @@ function renderDashVendas(){
   el.innerHTML=`<div style="overflow-x:auto"><table class="dash-table dt-vendas">
     <thead>
       <tr>
-        <th colspan="2">Pedido / JOB</th>
-        <th>Cliente</th><th>Categoria</th><th>Vendedor</th>
-        <th>Pagamento</th>
-        <th class="dt-num">Valor Bruto</th>
-        <th class="dt-num" style="color:#7c3aed">Operacionais</th>
-        <th class="dt-num">Valor Líquido</th>
+        <th colspan="2">📄 Pedido / JOB</th>
+        <th>👤 Cliente</th><th>🏷️ Categoria</th><th>🧑‍💼 Vendedor</th>
+        <th>💳 Pagamento</th>
+        <th class="dt-num dt-fin" style="color:#1a2b5e">Valor Bruto</th>
+        <th class="dt-num dt-fin" style="color:#7c3aed">Operacionais</th>
+        <th class="dt-num dt-fin" style="color:#e0245e">Valor Líquido</th>
         <th>Ações</th>
       </tr>
     </thead>
