@@ -1167,6 +1167,35 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+<!-- CONFIRMAR RECEBIMENTO MODAL -->
+<div class="mov" id="mo-confirmar-receb" onclick="cio(event,'mo-confirmar-receb')">
+<div class="mvmod" style="width:480px;max-width:96vw">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">✅ Confirmar recebimento</h3>
+    <button onclick="closeM('mo-confirmar-receb')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div id="cfr-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px"></div>
+  <div style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">O valor recebido foi...</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
+    <div class="rc sel" id="cfr-opt-cheio" onclick="_cfrSetNegociado(false)">
+      <input type="radio" name="cfr-opt" checked>
+      <span id="cfr-opt-cheio-lbl">✅ Pagou o valor cheio</span>
+    </div>
+    <div class="rc" id="cfr-opt-neg" onclick="_cfrSetNegociado(true)">
+      <input type="radio" name="cfr-opt">
+      <span>✏️ Cliente negociou pagar um valor diferente</span>
+    </div>
+  </div>
+  <div id="cfr-valor-wrap" style="display:none;margin-top:10px">
+    <div class="fg">
+      <label>Valor realmente pago <span class="r">*</span></label>
+      <input class="fc" id="cfr-valor-neg" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="fmtMoney(this)">
+    </div>
+  </div>
+  <button onclick="salvarConfirmarRecebimento()" style="margin-top:14px;width:100%;background:#16a34a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">Confirmar Recebimento</button>
+</div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="mov" id="mo-set" onclick="cio(event,'mo-set')">
 <div class="setmod" style="width:780px;max-width:98vw;max-height:92vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
@@ -1929,9 +1958,9 @@ function viewP(id){
       <div class="vf"><div class="l">JOB</div><div class="v">${p.job||'—'}</div></div>
       <div class="vf"><div class="l">Prazo</div><div class="v">${p.prazo?fmtD(p.prazo):'—'}</div></div>
       <div class="vf"><div class="l">OS Nº</div><div class="v">${p.os||'—'}</div></div>
-      ${p.email_comprador?`<div class="vf"><div class="l">E-mail do Comprador(a)</div><div class="v">${p.email_comprador}</div></div>`:''}
-      ${p.email_engenheiro?`<div class="vf"><div class="l">E-mail do Engenheiro da Obra</div><div class="v">${p.email_engenheiro}</div></div>`:''}
-      ${p.email_financeiro?`<div class="vf"><div class="l">E-mail Financeiro (NF's)</div><div class="v">${p.email_financeiro}</div></div>`:''}
+      ${p.email_comprador?`<div class="vf" style="grid-column:span 2;display:flex;align-items:center;gap:8px"><div class="l" style="margin:0;white-space:nowrap">E-mail do Comprador(a)</div><div class="v" style="margin:0">${p.email_comprador}</div></div>`:''}
+      ${p.email_engenheiro?`<div class="vf" style="grid-column:span 2;display:flex;align-items:center;gap:8px"><div class="l" style="margin:0;white-space:nowrap">E-mail do Engenheiro da Obra</div><div class="v" style="margin:0">${p.email_engenheiro}</div></div>`:''}
+      ${p.email_financeiro?`<div class="vf" style="grid-column:span 2;display:flex;align-items:center;gap:8px"><div class="l" style="margin:0;white-space:nowrap">E-mail Financeiro (NF's)</div><div class="v" style="margin:0">${p.email_financeiro}</div></div>`:''}
       ${p.obs?`<div class="vf" style="grid-column:span 2"><div class="l">Observações</div><div class="v">${p.obs}</div></div>`:''}
     </div></div>
     ${sec('Valores',v)}${sec('Pagamento',pg)}${sec('Instalação',inst)}${sec('Frete',fr)}
@@ -3532,6 +3561,9 @@ function addRem(){
 // corrigido junto: esses campos agora são persistidos em p (ver construção de p em submit()).
 function buildEmissaoEmailContent(p){
   const val=p.valores||{},pag=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj=p.projetos||{};
+  // "Elevações"/"Valor das Elevações" já têm seção própria (ELEVAÇÕES, mais abaixo) —
+  // tirado daqui pra não duplicar a mesma informação em Valores e em Elevações.
+  const valSemElev=Object.fromEntries(Object.entries(val).filter(([k])=>k!=='Elevações'&&k!=='Valor das Elevações'));
   const fmtSec=(titulo,obj)=>{
     if(!Object.keys(obj).length)return'';
     const rows=Object.entries(obj).map(([k,v],i)=>`
@@ -3590,8 +3622,12 @@ function buildEmissaoEmailContent(p){
         <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Observações</span>
       </td></tr>
       <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7;border-bottom:1px solid #f3f4f6">${p.obs}</td></tr>`:''}
-      ${p.email_financeiro?fmtSec('Financeiro',{"E-mail Financeiro (envio de NF's)":p.email_financeiro}):''}
-      ${fmtSec('Valores',val)}
+      ${fmtSec('Contatos',{
+        ...(p.email_comprador?{"E-mail do Comprador(a)":p.email_comprador}:{}),
+        ...(p.email_engenheiro?{"E-mail do Engenheiro da Obra":p.email_engenheiro}:{}),
+        ...(p.email_financeiro?{"E-mail Financeiro (envio de NF's)":p.email_financeiro}:{})
+      })}
+      ${fmtSec('Valores',valSemElev)}
       ${fmtSec('Pagamento',pag)}
       ${p.arq_os_url?`
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
@@ -4560,16 +4596,24 @@ function getParcelas(p){
   const totalLiq=parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
   const ratio=(p.importadoPlanilha||p.pagamentoLiquido)?1:(totalBruto>0?totalLiq/totalBruto:1);
   const toLiq=bruto=>bruto*ratio;
+  // Proporção REAL bruto/líquido do pedido inteiro — independente de como esta parcela
+  // foi digitada (bruto ou líquido). Usada só pra "voltar" ao bruto de cada parcela na
+  // tela Financeiro/Contas a Receber (que mostra bruto — é o valor que o cliente deve —
+  // enquanto Comissões continua em líquido). Ver [[abrirConfirmarRecebimento]].
+  const trueRatio=totalBruto>0?(totalLiq/totalBruto):1;
+  const toBruto=liq=>trueRatio>0?liq/trueRatio:liq;
   const res=[];
   if(pag['Valor de Entrada']&&pag['Data da Entrada']){
     const vBruto=$mDash(pag['Valor de Entrada']);
-    res.push({pedidoId:p.id,pedido:p,label:'Entrada',valor:toLiq(vBruto),dataStr:(pag['Data da Entrada']||'').trim(),confKey:`${p.id}::entrada`});
+    const liqV=toLiq(vBruto);
+    res.push({pedidoId:p.id,pedido:p,label:'Entrada',valor:liqV,valorBruto:toBruto(liqV),dataStr:(pag['Data da Entrada']||'').trim(),confKey:`${p.id}::entrada`});
   }
   Object.entries(pag).forEach(([k,v])=>{
     const mt=k.match(/^Parcela\s+(\d+)\s+·\s+(.+)$/);
     if(mt){
       const vBruto=$mDash(v);
-      res.push({pedidoId:p.id,pedido:p,label:k,valor:toLiq(vBruto),dataStr:mt[2].trim(),confKey:`${p.id}::${k}`});
+      const liqV=toLiq(vBruto);
+      res.push({pedidoId:p.id,pedido:p,label:k,valor:liqV,valorBruto:toBruto(liqV),dataStr:mt[2].trim(),confKey:`${p.id}::${k}`});
     }
   });
   return res;
@@ -5076,6 +5120,16 @@ function renderDashMetas(){
 // Coleta TODOS os itens de comissão (qualquer mês/quinzena), cada um já marcado com
 // a janela de pagamento (qy/qm/qhalf). getComissaoItems(y,m) filtra a partir daqui;
 // getComissaoItemsFuturos() usa a lista inteira pra olhar além do mês selecionado.
+// Se o Financeiro confirmou um valor diferente do previsto (cliente negociou pagar
+// menos — ver abrirConfirmarRecebimento), o líquido usado na comissão é recalculado
+// proporcionalmente ao valor bruto realmente confirmado, não ao previsto original.
+function _aplicaValorConfirmado(parc,conf){
+  if(conf&&conf.valorBrutoConfirmado!=null){
+    const parcRatio=parc.valorBruto>0?(parc.valor/parc.valorBruto):1;
+    return{valor:conf.valorBrutoConfirmado*parcRatio,valorBruto:conf.valorBrutoConfirmado};
+  }
+  return{valor:parc.valor,valorBruto:parc.valorBruto};
+}
 function getComissaoItemsAll(){
   if(_comItemsCache)return _comItemsCache;
   const all=[];
@@ -5111,7 +5165,8 @@ function getComissaoItemsAll(){
       const pct=getPctComissao(emY,emM,vendForPct);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
-      const item={...parc,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parc,conf);
+      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -5133,7 +5188,12 @@ function getComissaoItemsAll(){
       const pct=getPctComissao(emY,emM,vendNorm);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=MESES_PT[emM]+' '+emY;
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:parc.valor,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
+      // x.br/x.lq = bruto/líquido do pedido inteiro na planilha — usado só pra saber o
+      // bruto desta parcela (parcelas da planilha vêm em líquido, igual getParcelas()).
+      const xRatio=x.br>0?(x.lq/x.br):1;
+      const parcComBruto={valor:parc.valor,valorBruto:xRatio>0?parc.valor/xRatio:parc.valor};
+      const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parcComBruto,conf);
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -5213,6 +5273,48 @@ function confirmarRecebimento(confKey,dataStr){
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
 }
+// Antes o clique em "Confirmar" já marcava como recebido na hora, sempre pelo valor
+// cheio previsto — mas o cliente às vezes negocia pagar menos, e isso precisa refletir
+// na comissão (que é calculada em cima do líquido). Esse modal pergunta se foi pago o
+// valor cheio (bruto, igual mostrado na tela) ou um valor diferente negociado; se for
+// diferente, o líquido usado na comissão é recalculado proporcionalmente — ver
+// _aplicaValorConfirmado() em getComissaoItemsAll().
+let _cfrConfKey=null,_cfrDataStr=null,_cfrValorBruto=0,_cfrNegociado=false;
+function abrirConfirmarRecebimento(confKey,dataStr,cliente,valorBruto){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem confirmar recebimento','terr');return;}
+  _cfrConfKey=confKey;_cfrDataStr=dataStr;_cfrValorBruto=valorBruto||0;
+  const info=document.getElementById('cfr-info');
+  if(info)info.innerHTML=`<strong>${cliente||'—'}</strong> · previsto <strong>${fmtR(valorBruto||0)}</strong> · ${dataStr||'—'}`;
+  const cheioLbl=document.getElementById('cfr-opt-cheio-lbl');
+  if(cheioLbl)cheioLbl.textContent=`✅ Pagou o valor cheio (${fmtR(valorBruto||0)})`;
+  const inp=document.getElementById('cfr-valor-neg');
+  if(inp){inp.value='';inp.dataset.raw='0';}
+  _cfrSetNegociado(false);
+  openM('mo-confirmar-receb');
+}
+function _cfrSetNegociado(negociado){
+  _cfrNegociado=negociado;
+  document.getElementById('cfr-opt-cheio')?.classList.toggle('sel',!negociado);
+  document.getElementById('cfr-opt-neg')?.classList.toggle('sel',negociado);
+  const wrap=document.getElementById('cfr-valor-wrap');
+  if(wrap)wrap.style.display=negociado?'':'none';
+  if(negociado)setTimeout(()=>document.getElementById('cfr-valor-neg')?.focus(),50);
+}
+function salvarConfirmarRecebimento(){
+  if(!_cfrConfKey)return;
+  let valorBrutoFinal=_cfrValorBruto;
+  if(_cfrNegociado){
+    const v=moneyToNum(document.getElementById('cfr-valor-neg')?.value||'');
+    if(!v||v<=0){toast('Informe o valor que foi realmente pago','terr');return;}
+    valorBrutoFinal=v;
+  }
+  setPagConf(_cfrConfKey,{status:'confirmado',novaData:_cfrDataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:'',valorBrutoConfirmado:valorBrutoFinal});
+  closeM('mo-confirmar-receb');
+  toast(_cfrNegociado?`Recebimento confirmado com valor negociado (${fmtR(valorBrutoFinal)})! Comissão ajustada e liberada. ✅`:'Recebimento confirmado! Comissão liberada na quinzena. ✅','tok');
+  renderFinanceiro();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  if(typeof renderDashCards==='function')renderDashCards();
+}
 // Limpeza em lote pra vendas antigas (de antes da tela de Contas a Receber existir/ser
 // usada) cuja comissão já foi paga na vida real mas nunca foi confirmada aqui — sem isso
 // elas ficam aparecendo pra sempre como "pendente"/"atrasado" mesmo já quitadas de fato.
@@ -5281,9 +5383,9 @@ function renderFinanceiro(){
   // Cards resumo
   const cardsEl=document.getElementById('fin-cards');
   if(cardsEl){
-    const totPend=items.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valor,0);
-    const totAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valor,0);
-    const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valor,0);
+    const totPend=items.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+    const totAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valorBruto,0);
+    const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
     const qtdAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').length;
     cardsEl.innerHTML=`
       <div style="background:#dbeafe;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">A receber</div><div style="font-size:1.1rem;font-weight:800;color:#1e40af">${fmtR(totPend)}</div></div>
@@ -5305,14 +5407,14 @@ function renderFinanceiro(){
     const da=(i.dataAtiva||'').replace(/'/g,"\\'");
     const cl=(i.cliente||'').replace(/'/g,"\\'");
     const acoes=i.statusCalc==='confirmado'?'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>'
-      :(isFinAdm?`<button class="dash-btn-conf" onclick="confirmarRecebimento('${ck}','${da}')">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valor})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
+      :(isFinAdm?`<button class="dash-btn-conf" onclick="abrirConfirmarRecebimento('${ck}','${da}','${cl}',${i.valorBruto})">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valorBruto})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
     return`<tr style="${i.statusCalc==='confirmado'?'background:#f0fdf4;':i.statusCalc==='nao_recebido'||i.statusCalc==='atrasado'?'background:#fef2f2;':''}">
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
       <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
       <td>${i.nomeVend}</td>
       <td style="font-size:.72rem">${i.label}</td>
-      <td style="font-weight:700">${fmtR(i.valor)}</td>
+      <td style="font-weight:700">${fmtR(i.valorBruto)}</td>
       <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
       <td style="font-weight:700;color:${i.diasAtraso>0?'#dc2626':'#94a3b8'}">${i.diasAtraso>0?i.diasAtraso+' dia'+(i.diasAtraso>1?'s':''):'—'}</td>
       <td>${statusPill(i)}</td>
@@ -6346,7 +6448,7 @@ function renderDashVendas(){
         <td class="dt-num dt-mes-br">${fmtR(grpBr)}</td>
         <td class="dt-num dt-mes-op">${fmtR(grpOp)}</td>
         <td class="dt-num dt-mes-lq">${fmtR(grpLq)}</td>
-        ${isAdm?'<td></td>':''}
+        <td></td>
       </tr>`;
     }
     const zebra=rowIdx++%2===0?'':' class="dt-alt"';
@@ -6373,7 +6475,7 @@ function renderDashVendas(){
         ${r.opAdj>0?`<a href="javascript:void(0)" onclick="${verDet}" class="dt-ver-detalhes">ver detalhes</a>`:''}
       </td>
       <td class="dt-num" style="font-weight:800;color:#e0245e">${fmtR(r.lqAdj)}</td>
-      ${isAdm?`<td style="white-space:nowrap"><button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button>${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1a2b5e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="reenviarEmailPedido('${r._pid}')">🔁 Reenviar Email</button>`:''}</td>`:''}
+      <td style="white-space:nowrap">${isAdm?`<button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button>`:''}${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1a2b5e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="reenviarEmailPedido('${r._pid}')">🔁 Reenviar Email</button>`:''}</td>
     </tr>`;
   }).join('');
 
@@ -6386,7 +6488,7 @@ function renderDashVendas(){
         <th class="dt-num">Valor Bruto</th>
         <th class="dt-num" style="color:#7c3aed">Operacionais</th>
         <th class="dt-num">Valor Líquido</th>
-        ${isAdm?'<th>Ações</th>':''}
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
