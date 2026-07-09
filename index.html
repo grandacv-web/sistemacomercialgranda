@@ -439,7 +439,12 @@ select.fc{cursor:pointer}
         <div class="hdr-stat"><span class="hdr-stat-n" id="s-tot">0</span><span class="hdr-stat-l">Total</span></div>
       </div>
     </div>
-    <div class="hdr-r"></div>
+    <div class="hdr-r">
+      <button class="btn-novo" id="btn-novo-pedido-vendas" onclick="openEmissao()" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Pedido
+      </button>
+    </div>
   </div>
 
   <div class="dash-tabs" style="margin:16px 20px 0">
@@ -468,10 +473,6 @@ select.fc{cursor:pointer}
           <option value="">Todas as categorias</option>
         </select>
         <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📅 Mostrar Todas (Ano)</button>
-        <button class="btn-novo" id="btn-novo-pedido-vendas" onclick="openEmissao()" style="display:none">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Novo Pedido
-        </button>
         <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
       </div>
       <!-- Totalizadores -->
