@@ -468,8 +468,8 @@ select.fc{cursor:pointer}
           <option value="">Todas as categorias</option>
         </select>
         <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📅 Mostrar Todas (Ano)</button>
-        <button id="btn-novo-pedido-vendas" onclick="openEmissao()" style="display:none;background:#e91e63;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;align-items:center;gap:6px">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:-1px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <button class="btn-novo" id="btn-novo-pedido-vendas" onclick="openEmissao()" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Novo Pedido
         </button>
         <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
@@ -1745,7 +1745,7 @@ function atualizarBotaoNovoPedido(){
     // Mesmo botão, duplicado em Vendas do Mês (Geral) — Comercial hoje é só Metas &
     // Comissões, atrás de senha de admin, então o vendedor nunca chegava no botão original.
     const btnV=document.getElementById('btn-novo-pedido-vendas');
-    if(btnV)btnV.style.display=temPerm?'inline-flex':'none';
+    if(btnV)btnV.style.display=temPerm?'flex':'none';
   }catch(e){}
 }
 
