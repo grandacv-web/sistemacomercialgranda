@@ -468,6 +468,10 @@ select.fc{cursor:pointer}
           <option value="">Todas as categorias</option>
         </select>
         <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📅 Mostrar Todas (Ano)</button>
+        <button id="btn-novo-pedido-vendas" onclick="openEmissao()" style="display:none;background:#e91e63;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;align-items:center;gap:6px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="vertical-align:-1px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Pedido
+        </button>
         <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
       </div>
       <!-- Totalizadores -->
@@ -1738,6 +1742,10 @@ function atualizarBotaoNovoPedido(){
     const temPerm=isAdm||(perms[cat]&&perms[cat].includes('novo_pedido'));
     const btn=document.getElementById('btn-novo-pedido');
     if(btn)btn.style.display=temPerm?'flex':'none';
+    // Mesmo botão, duplicado em Vendas do Mês (Geral) — Comercial hoje é só Metas &
+    // Comissões, atrás de senha de admin, então o vendedor nunca chegava no botão original.
+    const btnV=document.getElementById('btn-novo-pedido-vendas');
+    if(btnV)btnV.style.display=temPerm?'inline-flex':'none';
   }catch(e){}
 }
 
@@ -2026,26 +2034,23 @@ function updParcEV(){
   _updEvPagCheck();
 }
 // Indicador (não bloqueia o salvamento) de quanto já foi alocado em entrada+parcelas.
-// Pedido importadoPlanilha (venda manual ou vinda da planilha) guarda parcela em valor
-// LÍQUIDO (ver getParcelas — ratio=1 pra esses casos), então compara com o líquido do
-// topo; pedido emitido pelo fluxo normal guarda parcela em valor BRUTO (ratio de
-// conversão aplicado só na leitura), então compara com o bruto.
+// Regra única (2026-07-09): o pagamento de qualquer parcela SEMPRE se refere ao valor
+// LÍQUIDO do pedido, não importa se é pedido importadoPlanilha (venda manual/planilha)
+// ou pedido emitido pelo fluxo normal — mesmo padrão em getParcelas (ratio=1 sempre
+// pra pagamento salvo por aqui) e em salvarValoresPedido (marca p.pagamentoLiquido).
 function _updEvPagCheck(){
   const el=document.getElementById('ev-pag-check');if(!el)return;
   const gv=id=>{const e=document.getElementById(id);return e?moneyToNum(e.value):0;};
   const br=gv('ev-br'),ft=gv('ev-ft'),mo=gv('ev-mo'),vi=gv('ev-vi'),el2=gv('ev-el'),art=gv('ev-art'),rem=gv('ev-rem'),med=gv('ev-med');
   const liqCalc=br-ft-mo-vi-el2-art-rem-med;
-  const p=pedidos.find(x=>x.id===_editValId);
-  const isImp=!!(p&&p.importadoPlanilha);
-  const target=isImp?liqCalc:br;
   const ve=gv('ev-ve');
   const parcSum=[...document.querySelectorAll('#ev-parc-c .ev-pd-val')].reduce((s,i)=>s+moneyToNum(i.value),0);
   const alocado=ve+parcSum;
   const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
   if(alocado<=0){el.textContent='';return;}
-  const ok=Math.abs(alocado-target)<0.01;
+  const ok=Math.abs(alocado-liqCalc)<0.01;
   el.style.color=ok?'#16a34a':'#b45309';
-  el.textContent=`${ok?'✅':'⚠️'} Alocado ${fmt(alocado)} de ${fmt(target)} (${isImp?'líquido':'bruto'})`;
+  el.textContent=`${ok?'✅':'⚠️'} Alocado ${fmt(alocado)} de ${fmt(liqCalc)} (líquido)`;
 }
 // Editar uma linha da Lista de Vendas que ainda só existe na planilha (XLSX_VENDAS),
 // sem pedido correspondente no Firestore. Cria o registro só nesse momento (edição pontual,
@@ -2128,18 +2133,12 @@ async function editarValoresPedido(pedidoId){
     let nm=pdfZone.querySelector('.uz-file');if(nm)nm.remove();
   }
   // Pagamento: pré-preenche com o que já estiver salvo em p.pagamento (Entrada + Parcelas).
-  // Rótulo/dica mudam conforme o tipo do pedido — importadoPlanilha (venda manual ou vinda
-  // da planilha) guarda parcela em valor LÍQUIDO; pedido emitido pelo fluxo normal guarda
-  // em valor BRUTO (ver comentário de _updEvPagCheck).
+  // Regra única (2026-07-09): sempre valor LÍQUIDO de cada recebimento, seja pedido
+  // importadoPlanilha ou emitido pelo fluxo normal — ver _updEvPagCheck.
   const pagExist=p.pagamento||{};
   const evVeLabel=document.getElementById('ev-ve-label'),evPagHint=document.getElementById('ev-pag-hint');
-  if(p.importadoPlanilha){
-    if(evVeLabel)evVeLabel.textContent='Valor de Entrada (líquido)';
-    if(evPagHint)evPagHint.textContent='Venda lançada manualmente: informe os valores já líquidos de cada recebimento (entrada/parcelas) — é o que libera Contas a Receber e a comissão.';
-  } else {
-    if(evVeLabel)evVeLabel.textContent='Valor de Entrada (bruto)';
-    if(evPagHint)evPagHint.textContent='Valores brutos de cada recebimento, igual à aba Pagamento da emissão — o líquido de cada parcela é calculado automaticamente pela proporção bruto/líquido do pedido.';
-  }
+  if(evVeLabel)evVeLabel.textContent='Valor de Entrada (líquido)';
+  if(evPagHint)evPagHint.textContent='Informe os valores já líquidos de cada recebimento (entrada/parcelas) — é o que libera Contas a Receber e a comissão.';
   setV('ev-ve',pagExist['Valor de Entrada']);
   setIn2('ev-de',_brToIso(pagExist['Data da Entrada']||''));
   const parcEntries=Object.entries(pagExist).map(([k,val])=>{
@@ -2262,6 +2261,11 @@ async function salvarValoresPedido(){
   const temPagamentoNovo=(veVal>0&&veDataRaw)||parcValsRaw.some((v,i)=>v>0&&parcDatasRaw[i]);
   if(temPagamentoNovo){
     const isImp=!!p.importadoPlanilha;
+    // Marca que o pagamento salvo aqui é em valor LÍQUIDO (regra única, 2026-07-09) —
+    // getParcelas() usa essa flag pra NÃO aplicar a conversão bruto→líquido de novo.
+    // Pedidos antigos (editados antes dessa mudança) continuam sem a flag e mantêm a
+    // conversão por proporção, preservando o cálculo de comissão já lançado.
+    p.pagamentoLiquido=true;
     // Pedido importadoPlanilha (venda manual/planilha): data digitada vira marcador de
     // quinzena (05/15), igual salvarVendaManual() — ver comentário lá pro motivo. Pedido
     // do fluxo normal: guarda a data real como sempre foi (sem conversão).
@@ -4545,12 +4549,15 @@ function removeRegraTarefaAuto(id){
 
 function getParcelas(p){
   // For XLSX imports: parcela values are ALREADY liquid (they sum exactly to lq).
-  // For manually-entered orders: pagamento stores BRUTO amounts, so ratio is applied.
+  // For pedidos editados após 2026-07-09 (p.pagamentoLiquido): idem, já são líquidos —
+  // ver salvarValoresPedido()/_updEvPagCheck() (regra única: pagamento sempre líquido).
+  // For older manually-entered orders without that flag: pagamento stores BRUTO amounts
+  // (convenção antiga), so ratio is applied to preserve comissão já calculada.
   const pag=p.pagamento||{};
   const vals=p.valores||{};
   const totalBruto=parseFloat(String(vals['Valor Bruto']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
   const totalLiq=parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
-  const ratio=(p.importadoPlanilha)?1:(totalBruto>0?totalLiq/totalBruto:1);
+  const ratio=(p.importadoPlanilha||p.pagamentoLiquido)?1:(totalBruto>0?totalLiq/totalBruto:1);
   const toLiq=bruto=>bruto*ratio;
   const res=[];
   if(pag['Valor de Entrada']&&pag['Data da Entrada']){
@@ -6576,7 +6583,7 @@ function renderDashGraficos(){
     const bg=restantes<=3?'#fef2f2':restantes<=7?'#fffbeb':'#f0fdf4';
     duEl.innerHTML=`<div style="display:inline-flex;align-items:center;gap:8px;background:${bg};border:1px solid ${cor}33;border-radius:10px;padding:8px 14px">
       <span style="font-size:1.1rem">🗓️</span>
-      <span style="font-size:.85rem;color:#374151">Faltam <strong style="color:${cor};font-size:.95rem">${restantes}</strong> dia${restantes===1?'':'s'} útil${restantes===1?'':'eis'} pra acabar ${MESES_PT[hoje.getMonth()+1].charAt(0)+MESES_PT[hoje.getMonth()+1].slice(1).toLowerCase()}</span>
+      <span style="font-size:.85rem;color:#374151">Faltam <strong style="color:${cor};font-size:.95rem">${restantes}</strong> dia${restantes===1?'':'s'} útil${restantes===1?'':'eis'} pra acabar ${MESES_PT[hoje.getMonth()+1].toLowerCase()}</span>
     </div>`;
   }
   const lbl=document.getElementById('gc-mes-lbl');
