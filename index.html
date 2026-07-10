@@ -6518,10 +6518,13 @@ async function importarPlanilha(){
 }
 function pedidoToVendaRow(p){
   const v=p.valores||{},inst=p.instalacao||{},fr=p.frete||{},proj=p.projetos||{};
-  // Pedido veio da planilha (importadoPlanilha) e ainda existe na planilha atual (mesma OS):
-  // a planilha é a fonte de verdade dos valores financeiros — evita que um registro antigo
-  // salvo no Firestore (bruto/líquido desatualizado) fique divergindo da planilha colada agora.
-  const xlsxRow=(p.importadoPlanilha&&typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
+  // Se a OS do pedido existe na planilha colada (XLSX_VENDAS), a planilha é a fonte de
+  // verdade dos valores financeiros — vale tanto pra pedido importado da planilha quanto
+  // pra pedido emitido direto pelo sistema. Evita que um registro antigo salvo no Firestore
+  // (bruto/líquido desatualizado, ex.: renegociação feita depois da emissão) fique
+  // divergindo da planilha colada agora. (corrigido 2026-07-10 — antes só valia pra
+  // p.importadoPlanilha===true, deixando pedidos emitidos com valores errados)
+  const xlsxRow=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
   let br,ft,vi,mo,el,art,rem,med,op,lq;
   if(xlsxRow){
     br=xlsxRow.br||0;ft=xlsxRow.ft||0;vi=xlsxRow.vi||0;el=xlsxRow.el||0;mo=xlsxRow.mo||0;
@@ -6605,7 +6608,17 @@ function verVendaDetalhe(os,pedidoId){
       _vvCurrentPedidoId=pedidoId;
       document.getElementById('vv-t').textContent=`OS ${p.os||'—'} — ${p.cliente}`;
       document.getElementById('vv-s').textContent=`${p.tipo} · JOB: ${p.job||'—'} · Emitido no sistema`;
-      const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj2=p.projetos||{};
+      let v=p.valores||{};const pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj2=p.projetos||{};
+      // Mesma regra do pedidoToVendaRow: se a OS bate com uma linha da planilha colada,
+      // a planilha vence os valores financeiros exibidos aqui também — senão "Ver Detalhes"
+      // mostraria um Bruto/Líquido diferente do que aparece na Lista de Vendas.
+      const xlsxRowVV=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
+      if(xlsxRowVV){
+        const fmtBR2=n=>'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+        v={...v,'Valor Bruto':fmtBR2(xlsxRowVV.br),
+          'Valor Líquido do Pedido':fmtBR2(xlsxRowVV.lq!=null?xlsxRowVV.lq:(xlsxRowVV.br-(xlsxRowVV.ft+xlsxRowVV.vi+xlsxRowVV.el+xlsxRowVV.mo+xlsxRowVV.art+xlsxRowVV.rem+xlsxRowVV.med))),
+          ...(xlsxRowVV.el?{'Valor das Elevações':fmtBR2(xlsxRowVV.el)}:{})};
+      }
       const parcRows=getParcelas(p).map(parc=>{
         const conf=getPagConf(parc.confKey);
         const st=conf?.status==='confirmado'?'✅ Recebido':'⏳ Pendente';
