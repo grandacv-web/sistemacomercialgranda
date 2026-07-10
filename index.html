@@ -988,11 +988,16 @@ select.fc{cursor:pointer}
   <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">💳 Pagamento</div>
   <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px 12px;margin-bottom:14px">
     <div id="ev-pag-hint" style="font-size:.68rem;color:#1d4ed8;margin-bottom:8px"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
       <div>
-        <label id="ev-ve-label" style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Valor de Entrada</label>
+        <label id="ev-ve-label" style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Entrada — Bruto (cliente paga)</label>
         <input id="ev-ve" type="text" inputmode="numeric" oninput="fmtMoney(this);_updEvPagCheck()" placeholder="0,00"
           style="width:100%;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
+      </div>
+      <div>
+        <label style="font-size:.64rem;font-weight:600;color:#7c3aed;display:block;margin-bottom:3px">Entrada — Líquido (comissão)</label>
+        <input id="ev-ve-liq" type="text" inputmode="numeric" oninput="fmtMoney(this);_updEvPagCheck()" placeholder="0,00"
+          style="width:100%;padding:7px 8px;border:1.5px solid #e9d5ff;border-radius:7px;font-size:.82rem;font-family:inherit;box-sizing:border-box;background:#fff">
       </div>
       <div>
         <label style="font-size:.64rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:3px">Data prevista da Entrada</label>
@@ -2107,33 +2112,54 @@ function updParcEV(){
   const c=document.getElementById('ev-parc-c');if(!c)return;
   const n=parseInt(document.getElementById('ev-np')?.value)||0;
   if(!n){c.innerHTML='';_updEvPagCheck();return}
+  // Cada parcela agora pede BRUTO (o que o cliente paga — libera Contas a Receber) e
+  // LÍQUIDO (base da comissão) separados, digitados os dois na hora — em vez de inferir
+  // o líquido por uma proporção do pedido inteiro, que na prática não bate quando o
+  // desconto não vem só de frete/mobilização/elevação/ART/remoção/medição.
   c.innerHTML=[...Array(n)].map((_,i)=>
-    `<div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:6px;align-items:center">
-      <span style="font-size:.7rem;font-weight:700;color:#1d4ed8;white-space:nowrap">Parc. ${i+1}/${n}</span>
-      <input type="text" inputmode="numeric" placeholder="R$ 0,00" class="fc ev-pd-val" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff" oninput="fmtMoney(this);_updEvPagCheck()">
-      <input type="date" class="fc ev-pd-date" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff" oninput="_updEvPagCheck()">
+    `<div style="border:1.5px solid #bfdbfe;border-radius:8px;padding:7px;background:#fff">
+      <div style="font-size:.7rem;font-weight:700;color:#1d4ed8;margin-bottom:5px">Parc. ${i+1}/${n}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div>
+          <label style="font-size:.6rem;font-weight:600;color:#1d4ed8;display:block;margin-bottom:2px">Bruto (cliente paga)</label>
+          <input type="text" inputmode="numeric" placeholder="R$ 0,00" class="fc ev-pd-val" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff;width:100%" oninput="fmtMoney(this);_updEvPagCheck()">
+        </div>
+        <div>
+          <label style="font-size:.6rem;font-weight:600;color:#7c3aed;display:block;margin-bottom:2px">Líquido (comissão)</label>
+          <input type="text" inputmode="numeric" placeholder="R$ 0,00" class="fc ev-pd-liq" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #e9d5ff;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff;width:100%" oninput="fmtMoney(this);_updEvPagCheck()">
+        </div>
+        <div>
+          <label style="font-size:.6rem;font-weight:600;color:#64748b;display:block;margin-bottom:2px">Data prevista</label>
+          <input type="date" class="fc ev-pd-date" style="font-size:.78rem;padding:7px 8px;border:1.5px solid #bfdbfe;border-radius:7px;font-family:inherit;box-sizing:border-box;background:#fff;width:100%" oninput="_updEvPagCheck()">
+        </div>
+      </div>
     </div>`
   ).join('');
   _updEvPagCheck();
 }
 // Indicador (não bloqueia o salvamento) de quanto já foi alocado em entrada+parcelas.
-// Regra (revisada 2026-07-10): o pagamento de qualquer parcela SEMPRE se refere ao valor
-// BRUTO — o que o cliente efetivamente paga (mesma convenção do formulário de emissão
-// normal, ver updPagCheck). A conversão pro líquido usado na comissão é automática, feita
-// em getParcelas() pela proporção do pedido inteiro — ninguém precisa calcular/lançar
-// o líquido na mão aqui.
+// Regra (revisada 2026-07-10, v2): Bruto e Líquido de cada recebimento são digitados
+// SEPARADOS — não dá mais pra inferir o líquido só pela proporção do pedido inteiro
+// (o desconto real muitas vezes não vem só de frete/mobilização/elevação/ART/remoção/
+// medição, então a proporção calculada não batia com o líquido real). Confere os dois
+// totais: soma do Bruto contra "Valor Bruto" do pedido, soma do Líquido contra o
+// "Valor Líquido do Pedido" calculado.
 function _updEvPagCheck(){
   const el=document.getElementById('ev-pag-check');if(!el)return;
   const gv=id=>{const e=document.getElementById(id);return e?moneyToNum(e.value):0;};
   const br=gv('ev-br');
-  const ve=gv('ev-ve');
+  const ft=gv('ev-ft'),mo=gv('ev-mo'),vi=gv('ev-vi'),el2=gv('ev-el'),art=gv('ev-art'),rem=gv('ev-rem'),med=gv('ev-med');
+  const liqCalc=br-ft-mo-vi-el2-art-rem-med;
+  const ve=gv('ev-ve'),veLiq=gv('ev-ve-liq');
   const parcSum=[...document.querySelectorAll('#ev-parc-c .ev-pd-val')].reduce((s,i)=>s+moneyToNum(i.value),0);
-  const alocado=ve+parcSum;
+  const parcLiqSum=[...document.querySelectorAll('#ev-parc-c .ev-pd-liq')].reduce((s,i)=>s+moneyToNum(i.value),0);
+  const alocadoBr=ve+parcSum,alocadoLiq=veLiq+parcLiqSum;
   const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
-  if(alocado<=0){el.textContent='';return;}
-  const ok=Math.abs(alocado-br)<0.01;
-  el.style.color=ok?'#16a34a':'#b45309';
-  el.textContent=`${ok?'✅':'⚠️'} Alocado ${fmt(alocado)} de ${fmt(br)} (bruto)`;
+  if(alocadoBr<=0&&alocadoLiq<=0){el.textContent='';return;}
+  const okBr=Math.abs(alocadoBr-br)<0.01;
+  const okLiq=Math.abs(alocadoLiq-liqCalc)<0.01;
+  el.style.color=(okBr&&okLiq)?'#16a34a':'#b45309';
+  el.innerHTML=`${okBr?'✅':'⚠️'} Bruto: ${fmt(alocadoBr)} de ${fmt(br)}<br>${okLiq?'✅':'⚠️'} Líquido: ${fmt(alocadoLiq)} de ${fmt(liqCalc)}`;
 }
 // Editar uma linha da Lista de Vendas que ainda só existe na planilha (XLSX_VENDAS),
 // sem pedido correspondente no Firestore. Cria o registro só nesse momento (edição pontual,
@@ -2223,14 +2249,16 @@ async function editarValoresPedido(pedidoId){
     let nm=pdfZone.querySelector('.uz-file');if(nm)nm.remove();
   }
   // Pagamento: pré-preenche com o que já estiver salvo em p.pagamento (Entrada + Parcelas).
-  // Regra (revisada 2026-07-10): sempre valor BRUTO de cada recebimento (o que o cliente
-  // efetivamente paga) — mesma convenção do formulário de emissão normal. A comissão é
-  // calculada automaticamente sobre o líquido, por proporção — ver getParcelas/_updEvPagCheck.
+  // Regra (revisada 2026-07-10, v2): Bruto (o que o cliente paga) e Líquido (base da
+  // comissão) são dois valores digitados separados — ver updParcEV/_updEvPagCheck. Pedido
+  // antigo, salvo antes dessa mudança, só tem o Bruto — o campo Líquido some vazio até
+  // alguém preencher (getParcelas cai numa estimativa por proporção nesse meio tempo).
   const pagExist=p.pagamento||{};
   const evVeLabel=document.getElementById('ev-ve-label'),evPagHint=document.getElementById('ev-pag-hint');
-  if(evVeLabel)evVeLabel.textContent='Valor de Entrada';
-  if(evPagHint)evPagHint.textContent='Informe os valores que o cliente efetivamente paga (bruto) em cada recebimento (entrada/parcelas) — é o que libera Contas a Receber. A comissão do vendedor é calculada automaticamente sobre o valor líquido do pedido, sem precisar lançar nada diferente aqui.';
+  if(evVeLabel)evVeLabel.textContent='Entrada — Bruto (cliente paga)';
+  if(evPagHint)evPagHint.textContent='Bruto é o que o cliente efetivamente paga (libera Contas a Receber). Líquido é a base sobre a qual a comissão do vendedor é calculada — pode ser diferente do bruto por qualquer desconto, não só frete/mobilização/elevação/ART/remoção/medição. Preencha os dois.';
   setV('ev-ve',pagExist['Valor de Entrada']);
+  setV('ev-ve-liq',pagExist['Valor de Entrada (Líquido)']);
   setIn2('ev-de',_brToIso(pagExist['Data da Entrada']||''));
   const parcEntries=Object.entries(pagExist).map(([k,val])=>{
     const mt=k.match(/^Parcela\s+(\d+)\s+·\s+(.+)$/);
@@ -2242,8 +2270,9 @@ async function editarValoresPedido(pedidoId){
   const parcRows=[...document.querySelectorAll('#ev-parc-c > div')];
   parcEntries.forEach((pe,i)=>{
     const row=parcRows[i];if(!row)return;
-    const valInp=row.querySelector('.ev-pd-val'),dateInp=row.querySelector('.ev-pd-date');
+    const valInp=row.querySelector('.ev-pd-val'),liqInp=row.querySelector('.ev-pd-liq'),dateInp=row.querySelector('.ev-pd-date');
     if(valInp){const n=moneyToNum(pe.val||'0');valInp.value=n>0?n.toLocaleString('pt-BR',{minimumFractionDigits:2}):'';valInp.dataset.raw=String(n);}
+    if(liqInp){const liqVal=pagExist[`Parcela ${pe.idx} (Líquido)`];const n=moneyToNum(liqVal||'0');liqInp.value=n>0?n.toLocaleString('pt-BR',{minimumFractionDigits:2}):'';liqInp.dataset.raw=String(n);}
     if(dateInp)dateInp.value=_brToIso(pe.date);
   });
   // Categoria/Tipo: texto livre se veio da planilha importada, select fechado (TC) se emitido pelo sistema
@@ -2346,15 +2375,17 @@ async function salvarValoresPedido(){
   // aqui; se os campos ficaram vazios, mantém o pagamento que já estava salvo (não some
   // com um pagamento lançado por outro caminho, ex.: fluxo normal de emissão).
   const veVal=gv('ev-ve');
+  const veLiqVal=gv('ev-ve-liq');
   const veDataRaw=(document.getElementById('ev-de')||{}).value||'';
   const parcValsRaw=[...document.querySelectorAll('#ev-parc-c .ev-pd-val')].map(i=>moneyToNum(i.value));
+  const parcLiqValsRaw=[...document.querySelectorAll('#ev-parc-c .ev-pd-liq')].map(i=>moneyToNum(i.value));
   const parcDatasRaw=[...document.querySelectorAll('#ev-parc-c .ev-pd-date')].map(i=>i.value);
   const temPagamentoNovo=(veVal>0&&veDataRaw)||parcValsRaw.some((v,i)=>v>0&&parcDatasRaw[i]);
   if(temPagamentoNovo){
     const isImp=!!p.importadoPlanilha;
-    // Pagamento salvo aqui é sempre em valor BRUTO (o que o cliente paga) — mesma
-    // convenção do resto do sistema. getParcelas() converte pro líquido automaticamente
-    // pela proporção do pedido (Valor Líquido do Pedido / Valor Bruto).
+    // Bruto e Líquido são salvos separados — Bruto é o que o cliente paga (Contas a
+    // Receber), Líquido é a base da comissão (getParcelas usa o Líquido explícito quando
+    // existe; só cai numa estimativa por proporção pra pagamento antigo sem esse campo).
     // Pedido importadoPlanilha (venda manual/planilha): data digitada vira marcador de
     // quinzena (05/15), igual salvarVendaManual() — ver comentário lá pro motivo. Pedido
     // do fluxo normal: guarda a data real como sempre foi (sem conversão).
@@ -2366,12 +2397,20 @@ async function salvarValoresPedido(){
     };
     const novoPag={};
     Object.entries(p.pagamento||{}).forEach(([k,v2])=>{
-      if(!/^Parcela\s+\d+\s+·/.test(k)&&k!=='Valor de Entrada'&&k!=='Data da Entrada'&&k!=='Nº de Parcelas')novoPag[k]=v2;
+      const isBrutoParc=/^Parcela\s+\d+\s+·/.test(k);
+      const isLiqParc=/^Parcela\s+\d+\s+\(Líquido\)$/.test(k);
+      const isKnown=isBrutoParc||isLiqParc||k==='Valor de Entrada'||k==='Valor de Entrada (Líquido)'||k==='Data da Entrada'||k==='Nº de Parcelas';
+      if(!isKnown)novoPag[k]=v2;
     });
     if(veVal>0&&veDataRaw){novoPag['Valor de Entrada']=fmtV(veVal);novoPag['Data da Entrada']=marker(veDataRaw);}
+    if(veLiqVal>0)novoPag['Valor de Entrada (Líquido)']=fmtV(veLiqVal);
     let nParc=0;
     parcValsRaw.forEach((v2,i)=>{
-      if(v2>0&&parcDatasRaw[i]){nParc++;novoPag[`Parcela ${nParc} · ${marker(parcDatasRaw[i])}`]=fmtV(v2);}
+      if(v2>0&&parcDatasRaw[i]){
+        nParc++;
+        novoPag[`Parcela ${nParc} · ${marker(parcDatasRaw[i])}`]=fmtV(v2);
+        if(parcLiqValsRaw[i]>0)novoPag[`Parcela ${nParc} (Líquido)`]=fmtV(parcLiqValsRaw[i]);
+      }
     });
     if(nParc>0)novoPag['Nº de Parcelas']=nParc+(nParc>1?' parcelas':' parcela');
     p.pagamento=novoPag;
@@ -2870,10 +2909,12 @@ function saveSt(){
     const ocF=document.getElementById('em-oc-file');if(ocF&&ocF.files[0])ed.arq_oc=ocF.files[0].name;
     ed.tem_ent=gsel('rc-ent');
     ed.vent=document.getElementById('em-ve')?.value||'';
+    ed.ventliq=document.getElementById('em-ve-liq')?.value||'';
     ed.dent=gv('em-de');ed.fent=gv('em-fe');
     ed.nparc=gv('em-np');ed.fparc=gv('em-fp');ed.nf=gv('em-nf');ed.obsfin=gv('em-of');
     ed.pdatas=[...document.querySelectorAll('.pd-date')].map(e=>e.value);
     ed.pvals=[...document.querySelectorAll('.pd-val')].map(i=>parseFloat((i.dataset.raw)||0)||parseFloat((i.value||'0').replace(/\./g,'').replace(',','.'))||0);
+    ed.pliqs=[...document.querySelectorAll('.pd-liq')].map(i=>parseFloat((i.dataset.raw)||0)||parseFloat((i.value||'0').replace(/\./g,'').replace(',','.'))||0);
   }else if(id==='projetos'){
     // ed.art é definido na aba Valores (TEM ART?)
     // cnpj_art é salvo via uploadCnpjArt() ao fazer o upload do arquivo
@@ -2976,6 +3017,25 @@ function updPagCheck(){
     msgEl.style.color=diff>0?'#92400e':'var(--danger)';
     msgEl.textContent=diff>0?`Faltam ${fmt(diff)} para cobrir o valor total.`:`Entrada + parcelas excedem o valor total em ${fmt(diff)}.`;
   }
+  // Líquido de cada parcela é opcional aqui — sem ele, a comissão é estimada pela
+  // proporção do pedido inteiro (menos precisa quando o desconto não vem só de
+  // frete/mobilização/elevação/ART/remoção/medição). Este aviso é só informativo.
+  const liqMsgEl=document.getElementById('pc-liq-msg');
+  if(liqMsgEl){
+    const veLiq=temEnt?moneyToNum(document.getElementById('em-ve-liq')?.value||''):0;
+    const vParcLiq=[...document.querySelectorAll('.pd-liq')].reduce((s,i)=>s+moneyToNum(i.value),0);
+    const totalLiqInformado=veLiq+vParcLiq;
+    const liqCalc=typeof calcLiq==='function'?calcLiq():0;
+    if(totalLiqInformado<=0){
+      liqMsgEl.style.display='';
+      liqMsgEl.textContent=`💡 Nenhum valor Líquido informado por parcela — a comissão vai ser estimada por proporção (Líquido do pedido: ${fmt(liqCalc)}). Preencha o Líquido de cada parcela pra usar o valor exato.`;
+    }else{
+      const diffLiq=liqCalc-totalLiqInformado;
+      const okLiq=Math.abs(diffLiq)<0.01;
+      liqMsgEl.style.display='';
+      liqMsgEl.textContent=okLiq?`✅ Líquido informado (${fmt(totalLiqInformado)}) bate com o Líquido do pedido.`:`⚠️ Líquido informado (${fmt(totalLiqInformado)}) difere do Líquido do pedido (${fmt(liqCalc)}) em ${fmt(diffLiq)}.`;
+    }
+  }
 }
 function updLiq(){
   const el=document.getElementById('em-liq');
@@ -2998,10 +3058,31 @@ function updParc(){
   const n=parseInt(document.getElementById('em-np')?.value)||0;
   if(!n){c.innerHTML='';return}
   const todayStr=new Date().toISOString().slice(0,10);
+  // Cada parcela pede Bruto (o que o cliente paga, valida contra o Valor Total) e Líquido
+  // (base da comissão do vendedor, opcional aqui — sem ele, getParcelas estima pela
+  // proporção do pedido inteiro; ver mesma lógica em updParcEV/mo-ev).
   c.innerHTML=[...Array(n)].map((_,i)=>{
     const vRaw=ed.pvals&&ed.pvals[i]?ed.pvals[i]:0;
     const vFmt=vRaw>0?vRaw.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
-    return`<div class="parc-r"><span style="font-weight:700;color:#1a1f36;font-size:.78rem">Parcela ${i+1}/${n}</span><input type="text" placeholder="R$ 0,00" class="fc pd-val" style="font-size:.78rem" value="${vFmt}" data-raw="${vRaw||''}" oninput="fmtMoney(this);updPagCheck()"><input type="date" class="fc pd-date" min="${todayStr}" value="${ed.pdatas[i]||''}" style="font-size:.78rem"></div>`;
+    const lRaw=ed.pliqs&&ed.pliqs[i]?ed.pliqs[i]:0;
+    const lFmt=lRaw>0?lRaw.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+    return`<div style="border:1.5px solid var(--border-lt);border-radius:var(--radius-sm);padding:8px 10px;background:#f8fafc;margin-bottom:6px">
+      <div style="font-weight:700;color:#1a1f36;font-size:.78rem;margin-bottom:6px">Parcela ${i+1}/${n}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:.62rem;font-weight:600;color:var(--ink3);display:block;margin-bottom:2px">Bruto (cliente paga)</label>
+          <input type="text" placeholder="R$ 0,00" class="fc pd-val" style="font-size:.78rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;background:var(--surface);width:100%;box-sizing:border-box" value="${vFmt}" data-raw="${vRaw||''}" oninput="fmtMoney(this);updPagCheck()">
+        </div>
+        <div>
+          <label style="font-size:.62rem;font-weight:600;color:#7c3aed;display:block;margin-bottom:2px">Líquido (comissão)</label>
+          <input type="text" placeholder="R$ 0,00" class="fc pd-liq" style="font-size:.78rem;padding:8px 10px;border:1.5px solid #e9d5ff;border-radius:8px;font-family:inherit;background:var(--surface);width:100%;box-sizing:border-box" value="${lFmt}" data-raw="${lRaw||''}" oninput="fmtMoney(this);updPagCheck()">
+        </div>
+        <div>
+          <label style="font-size:.62rem;font-weight:600;color:var(--ink3);display:block;margin-bottom:2px">Data prevista</label>
+          <input type="date" class="fc pd-date" min="${todayStr}" value="${ed.pdatas[i]||''}" style="font-size:.78rem;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;background:var(--surface);width:100%;box-sizing:border-box">
+        </div>
+      </div>
+    </div>`;
   }).join('');
   updPagCheck();
 }
@@ -3194,9 +3275,10 @@ function renderStep(id){
         </div>
         <div id="ent-f" style="display:${he?'':'none'}">
           <div class="g2">
-            <div class="fg"><label>Valor de Entrada</label><input class="fc" id="em-ve" value="${ed.vent||''}" placeholder="R$ 0,00" oninput="fmtMoney(this);updPagCheck()"></div>
+            <div class="fg"><label>Valor de Entrada (Bruto — cliente paga)</label><input class="fc" id="em-ve" value="${ed.vent||''}" placeholder="R$ 0,00" oninput="fmtMoney(this);updPagCheck()"></div>
             <div class="fg"><label>Data da Entrada</label><input class="fc" type="date" id="em-de" min="${new Date().toISOString().slice(0,10)}" value="${ed.dent||''}"></div>
           </div>
+          <div class="fg"><label style="color:#7c3aed">Valor de Entrada (Líquido — base da comissão)</label><input class="fc" id="em-ve-liq" value="${ed.ventliq||''}" placeholder="R$ 0,00 (opcional — deixe em branco pra estimar pela proporção do pedido)" oninput="fmtMoney(this);updPagCheck()"></div>
           <div class="fg"><label>Forma de Pgto. da Entrada</label>
             <select class="fc" id="em-fe"><option value="">Selecione...</option>${['Boleto','Depósito','Pix','Cartão de Crédito'].map(f=>`<option ${ed.fent===f?'selected':''}>${f}</option>`).join('')}</select>
           </div>
@@ -3232,6 +3314,7 @@ function renderStep(id){
           </div>
         </div>
         <div id="pc-msg" style="margin-top:10px;font-size:.78rem;font-weight:600;display:none;padding:8px 12px;border-radius:8px"></div>
+        <div id="pc-liq-msg" style="margin-top:8px;font-size:.72rem;font-weight:600;padding:7px 10px;border-radius:8px;background:#f3e8ff;color:#6d28d9"></div>
       </div>
       <div style="border:1.5px solid #eef0f5;border-radius:12px;padding:16px">
         <div class="fsec-t" style="font-size:.65rem;margin-bottom:10px">&#128196; Nota Fiscal</div>
@@ -3911,6 +3994,7 @@ async function submit(){
   if(ed.tem_oc)pag['Ordem de Compra do Cliente']=ed.tem_oc;
   if(ed.tem_ent==='Tem entrada'){
     if(ed.vent)pag['Valor de Entrada']=fmtV(moneyToNum(ed.vent));
+    if(ed.ventliq&&moneyToNum(ed.ventliq)>0)pag['Valor de Entrada (Líquido)']=fmtV(moneyToNum(ed.ventliq));
     if(ed.dent)pag['Data da Entrada']=fmtD(ed.dent);
     if(ed.fent)pag['Forma de Pgto. da Entrada']=ed.fent;
   }
@@ -3918,6 +4002,9 @@ async function submit(){
     pag['Nº de Parcelas']=ed.nparc;
     if(ed.fparc)pag['Forma das Parcelas']=ed.fparc;
     if(ed.pvals&&ed.pvals.length){ed.pvals.forEach((v,i)=>{if(v>0)pag['Parcela '+(i+1)+(ed.pdatas&&ed.pdatas[i]?' · '+fmtD(ed.pdatas[i]):'')]=fmtV(v);});}
+    // Líquido de cada parcela (base da comissão) — opcional; sem ele, getParcelas estima
+    // pela proporção do pedido inteiro (Valor Líquido do Pedido / Valor Bruto).
+    if(ed.pliqs&&ed.pliqs.length){ed.pliqs.forEach((v,i)=>{if(v>0)pag['Parcela '+(i+1)+' (Líquido)']=fmtV(v);});}
   }
   if(ed.nf)pag['Emissão de Nota Fiscal']=ed.nf;
   if(ed.obsfin)pag['Observações Financeiras']=ed.obsfin;
@@ -4700,42 +4787,46 @@ function removeRegraTarefaAuto(id){
 }
 
 function getParcelas(p){
-  // REGRA (revisada 2026-07-10): o pagamento de Entrada/Parcela SEMPRE se refere ao valor
-  // BRUTO — é o que o cliente efetivamente paga, e é isso que o Financeiro confirma em
-  // Contas a Receber. A comissão do vendedor, porém, é sempre sobre o LÍQUIDO — então aqui
-  // a gente converte automaticamente bruto→líquido pela proporção do pedido inteiro
-  // (Valor Líquido do Pedido / Valor Bruto), pra ninguém precisar calcular isso na mão nem
-  // arriscar lançar o valor errado. Única exceção: XLSX imports, onde os valores de parcela
-  // já vêm líquidos direto da planilha (sempre somam exatamente o líquido do pedido).
+  // REGRA (revisada 2026-07-10, v2): Bruto (o que o cliente paga — libera Contas a
+  // Receber) e Líquido (base da comissão) são digitados SEPARADOS, um pra cada Entrada/
+  // Parcela — ver campos "... (Líquido)" salvos ao lado de cada "Valor de Entrada"/
+  // "Parcela N · data". Isso porque o desconto real de um pedido nem sempre vem só de
+  // frete/mobilização/elevação/ART/remoção/medição — inferir o líquido só pela proporção
+  // do pedido inteiro (Valor Líquido do Pedido / Valor Bruto) não bate no caso geral.
+  // Pedido antigo, sem o campo Líquido explícito ainda: cai numa ESTIMATIVA por proporção
+  // (fallback, marcada com liqEstimado:true no item) só pra não sumir com o valor —
+  // continua precisando ser conferida/preenchida manualmente em Editar Valores.
+  // Venda Manual / XLSX (importadoPlanilha): convenção diferente e inalterada — o único
+  // valor digitado por parcela JÁ é o líquido (não tem campo bruto separado nesses
+  // formulários), e o bruto é estimado escalando pra cima pela proporção do pedido.
   const pag=p.pagamento||{};
   const vals=p.valores||{};
   const totalBruto=parseFloat(String(vals['Valor Bruto']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
   const totalLiq=parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
-  // Defesa: só aplica a proporção se os DOIS valores existirem e forem positivos. Pedido
-  // antigo/incompleto sem "Valor Líquido do Pedido" salvo não pode virar ratio=0 (senão a
-  // comissão inteira do pedido sumiria pra R$0,00 silenciosamente) — cai pra ratio=1 (mesma
-  // convenção de antes: bruto=líquido) até alguém preencher o líquido em Editar Valores.
-  const ratio=p.importadoPlanilha?1:(totalBruto>0&&totalLiq>0?totalLiq/totalBruto:1);
-  const toLiq=bruto=>bruto*ratio;
-  // Proporção REAL bruto/líquido do pedido inteiro — independente de como esta parcela
-  // foi digitada (bruto ou líquido). Usada só pra "voltar" ao bruto de cada parcela na
-  // tela Financeiro/Contas a Receber (que mostra bruto — é o valor que o cliente deve —
-  // enquanto Comissões continua em líquido). Ver [[abrirConfirmarRecebimento]].
   const trueRatio=totalBruto>0?(totalLiq/totalBruto):1;
-  const toBruto=liq=>trueRatio>0?liq/trueRatio:liq;
+  const toBrutoFromLiq=liq=>trueRatio>0?liq/trueRatio:liq;
+  const ratioEstimado=(totalBruto>0&&totalLiq>0)?trueRatio:1;
+  const estimarLiq=bruto=>bruto*ratioEstimado;
   const res=[];
+  function pushItem(label,rawVal,liqKey,dataStr,confKey){
+    const raw=$mDash(rawVal);
+    if(p.importadoPlanilha){
+      // Valor único digitado (Venda Manual/planilha) já É o líquido — bruto é estimado
+      // escalando pra cima usando a proporção real do pedido, só pra Financeiro exibir.
+      res.push({pedidoId:p.id,pedido:p,label,valor:raw,valorBruto:toBrutoFromLiq(raw),liqEstimado:false,dataStr,confKey});
+      return;
+    }
+    const liqExplicito=pag[liqKey]?$mDash(pag[liqKey]):0;
+    const liqEstimadoFlag=!(liqExplicito>0);
+    const liqV=liqExplicito>0?liqExplicito:estimarLiq(raw);
+    res.push({pedidoId:p.id,pedido:p,label,valor:liqV,valorBruto:raw,liqEstimado:liqEstimadoFlag,dataStr,confKey});
+  }
   if(pag['Valor de Entrada']&&pag['Data da Entrada']){
-    const vBruto=$mDash(pag['Valor de Entrada']);
-    const liqV=toLiq(vBruto);
-    res.push({pedidoId:p.id,pedido:p,label:'Entrada',valor:liqV,valorBruto:toBruto(liqV),dataStr:(pag['Data da Entrada']||'').trim(),confKey:`${p.id}::entrada`});
+    pushItem('Entrada',pag['Valor de Entrada'],'Valor de Entrada (Líquido)',(pag['Data da Entrada']||'').trim(),`${p.id}::entrada`);
   }
   Object.entries(pag).forEach(([k,v])=>{
     const mt=k.match(/^Parcela\s+(\d+)\s+·\s+(.+)$/);
-    if(mt){
-      const vBruto=$mDash(v);
-      const liqV=toLiq(vBruto);
-      res.push({pedidoId:p.id,pedido:p,label:k,valor:liqV,valorBruto:toBruto(liqV),dataStr:mt[2].trim(),confKey:`${p.id}::${k}`});
-    }
+    if(mt)pushItem(k,v,`Parcela ${mt[1]} (Líquido)`,mt[2].trim(),`${p.id}::${k}`);
   });
   return res;
 }
@@ -5324,7 +5415,7 @@ function getComissaoItemsAll(){
       const xRatio=x.br>0?(x.lq/x.br):1;
       const parcComBruto={valor:parc.valor,valorBruto:xRatio>0?parc.valor/xRatio:parc.valor};
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parcComBruto,conf);
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -5626,10 +5717,17 @@ function renderDashComissoes(){
       ${i.pedidoPdfUrl?`<a href="${i.pedidoPdfUrl}" target="_blank" style="font-size:.64rem;color:#e91e63;font-weight:600;text-decoration:underline;white-space:nowrap;display:block;margin-top:3px">📄 Ver OS</a>`:''}
     </div>`;
   }
+  // Mostra o Líquido junto com um aviso se ele foi ESTIMADO (proporção do pedido) em vez
+  // de digitado explícito na parcela — assim dá pra ver de cara quais pedidos ainda
+  // precisam do Líquido preenchido em Editar Valores, sem abrir um por um.
+  function mkLiqCell(i){
+    if(!i.liqEstimado)return`<span style="font-weight:700">${fmtR(i.valor)}</span>`;
+    return`<span style="font-weight:700">${fmtR(i.valor)}</span><br><span style="font-size:.6rem;color:#b45309;font-weight:700" title="Sem Líquido digitado nesta parcela — valor estimado pela proporção do pedido (Valor Líquido do Pedido / Valor Bruto). Preencha o Líquido em Editar Valores pra usar o valor exato.">⚠️ estimado</span>`;
+  }
   function mkTable(items,emptyMsg){
     if(!items.length)return`<div style="padding:12px 0;color:#94a3b8;font-size:.82rem">${emptyMsg||'Nenhum lançamento nesta quinzena.'}</div>`;
     return`<div style="overflow-x:auto"><table class="dash-table">
-      <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor cliente</th><th>Data prev.</th><th>%</th><th>Comissão</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead>
+      <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor Bruto</th><th>Valor Líquido</th><th>Data prev.</th><th>%</th><th>Comissão</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead>
       <tbody>${items.map(i=>{
         const com=i.valor*i.pct/100;
         const sb=i.status==='confirmado'?'<span class="dash-badge ok">✅ Confirmado</span>':i.status==='adiado'?'<span class="dash-badge pend">⏭ Adiado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
@@ -5642,7 +5740,8 @@ function renderDashComissoes(){
           <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
           <td>${i.nomeVend}</td>
           <td style="font-size:.72rem">${i.label}</td>
-          <td style="font-weight:700">${fmtR(i.valor)}</td>
+          <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}</td>
+          <td>${mkLiqCell(i)}</td>
           <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
           <td style="font-weight:700;color:#e91e63">${i.pct>0?i.pct.toFixed(2).replace('.',',')+'%':'—'}</td>
           <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
@@ -5666,7 +5765,8 @@ function renderDashComissoes(){
         <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
         <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
         <td>${i.nomeVend}</td>
-        <td style="font-weight:700">${fmtR(i.valor)}</td>
+        <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}</td>
+        <td>${mkLiqCell(i)}</td>
         <td style="font-weight:700;color:#e91e63">${i.pct>0?i.pct.toFixed(2).replace('.',',')+'%':'—'}</td>
         <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
         <td style="font-size:.7rem;color:#16a34a;white-space:nowrap">${dataConf}</td>
@@ -5677,7 +5777,7 @@ function renderDashComissoes(){
     return`<details style="margin:6px 0 16px">
       <summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.5px;padding:6px 0">✅ Consolidados desta quinzena (${items.length}) — Valor: ${fmtR(totalVal)} · Comissão: ${fmtR(totalCom)}</summary>
       <div style="overflow-x:auto;margin-top:8px"><table class="dash-table">
-        <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Valor pago</th><th>%</th><th>Comissão</th><th>Confirmado em</th><th>Detalhes</th><th>Ação</th></tr></thead>
+        <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Valor Bruto</th><th>Valor Líquido</th><th>%</th><th>Comissão</th><th>Confirmado em</th><th>Detalhes</th><th>Ação</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </details>`;
