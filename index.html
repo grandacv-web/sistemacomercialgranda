@@ -4648,7 +4648,9 @@ function removeTipoPedido(t){
 // getVendedores(), que só traz Comercial — a tarefa pode ser de qualquer área.
 function getNomesUsuarios(){
   const nomes=cfg.usuarioNomes||{};
-  return[...new Set(Object.values(nomes).map(n=>(n||'').trim()).filter(Boolean))].sort();
+  const set=new Set(Object.values(nomes).map(n=>(n||'').trim()).filter(Boolean));
+  set.add('GUILHERME CLABONDE'); // admin dono do sistema — não passa pelo cadastro normal de usuários
+  return[...set].sort();
 }
 function renderRegrasTarefasAuto(){
   const selTipo=document.getElementById('cfg-regra-tipo');
