@@ -675,14 +675,23 @@ select.fc{cursor:pointer}
     </div>
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
       <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa numa venda</div>
-      <div style="display:grid;grid-template-columns:1.4fr 1fr auto;gap:8px">
+      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px">
         <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
           <option value="">Selecione a venda...</option>
         </select>
         <input id="tf-novo-tipo" type="text" list="tf-tipos-list" placeholder="Tipo da tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
         <datalist id="tf-tipos-list"></datalist>
+        <select id="tf-novo-responsavel" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+          <option value="">Sem responsável</option>
+        </select>
         <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
+      <select id="tf-fil-responsavel" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
+        <option value="">Todos</option>
+      </select>
     </div>
     <div id="tarefas-body"></div>
   </div>
@@ -1454,6 +1463,8 @@ select.fc{cursor:pointer}
           </div>
           <label style="font-size:.68rem;font-weight:600;color:var(--ink4);display:block;margin-bottom:4px">Tarefas (separe por vírgula)</label>
           <input class="fc" id="cfg-regra-tarefas" placeholder="Ex: Lançar no GCore, Conferir frete" style="width:100%;margin-bottom:10px">
+          <label style="font-size:.68rem;font-weight:600;color:var(--ink4);display:block;margin-bottom:4px">Responsável por executar</label>
+          <select class="fc" id="cfg-regra-responsavel" style="width:100%;margin-bottom:10px"><option value="">Sem responsável definido</option></select>
           <button class="btn-next" onclick="addRegraTarefaAuto()" style="width:100%">+ Adicionar Regra</button>
         </div>
       </div>
@@ -1561,8 +1572,8 @@ const fmtD=d=>{if(!d)return'';if(d.includes('/'))return d;try{const[y,m,dd]=d.sp
 // "tipo" de tarefa válido, então dá pra criar "Conferir frete", "Enviar NF" etc. sem
 // mudar código, só usando "+ Nova tarefa" na janela de Tarefas Comerciais.
 const TAREFA_TIPOS_SUGERIDOS=['Lançar no GCore'];
-function novaTarefaComercial(tipo){
-  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null};
+function novaTarefaComercial(tipo,responsavel){
+  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||''};
 }
 // Regras configuráveis em Configurações > Tarefas Automáticas (cfg.regrasTarefasComerciais).
 // Cada regra: {id, tipo:'' (vazio=qualquer, ou uma chave de TC como "Venda"/"Amostra"),
@@ -1576,13 +1587,17 @@ function getRegrasTarefasAuto(){
   ];
 }
 function gerarTarefasAutomaticas(tipo,tipoPedido){
-  const nomes=new Set();
+  // Map em vez de Set porque agora cada tarefa carrega quem é o responsável por
+  // executá-la (r.responsavel) — se duas regras criarem a mesma tarefa com responsáveis
+  // diferentes, a regra que bateu por último decide (mesmo comportamento de sempre, só
+  // que preservando o responsável em vez de só o nome).
+  const porNome=new Map();
   getRegrasTarefasAuto().forEach(r=>{
     const bateTipo=!r.tipo||r.tipo===tipo;
     const bateCategoria=!r.categoria||r.categoria===tipoPedido;
-    if(bateTipo&&bateCategoria)(r.tarefas||[]).forEach(t=>{if(t&&t.trim())nomes.add(t.trim());});
+    if(bateTipo&&bateCategoria)(r.tarefas||[]).forEach(t=>{if(t&&t.trim())porNome.set(t.trim(),r.responsavel||'');});
   });
-  return[...nomes].map(t=>novaTarefaComercial(t));
+  return[...porNome.entries()].map(([t,resp])=>novaTarefaComercial(t,resp));
 }
 // Todas as tarefas pendentes de todos os pedidos, já com dados da venda pra exibir na
 // janela (cliente/OS/vendedor) — sem isso cada card teria que re-buscar o pedido.
@@ -1625,12 +1640,12 @@ function _refreshTarefasBadge(){
   const n=getTarefasComerciaisPendentes().length;
   badge.textContent=n?` (${n})`:'';
 }
-async function adicionarTarefaComercialAvulsa(pedidoId,tipo){
+async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel){
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!p){toast('Pedido não encontrado','terr');return;}
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!p.tarefasComerciais)p.tarefasComerciais=[];
-  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim()));
+  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim(),responsavel||''));
   await savePedidoFS(p);
   renderTarefasComerciais();
   _refreshTarefasBadge();
@@ -2643,7 +2658,7 @@ function openEmissao(eid2){
       etapa:p.etapa,tipoPedido:p.tipoPedido||'',vtotal:(v['Valor Total']||'').replace('R$ ','').replace(/\./g,'').replace(',','.'),vmed:'',vart:'',
       i_tipo:v['Instalação']||'Não tem instalação',vinst:'',vmob:'',vrem:'',remocao:'',
       f_tipo:v['Frete']||'Por nossa conta',fmod:v['Modalidade Logística']||'',vfrete:'',
-      elevacoes:v['Elevações']||'Não',elevs:[...(p.elevacoes||[])],velev:'',
+      elevacoes:v['Elevações']||'Não',elevs:[...(p.elevacoes||[])],velev:'',elevBloqVia:p.elevBloqVia||'',
       remocoes:[...(p.remocoes||[])],
       medicao:v['Medição Técnica']||'Não',
       tem_oc:pg['Tem Ordem de Compra']||'',arq_oc:p.arq_oc_url?'Arquivo já enviado':'',arq_oc_url:p.arq_oc_url||'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
@@ -2661,6 +2676,7 @@ function openEmissao(eid2){
       iend:inst['Endereço de Instalação']||'',ihor:inst['Horário']||'Comercial',
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
+      ibloqenergia:inst['Necessita de Bloqueio de Energia']||'',
       icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',
       minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:p.chumbador||'',arq_chumb:p.arq_chumb_url?'Arquivo já enviado':'',arq_chumb_url:p.arq_chumb_url||'',os_chumb:p.os_chumb||'',
@@ -2668,10 +2684,10 @@ function openEmissao(eid2){
   } else {
     ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],email_comprador:'',email_engenheiro:'',email_financeiro:'',job:'',prazo:'',os:'',obs:'',
       vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',vart:'',
-      elevacoes:'',elevs:[],velev:'',remocoes:[],medicao:'',
+      elevacoes:'',elevs:[],velev:'',elevBloqVia:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
       nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',
-      iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',
+      iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',
       minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:''};
   }
   step=0;renderEM();openM('mo-em');
@@ -2735,6 +2751,10 @@ function validarAba(id){
     if(!ed.iinteg)erros.push('Informe se necessita integração na empresa');
     if(!ed.iseg)erros.push('Informe se precisa de seguro para esta obra');
     if(ed.iseg==='Sim'&&!ed.vseg)erros.push('Valor do seguro não informado');
+    if(!ed.ibloqenergia)erros.push('Informe se necessita de bloqueio de energia para instalação');
+  }
+  if(id==='elevacoes'){
+    if(!ed.elevBloqVia)erros.push('Informe se necessita de bloqueio da via para realização do trabalho');
   }
   if(id==='bases'){
     if(!ed.chumbador)erros.push('Informe se esta obra tem chumbador');
@@ -2867,6 +2887,7 @@ function saveSt(){
     ed.ihor=gv('em-ih');ed.inum=gv('em-in');ed.idias=gv('em-id');
     ed.iinteg=gon('tg_itg');ed.iseg=gon('tg_seg');
     if(ed.iseg==='Sim')ed.vseg=gv('em-vseg');
+    ed.ibloqenergia=gon('tg_bloqenergia');
   }else if(id==='medicao'){ed.minfo=gv('em-minfo');
   }else if(id==='remocoes'){
     ed.remocoes=[...document.querySelectorAll('.rem-r')].map(r=>({
@@ -2879,6 +2900,7 @@ function saveSt(){
       qtd:c.querySelector('.eq')?.value||'1',
       dias:c.querySelector('.ed2')?.value||'1'
     }));
+    ed.elevBloqVia=gon('tg_bloqvia');
   }else if(id==='bases'){
     ed.bases=gv('em-bas');ed.chumbador=gon('tg_chumb');
     if(ed.chumbador==='Sim'){ed.os_chumb=gv('em-osc');const cf=document.getElementById('em-arqc');if(cf&&cf.files[0])ed.arq_chumb=cf.files[0].name;}
@@ -3001,7 +3023,7 @@ function selRC(el,cls){
 function rTG(cls,val,label,cur,yes){const on=cur===val;
   return`<button class="tgb${yes?' yes':' no'}${on?' on':''} ${cls}" data-val="${val}" onclick="togBtn(this,'${cls}')">${label}</button>`}
 function togBtn(el,cls){
-  const map={tg_oc:'tem_oc',tg_art:'art',tg_elv:'elevacoes',tg_med:'medicao',tg_itg:'iinteg',tg_seg:'iseg',tg_rem:'remocao',tg_chumb:'chumbador'};
+  const map={tg_oc:'tem_oc',tg_art:'art',tg_elv:'elevacoes',tg_med:'medicao',tg_itg:'iinteg',tg_seg:'iseg',tg_rem:'remocao',tg_chumb:'chumbador',tg_bloqenergia:'ibloqenergia',tg_bloqvia:'elevBloqVia'};
   el.closest('.tg-grp').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');if(map[cls])ed[map[cls]]=el.dataset.val;
   if(cls==='tg_elv'||cls==='tg_med'){saveSt();renderEM();}else updCond();
@@ -3282,6 +3304,9 @@ function renderStep(id){
       <div id="vseg-row" style="display:${ed.iseg==='Sim'?'':'none'}">
         <div class="fg"><label>Valor solicitado de seguro pelo empreendimento <span class="r">*</span></label><input class="fc" id="em-vseg" value="${ed.vseg||''}" placeholder="R$ 0,00" oninput="fmtMoney(this)"></div>
       </div>
+      <div class="fg"><label>Necessita de bloqueio de energia para instalação? <span class="r">*</span></label>
+        <div class="tg-grp">${rTG('tg_bloqenergia','Sim','Sim',ed.ibloqenergia,true)}${rTG('tg_bloqenergia','Não','Não',ed.ibloqenergia,false)}</div>
+      </div>
     </div>`;
   }else if(id==='medicao'){
     bd.innerHTML=`<div class="fsec">
@@ -3310,6 +3335,9 @@ function renderStep(id){
           </div>
         </div>
       </div>`;}).join('')}
+      </div>
+      <div class="fg" style="margin-top:14px"><label>Necessita de bloqueio da via para realização do trabalho? <span class="r">*</span></label>
+        <div class="tg-grp">${rTG('tg_bloqvia','Sim','Sim',ed.elevBloqVia,true)}${rTG('tg_bloqvia','Não','Não',ed.elevBloqVia,false)}</div>
       </div>
     </div>`;
   }else if(id==='remocoes'){
@@ -3707,9 +3735,22 @@ function buildEmissaoEmailContent(p){
         <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${p.elevacoes.map(e=>e.tipo+': '+e.qtd+'un × '+e.dias+' diária(s)').join('<br>')}</td>
       </tr>
       ${val['Valor das Elevações']?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Valor das Elevações</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${val['Valor das Elevações']}</td></tr>`:''}
+      ${p.elevBloqVia?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Bloqueio da Via</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${p.elevBloqVia}</td></tr>`:''}
+      ${p.elevBloqVia==='Sim'?`
+      <tr><td colspan="2" style="padding:10px 0 0">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px">
+          <p style="margin:0;font-size:13px;font-weight:700;color:#b91c1c">🚧 NECESSITA BLOQUEIO DA VIA PARA REALIZAÇÃO DO TRABALHO <span style="font-weight:400;font-style:italic">(Responsabilidade do cliente a solicitação do bloqueio da via na data de instalação)</span></p>
+        </td></tr></table>
+      </td></tr>`:''}
       `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem elevações neste pedido.</td></tr>`}
 
       ${fmtSec('Instalação',inst)}
+      ${inst['Necessita de Bloqueio de Energia']==='Sim'?`
+      <tr><td colspan="2" style="padding:10px 0 0">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:6px;padding:12px 16px">
+          <p style="margin:0;font-size:13px;font-weight:700;color:#b91c1c">⚡ NECESSITA BLOQUEIO DE ENERGIA PARA INSTALAÇÃO <span style="font-weight:400;font-style:italic">(Responsabilidade do cliente a solicitação de bloqueio de energia na data de instalação)</span></p>
+        </td></tr></table>
+      </td></tr>`:''}
       ${fmtSec('Frete',fr)}
 
       <!-- BASES E FUNDAÇÕES -->
@@ -3899,6 +3940,7 @@ async function submit(){
   if(ed.iinteg)inst['Integração na Empresa']=ed.iinteg;
   if(ed.iseg)inst['Seguro de Obra']=ed.iseg;
   if(ed.vseg)inst['Valor do Seguro']=fmtV(moneyToNum(ed.vseg));
+  if(ed.ibloqenergia)inst['Necessita de Bloqueio de Energia']=ed.ibloqenergia;
   const fr={};
   if(ed.f_tipo)fr['Modalidade do Frete']=ed.f_tipo;
   if(ed.vfrete)fr['Valor do Frete']=fmtV(moneyToNum(ed.vfrete));
@@ -3920,7 +3962,7 @@ async function submit(){
     origemComercial:true,
     obs:ed.obs,valores:val,pagamento:pag,
     instalacao:inst,frete:fr,bases:ed.bases||'',
-    elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],
+    elevacoes:ed.elevs||[],remocoes:ed.remocoes||[],elevBloqVia:ed.elevBloqVia||'',
     projetos:proj,
     // Campos abaixo só existiam na memória local do formulário (ed.*) durante a emissão
     // e nunca eram salvos no pedido — sem isso, "Reenviar E-mail" não conseguiria
@@ -4601,11 +4643,20 @@ function removeTipoPedido(t){
   toast('Categoria removida','tok');
 }
 
+// Nomes de todos os usuários cadastrados (qualquer categoria — Comercial, Financeiro,
+// Compras etc.), pra escolher quem executa uma tarefa automática. Diferente de
+// getVendedores(), que só traz Comercial — a tarefa pode ser de qualquer área.
+function getNomesUsuarios(){
+  const nomes=cfg.usuarioNomes||{};
+  return[...new Set(Object.values(nomes).map(n=>(n||'').trim()).filter(Boolean))].sort();
+}
 function renderRegrasTarefasAuto(){
   const selTipo=document.getElementById('cfg-regra-tipo');
   if(selTipo)selTipo.innerHTML='<option value="">Qualquer</option>'+Object.keys(TC).map(t=>`<option value="${t}">${t}</option>`).join('');
   const selCat=document.getElementById('cfg-regra-categoria');
   if(selCat)selCat.innerHTML='<option value="">Qualquer</option>'+getTiposPedido().map(c=>`<option value="${c}">${c}</option>`).join('');
+  const selResp=document.getElementById('cfg-regra-responsavel');
+  if(selResp)selResp.innerHTML='<option value="">Sem responsável definido</option>'+getNomesUsuarios().map(n=>`<option value="${n}">${n}</option>`).join('');
   const el=document.getElementById('cfg-regras-tarefas-list');if(!el)return;
   const regras=cfg.regrasTarefasComerciais||[];
   if(!regras.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhuma regra cadastrada — usando o padrão: sempre criar "Lançar no GCore".</p>';return;}
@@ -4615,6 +4666,7 @@ function renderRegrasTarefasAuto(){
       <div>
         <div style="font-size:.75rem;font-weight:700;color:#374151">${cond}</div>
         <div style="font-size:.72rem;color:var(--ink3);margin-top:2px">→ ${(r.tarefas||[]).join(', ')}</div>
+        <div style="font-size:.7rem;margin-top:4px">${r.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:2px 9px;font-weight:700">👤 ${r.responsavel}</span>`:`<span style="color:var(--ink4)">Sem responsável definido</span>`}</div>
       </div>
       <button onclick="removeRegraTarefaAuto('${r.id}')" title="Remover" style="background:#fff;border:1px solid #e5e7eb;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;color:#dc2626;padding:0;line-height:1;flex-shrink:0">✕</button>
     </div>`;
@@ -4623,11 +4675,12 @@ function renderRegrasTarefasAuto(){
 function addRegraTarefaAuto(){
   const tipo=document.getElementById('cfg-regra-tipo')?.value||'';
   const categoria=document.getElementById('cfg-regra-categoria')?.value||'';
+  const responsavel=document.getElementById('cfg-regra-responsavel')?.value||'';
   const inp=document.getElementById('cfg-regra-tarefas');
   const tarefas=(inp?.value||'').split(',').map(t=>t.trim()).filter(Boolean);
   if(!tarefas.length){toast('Descreva ao menos uma tarefa!','terr');return;}
   const regras=(cfg.regrasTarefasComerciais||[]).slice();
-  regras.push({id:uid(),tipo,categoria,tarefas});
+  regras.push({id:uid(),tipo,categoria,tarefas,responsavel});
   cfg.regrasTarefasComerciais=regras;
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
@@ -5803,6 +5856,11 @@ function abrirTarefasComerciais(){
     pedidos.forEach(p=>(p.tarefasComerciais||[]).forEach(t=>usados.add(t.tipo)));
     dl.innerHTML=[...usados].map(t=>`<option value="${t}">`).join('');
   }
+  const nomes=getNomesUsuarios();
+  const selResp=document.getElementById('tf-novo-responsavel');
+  if(selResp)selResp.innerHTML='<option value="">Sem responsável</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
+  const selFilResp=document.getElementById('tf-fil-responsavel');
+  if(selFilResp)selFilResp.innerHTML='<option value="">Todos</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
   renderTarefasComerciais();
 }
 function tarefasTab(tab,btn){
@@ -5814,15 +5872,20 @@ function tarefasTab(tab,btn){
 function renderTarefasComerciais(){
   const body=document.getElementById('tarefas-body');if(!body)return;
   const pendente=_tarefasTabAtual==='pendentes';
-  const lista=pendente?getTarefasComerciaisPendentes():getTarefasComerciaisConcluidas();
+  let lista=pendente?getTarefasComerciaisPendentes():getTarefasComerciaisConcluidas();
+  const filResp=(document.getElementById('tf-fil-responsavel')||{}).value||'';
+  if(filResp)lista=lista.filter(t=>t.responsavel===filResp);
   if(!lista.length){
-    body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.'}</div>`;
+    body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${filResp?'Nenhuma tarefa pra esse responsável.':(pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.')}</div>`;
     return;
   }
   body.innerHTML=lista.map(t=>`
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border-lt);border-radius:10px;margin-bottom:8px;background:#fff">
       <div style="min-width:0">
-        <div style="font-weight:700;font-size:.82rem;color:#1e293b">${t.tipo}</div>
+        <div style="font-weight:700;font-size:.82rem;color:#1e293b;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span>${t.tipo}</span>
+          ${t.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">👤 ${t.responsavel}</span>`:`<span style="background:#f1f5f9;color:#94a3b8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:600;white-space:nowrap">Sem responsável</span>`}
+        </div>
         <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">OS ${t.os||'—'} · ${t.cliente||'—'}${t.job?' · JOB: '+t.job:''} · ${t.vendedor}${t.prazo?' · Prazo: '+fmtD(t.prazo):''}</div>
         <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}</div>
       </div>
@@ -5834,8 +5897,9 @@ function renderTarefasComerciais(){
 function _addTarefaAvulsaFromForm(){
   const pedidoId=document.getElementById('tf-novo-pedido')?.value||'';
   const tipo=document.getElementById('tf-novo-tipo')?.value||'';
+  const responsavel=document.getElementById('tf-novo-responsavel')?.value||'';
   if(!pedidoId){toast('Selecione a venda','terr');return;}
-  adicionarTarefaComercialAvulsa(pedidoId,tipo);
+  adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel);
   const tipoInp=document.getElementById('tf-novo-tipo');if(tipoInp)tipoInp.value='';
 }
 
