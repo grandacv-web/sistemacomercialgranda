@@ -5933,27 +5933,33 @@ function renderPagamentosFuturos(){
     const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].filter(v=>!v.toUpperCase().includes('KELLEN')).sort();
     const rows=vends.map(v=>{
       const its=items.filter(i=>vendedorMatch(i.nomeVend,v));
-      const val=its.reduce((s,i)=>s+i.valor,0);
+      const valBr=its.reduce((s,i)=>s+i.valorBruto,0);
+      const valLq=its.reduce((s,i)=>s+i.valor,0);
       const com=its.reduce((s,i)=>s+(i.valor*i.pct/100),0);
+      const nEst=its.filter(i=>i.liqEstimado).length;
       return`<tr>
         <td style="font-weight:600">${v}</td>
         <td style="text-align:center">${its.length}</td>
-        <td style="font-weight:700">${fmtR(val)}</td>
+        <td style="font-weight:700;color:#1e40af">${fmtR(valBr)}</td>
+        <td style="font-weight:700">${fmtR(valLq)}${nEst?` <span style="font-size:.62rem;color:#b45309;font-weight:700" title="${nEst} parcela(s) sem Líquido explícito — valor estimado por proporção">⚠️ ${nEst} estimado(s)</span>`:''}</td>
         <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
       </tr>`;
     }).join('');
+    const valBrClab=items.reduce((s,i)=>s+i.valorBruto,0);
     const valClab=items.reduce((s,i)=>s+i.valor,0);
     const comClab=items.reduce((s,i)=>s+(i.valor*i.pctClab/100),0);
+    const nEstClab=items.filter(i=>i.liqEstimado).length;
     const rowClab=`<tr style="background:#fef3c7">
         <td style="font-weight:700">GUILHERME CLABONDE (Gerente)</td>
         <td style="text-align:center">${items.length}</td>
-        <td style="font-weight:700">${fmtR(valClab)}</td>
+        <td style="font-weight:700;color:#1e40af">${fmtR(valBrClab)}</td>
+        <td style="font-weight:700">${fmtR(valClab)}${nEstClab?` <span style="font-size:.62rem;color:#b45309;font-weight:700">⚠️ ${nEstClab} estimado(s)</span>`:''}</td>
         <td style="font-weight:700;color:#7c3aed">${fmtR(comClab)}</td>
       </tr>`;
     const totalCom=items.reduce((s,i)=>s+(i.valor*i.pct/100),0);
-    body.innerHTML=`<div style="font-size:.78rem;color:#64748b;margin-bottom:8px">Clique num vendedor no filtro acima pra ver a lista detalhada dele.</div>
+    body.innerHTML=`<div style="font-size:.78rem;color:#64748b;margin-bottom:8px">Clique num vendedor no filtro acima pra ver a lista detalhada dele. "⚠️ estimado" = parcela sem Líquido digitado, valor calculado por proporção — confira em Editar Valores.</div>
       <table class="dash-table">
-        <thead><tr><th>Vendedor</th><th>Parcelas</th><th>Valor total</th><th>Comissão pendente</th></tr></thead>
+        <thead><tr><th>Vendedor</th><th>Parcelas</th><th>Valor Bruto</th><th>Valor Líquido</th><th>Comissão pendente</th></tr></thead>
         <tbody>${rows}${rowClab}</tbody>
       </table>
       <div style="margin-top:10px;font-size:.8rem;font-weight:700;color:#111827">Total comissão de vendedores pendente: <span style="color:#7c3aed">${fmtR(totalCom)}</span></div>`;
@@ -5961,27 +5967,30 @@ function renderPagamentosFuturos(){
   }
 
   // Com filtro (vendedor específico ou Clabonde): lista detalhada + soma
+  const totalValBr=items.reduce((s,i)=>s+i.valorBruto,0);
   const totalVal=items.reduce((s,i)=>s+i.valor,0);
   const totalCom=items.reduce((s,i)=>s+(i.valor*(useClabPct?i.pctClab:i.pct)/100),0);
   const rows=items.map(i=>{
     const pct=useClabPct?i.pctClab:i.pct;
     const com=i.valor*pct/100;
+    const estTag=i.liqEstimado?` <span style="font-size:.6rem;color:#b45309;font-weight:700" title="Sem Líquido digitado nesta parcela — valor estimado pela proporção do pedido. Preencha o Líquido em Editar Valores pra usar o valor exato.">⚠️ estimado</span>`:'';
     return`<tr>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
       <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px">${i.cliente}</td>
       ${useClabPct?`<td style="font-size:.72rem">${i.nomeVend}</td>`:''}
-      <td style="font-weight:700">${fmtR(i.valor)}</td>
+      <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}</td>
+      <td style="font-weight:700">${fmtR(i.valor)}${estTag}</td>
       <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
       <td style="font-weight:700;color:#e91e63">${pct>0?pct.toFixed(2).replace('.',',')+'%':'—'}</td>
       <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
     </tr>`;
   }).join('');
   body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
-      <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th>${useClabPct?'<th>Vendedor</th>':''}<th>Valor</th><th>Data prev.</th><th>%</th><th>Comissão</th></tr></thead>
+      <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th>${useClabPct?'<th>Vendedor</th>':''}<th>Valor Bruto</th><th>Valor Líquido</th><th>Data prev.</th><th>%</th><th>Comissão</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
-    <div style="margin-top:10px;font-size:.8rem;font-weight:700;color:#111827">Total: ${fmtR(totalVal)} · Comissão pendente: <span style="color:#7c3aed">${fmtR(totalCom)}</span></div>`;
+    <div style="margin-top:10px;font-size:.8rem;font-weight:700;color:#111827">Total Bruto: ${fmtR(totalValBr)} · Total Líquido: ${fmtR(totalVal)} · Comissão pendente: <span style="color:#7c3aed">${fmtR(totalCom)}</span></div>`;
 }
 
 // ── JANELA DE TAREFAS COMERCIAIS ──────────────────────────────
