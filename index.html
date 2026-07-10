@@ -4809,8 +4809,12 @@ function getParcelas(p){
   // formulários), e o bruto é estimado escalando pra cima pela proporção do pedido.
   const pag=p.pagamento||{};
   const vals=p.valores||{};
-  const totalBruto=parseFloat(String(vals['Valor Bruto']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
-  const totalLiq=parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
+  // Se a OS bate com a planilha colada, ela vira a fonte de verdade do total do pedido
+  // (mesma regra do pedidoToVendaRow) — inclusive pra estimar a proporção bruto/líquido
+  // aqui embaixo, em vez do Valor Bruto/Líquido desatualizado salvo no Firestore.
+  const xlsxRowGP=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
+  const totalBruto=(xlsxRowGP&&xlsxRowGP.br)?xlsxRowGP.br:(parseFloat(String(vals['Valor Bruto']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0);
+  const totalLiq=(xlsxRowGP&&xlsxRowGP.lq!=null)?xlsxRowGP.lq:(parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0);
   const trueRatio=totalBruto>0?(totalLiq/totalBruto):1;
   const toBrutoFromLiq=liq=>trueRatio>0?liq/trueRatio:liq;
   const ratioEstimado=(totalBruto>0&&totalLiq>0)?trueRatio:1;
@@ -4836,6 +4840,25 @@ function getParcelas(p){
     const mt=k.match(/^Parcela\s+(\d+)\s+·\s+(.+)$/);
     if(mt)pushItem(k,v,`Parcela ${mt[1]} (Líquido)`,mt[2].trim(),`${p.id}::${k}`);
   });
+  // Planilha vence: se a OS bate com uma linha da planilha colada, a SOMA das parcelas
+  // (bruto e líquido) tem que fechar com o Bruto/Líquido daquela linha. Se não fechar —
+  // ex.: valor digitado errado numa parcela específica ao emitir/editar o pedido, como
+  // aconteceu na OS 166 (Bruto e Líquido trocados/errados na Entrada) — reescala tudo
+  // proporcionalmente pra corrigir, preservando a distribuição entre as parcelas quando
+  // houver mais de uma. Corrige Contas a Receber, Pendentes de Revisão, Pagamentos
+  // Futuros e a comissão calculada em cima (tudo passa por aqui via getComissaoItemsAll).
+  if(xlsxRowGP&&res.length){
+    const sumBr=res.reduce((s,r)=>s+r.valorBruto,0);
+    const sumLq=res.reduce((s,r)=>s+r.valor,0);
+    if(xlsxRowGP.br&&sumBr>0&&Math.abs(sumBr-xlsxRowGP.br)>0.01){
+      const kBr=xlsxRowGP.br/sumBr;
+      res.forEach(r=>{r.valorBruto=r.valorBruto*kBr;});
+    }
+    if(xlsxRowGP.lq!=null&&sumLq>0&&Math.abs(sumLq-xlsxRowGP.lq)>0.01){
+      const kLq=xlsxRowGP.lq/sumLq;
+      res.forEach(r=>{r.valor=r.valor*kLq;r.liqEstimado=false;});
+    }
+  }
   return res;
 }
 
