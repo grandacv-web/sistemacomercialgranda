@@ -2189,6 +2189,10 @@ async function editarVendaLista(os,pedidoId){
   const pedido={id:uid(),os:String(x.p),tipo:x.cat,tipoPedido:x.cat,responsavel:mapVendedorName(x.v),
     cliente:x.cl,emails:[],job:x.cl,prazo:x.entrega||'',etapa:'Pedido Entregue',
     emissaoEm,obs:'Editado a partir da Lista de Vendas',importadoPlanilha:true,
+    // origPlanilhaOs guarda o OS original da linha em XLSX_VENDAS que deu origem a este
+    // pedido — necessário pra getVendaRowsMerged continuar escondendo essa linha da
+    // planilha caso o OS deste pedido seja trocado depois (ver comentário lá).
+    origPlanilhaOs:String(x.p),
     valores,pagamento,instalacao,frete,bases:'',elevacoes:[],remocoes:[],projetos};
   pedidos.push(pedido);
   await savePedidoFS(pedido);
@@ -2419,6 +2423,9 @@ async function salvarValoresPedido(){
   const gi=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
   const novoOs=gi('ev-os');
   if(novoOs)p.os=novoOs;
+  // Reativa este OS caso estivesse marcado como cancelado — admin editando/definindo o
+  // número aqui é sinal claro de que a venda deve voltar a aparecer na lista.
+  await _reativarVendaSeCancelada(p.os);
   p.job=gi('ev-job');
   p.prazo=gi('ev-prazo');
   p.responsavel=gi('ev-resp');
@@ -2610,6 +2617,10 @@ async function salvarVendaManual(){
   const senha=await pedirSenhaAdmin('Adicionar Venda Manual','Digite sua senha de administrador para confirmar a inserção desta venda na Lista de Vendas:');
   if(!senha){toast('Cancelado','tinf');openM('mo-venda-manual');return;}
   if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');openM('mo-venda-manual');return;}
+  // Se este Nº de OS já foi marcado como cancelado antes (ex.: venda duplicada cancelada
+  // e agora relançada corretamente), reativa — senão a venda salva mas some da lista
+  // (ver [[project_...]] sobre isVendaCancelada filtrando por OS).
+  await _reativarVendaSeCancelada(os);
   const liq=br-ft-mo-vi-el2-art-rem-med;
   const fmtV=val=>'R$ '+val.toLocaleString('pt-BR',{minimumFractionDigits:2});
   // Datas digitadas pelo admin (data real prevista de recebimento) são convertidas pra
@@ -4075,6 +4086,10 @@ async function submit(){
   // Fechar modal ANTES do save para não travar
   const _moEm=document.getElementById('mo-em');
   if(_moEm)_moEm.classList.remove('open');
+  // Reativa este OS caso estivesse marcado como cancelado — emitir/editar um pedido com
+  // este número é sinal claro de que a venda deve voltar a aparecer na lista (ver
+  // _reativarVendaSeCancelada).
+  _reativarVendaSeCancelada(p.os).catch(e=>console.error('Erro ao reativar OS:',e));
   savePedidoFS(p).catch(e=>toast('Erro ao salvar: '+e.message,'terr'));
   toast(wasEditing?'Pedido atualizado!':'Pedido emitido! Enviando e-mail...','tok');
   // Enviar email via EmailJS — usa a mesma função de _enviarEmailEmissao() que também
@@ -5114,6 +5129,20 @@ function isComercialPedido(p){
 // Marcar como cancelada por OS funciona igual pra venda da planilha, venda manual ou pedido emitido.
 function getVendasCanceladas(){return (cfg.vendasCanceladas||[]).map(String);}
 function isVendaCancelada(os){return getVendasCanceladas().includes(String(os));}
+// Se o admin salva uma venda/pedido com um Nº de OS que estava marcado como cancelado
+// (cfg.vendasCanceladas), remove essa marcação — do contrário a venda é gravada com
+// sucesso no Firestore mas some silenciosamente da Lista de Vendas/Gráficos/Metas
+// (isVendaCancelada filtra por OS em getVendaRowsMerged), parecendo que o salvamento
+// falhou. Chamado sempre que um OS é definido/alterado em salvarVendaManual,
+// salvarValoresPedido e submit() (emissão normal).
+async function _reativarVendaSeCancelada(os){
+  if(!os||!cfg.vendasCanceladas)return;
+  const s=String(os);
+  if(!cfg.vendasCanceladas.map(String).includes(s))return;
+  cfg.vendasCanceladas=cfg.vendasCanceladas.filter(x=>String(x)!==s);
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+}
 // Fonte única de vendas: mescla a planilha (XLSX_VENDAS) com os pedidos do Firestore,
 // sem precisar de nenhum passo de "importar" — é a mesma lista usada na Lista de Vendas.
 // Cache de "um cálculo por render" — getVendaRowsMerged/getComissaoItemsAll eram
@@ -5129,7 +5158,15 @@ function _invalidateDashCache(){_vrmCache=null;_comItemsCache=null;}
 function getVendaRowsMerged(){
   if(_vrmCache)return _vrmCache;
   const importadosFS=pedidos.filter(p=>p.importadoPlanilha);
-  const importadosFSOs=new Set(importadosFS.map(p=>String(p.os)));
+  // Inclui tanto o OS atual quanto o OS original da planilha (origPlanilhaOs) — se o
+  // admin editar uma venda que veio da planilha (editarVendaLista) e trocar o número do
+  // pedido/OS pelo definitivo, o pedido no Firestore passa a ter um OS diferente do
+  // registro em XLSX_VENDAS. Sem o origPlanilhaOs aqui, a linha antiga da planilha
+  // (ainda com o OS provisório) volta a aparecer junto com a nova, duplicando a venda
+  // na Lista de Vendas (ver relato do usuário: Burger King Bandeirantes duplicado ao
+  // editar o pedido de maio e preencher o número/PDF).
+  const importadosFSOs=new Set();
+  importadosFS.forEach(p=>{importadosFSOs.add(String(p.os));if(p.origPlanilhaOs)importadosFSOs.add(String(p.origPlanilhaOs));});
   const xlsxSemFS=(typeof XLSX_VENDAS!=='undefined'?XLSX_VENDAS:[]).filter(r=>!importadosFSOs.has(String(r.p)));
   _vrmCache=[
     ...xlsxSemFS,
