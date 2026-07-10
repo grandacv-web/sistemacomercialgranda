@@ -4711,7 +4711,11 @@ function getParcelas(p){
   const vals=p.valores||{};
   const totalBruto=parseFloat(String(vals['Valor Bruto']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
   const totalLiq=parseFloat(String(vals['Valor Líquido do Pedido']||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
-  const ratio=p.importadoPlanilha?1:(totalBruto>0?totalLiq/totalBruto:1);
+  // Defesa: só aplica a proporção se os DOIS valores existirem e forem positivos. Pedido
+  // antigo/incompleto sem "Valor Líquido do Pedido" salvo não pode virar ratio=0 (senão a
+  // comissão inteira do pedido sumiria pra R$0,00 silenciosamente) — cai pra ratio=1 (mesma
+  // convenção de antes: bruto=líquido) até alguém preencher o líquido em Editar Valores.
+  const ratio=p.importadoPlanilha?1:(totalBruto>0&&totalLiq>0?totalLiq/totalBruto:1);
   const toLiq=bruto=>bruto*ratio;
   // Proporção REAL bruto/líquido do pedido inteiro — independente de como esta parcela
   // foi digitada (bruto ou líquido). Usada só pra "voltar" ao bruto de cada parcela na
