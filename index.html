@@ -2709,7 +2709,7 @@ function openEmissao(eid2){
       // usuário: reenvio saindo sem o PDF do pedido pra baixar).
       arq_os_url:p.arq_os_url||'',
       art:proj.art||'',cnpj_art:proj.cnpj_art||'',cnpj_art_url:proj.cnpj_art_url||'',
-      arq_prod:proj.arq_prod||'',layout_inst:proj.layout_inst||'',fotos_orig:proj.fotos_orig||'',
+      arq_prod:proj.arq_prod||'',layout_inst:proj.layout_inst||'',fotos_orig:proj.fotos_orig||'',pasta_arquivos:proj.pasta_arquivos||'',
       iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
       iend:inst['Endereço de Instalação']||'',ihor:inst['Horário']||'Comercial',
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
@@ -2724,7 +2724,7 @@ function openEmissao(eid2){
       vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',vart:'',
       elevacoes:'',elevs:[],velev:'',elevBloqVia:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
-      nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',
+      nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',pasta_arquivos:'',
       iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',
       minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:''};
   }
@@ -2779,6 +2779,7 @@ function validarAba(id){
     if(!ed.nf)erros.push('Informe a Emissão de Nota Fiscal');
   }
   if(id==='projetos'){
+    if(!ed.pasta_arquivos||!ed.pasta_arquivos.trim())erros.push('Informe o caminho da pasta de arquivos para projetos');
     if(ed.art==='Sim'&&!ed.cnpj_art)erros.push('Anexe o Cartão CNPJ da Obra');
     if(!ed.arq_prod)erros.push('Selecione os arquivos de produção');
     if(!ed.layout_inst)erros.push('Selecione o layout de instalação');
@@ -2920,6 +2921,7 @@ function saveSt(){
     // cnpj_art é salvo via uploadCnpjArt() ao fazer o upload do arquivo
     const gRad=n=>document.querySelector(`input[name="${n}"]:checked`)?.value||ed[n]||'';
     ed.arq_prod=gRad('arq_prod');ed.layout_inst=gRad('layout_inst');ed.fotos_orig=gRad('fotos_orig');
+    ed.pasta_arquivos=gv('em-pasta-arquivos');
   }else if(id==='instalacao'){
     ed.iacomp=gv('em-ia');ed.itel=gv('em-it');
     ed.icep=gv('em-icep');ed.ilog=gv('em-ilog');ed.inum_e=gv('em-inum');ed.icomp=gv('em-icomp');
@@ -3329,6 +3331,11 @@ function renderStep(id){
     function rRadio(name,opts,cur){return opts.map(o=>`<label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;border:1.5px solid ${cur===o?'#00bac7':'#e0e3ea'};background:${cur===o?'#e0f7fa':'#fff'};cursor:pointer;font-size:.82rem;margin-bottom:6px"><input type="radio" name="${name}" value="${o}" ${cur===o?'checked':''} style="accent-color:#00bac7" onchange="ed['${name}']=this.value;document.querySelectorAll('[name=${name}]').forEach(r=>{r.closest('label').style.borderColor=r.checked?'#00bac7':'#e0e3ea';r.closest('label').style.background=r.checked?'#e0f7fa':'#fff'})">${o}</label>`).join('');}
     bd.innerHTML=`<div class="fsec">
       <div class="fsec-t">&#128196; PROJETOS / TÉCNICO</div>
+      <div class="fg">
+        <label>Caminho da pasta de arquivos para projetos <span class="r">*</span></label>
+        <input class="fc no-upper" id="em-pasta-arquivos" value="${(ed.pasta_arquivos||'').replace(/"/g,'&quot;')}" placeholder="Ex: \\\\SERVIDOR\\Projetos\\2026\\OS 12345 - Cliente" oninput="ed.pasta_arquivos=this.value">
+        <div style="font-size:.72rem;color:var(--ink4);margin-top:4px">Caminho, dentro do nosso servidor, de onde os arquivos deste pedido foram salvos para acesso do setor de projetos.</div>
+      </div>
       ${ed.art==='Sim'?`<div class="fg" style="margin-bottom:10px"><label style="color:#6b7280;font-size:.78rem">Este pedido tem Emissão de ART (informado na aba Valores). Anexe o Cartão CNPJ da Obra abaixo.</label></div>`:''}
       <div class="fg" id="fg-cnpj-art" style="display:${ed.art==='Sim'?'block':'none'};margin-top:10px">
         <label>Cartão CNPJ da Obra <span class="r">*</span></label>
@@ -3962,6 +3969,7 @@ async function submit(){
   }
   // Aba projetos
   const idxProj=idx('projetos');
+  if(!ed.pasta_arquivos||!ed.pasta_arquivos.trim())erros.push({msg:'Informe o caminho da pasta de arquivos para projetos',aba:idxProj,label:'Projetos'});
   if(ed.art==='Sim'&&!ed.cnpj_art)erros.push({msg:'Anexe o Cartão CNPJ da Obra para emissão de ART',aba:idxProj,label:'Projetos'});
   if(!ed.arq_prod)erros.push({msg:'Selecione os arquivos de produção',aba:idxProj,label:'Projetos'});
   if(!ed.layout_inst)erros.push({msg:'Selecione o layout de instalação',aba:idxProj,label:'Projetos'});
@@ -4038,7 +4046,7 @@ async function submit(){
   if(ed.ftel)fr['Telefone da Descarga']=ed.ftel;
   if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
-  const proj={art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig};
+  const proj={art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig,pasta_arquivos:ed.pasta_arquivos||''};
   if(ed.art==='Sim'&&ed.vart)proj['Valor da ART']=fmtV(moneyToNum(ed.vart));
   const _pedidoExistente=editing?pedidos.find(x=>x.id===editing):null;
   const _emissaoExistente=_pedidoExistente?_pedidoExistente.emissaoEm:null;
@@ -6588,7 +6596,7 @@ function verVendaDetalhe(os,pedidoId){
       _vvCurrentPedidoId=pedidoId;
       document.getElementById('vv-t').textContent=`OS ${p.os||'—'} — ${p.cliente}`;
       document.getElementById('vv-s').textContent=`${p.tipo} · JOB: ${p.job||'—'} · Emitido no sistema`;
-      const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{};
+      const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj2=p.projetos||{};
       const parcRows=getParcelas(p).map(parc=>{
         const conf=getPagConf(parc.confKey);
         const st=conf?.status==='confirmado'?'✅ Recebido':'⏳ Pendente';
@@ -6603,6 +6611,7 @@ function verVendaDetalhe(os,pedidoId){
           <div class="vf"><div class="l">Prazo</div><div class="v">${p.prazo?fmtD(p.prazo):'—'}</div></div>
           <div class="vf"><div class="l">OS Nº</div><div class="v">${p.os||'—'}</div></div>
           <div class="vf" style="grid-column:span 2"><div class="l">E-mail de emissão</div><div class="v" style="font-weight:600">${_fmtEmailStatus(p)}</div></div>
+          ${proj2.pasta_arquivos?`<div class="vf" style="grid-column:span 2"><div class="l">📁 Pasta de arquivos para projetos</div><div class="v">${proj2.pasta_arquivos}</div></div>`:''}
           ${p.obs?`<div class="vf" style="grid-column:span 2"><div class="l">Observações</div><div class="v">${p.obs}</div></div>`:''}
         </div></div>
         ${secHtml('Valores',v)}
