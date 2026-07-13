@@ -4848,9 +4848,11 @@ function getParcelas(p){
   // Pedido antigo, sem o campo Líquido explícito ainda: cai numa ESTIMATIVA por proporção
   // (fallback, marcada com liqEstimado:true no item) só pra não sumir com o valor —
   // continua precisando ser conferida/preenchida manualmente em Editar Valores.
-  // Venda Manual / XLSX (importadoPlanilha): convenção diferente e inalterada — o único
-  // valor digitado por parcela JÁ é o líquido (não tem campo bruto separado nesses
-  // formulários), e o bruto é estimado escalando pra cima pela proporção do pedido.
+  // Venda Manual / XLSX (importadoPlanilha) ainda NÃO editada em "Editar Valores" desde a
+  // v2: só existe o valor único antigo (tratado como líquido, bruto vira estimativa) — ver
+  // pushItem abaixo. Assim que alguém salvar essa parcela em Editar Valores (que sempre
+  // pede Bruto e Líquido separados, mesmo pra pedido importadoPlanilha), o campo Líquido
+  // explícito passa a existir e o pedido cai no tratamento normal (Bruto real, não estimado).
   const pag=p.pagamento||{};
   const vals=p.valores||{};
   // Se a OS bate com a planilha colada, ela vira a fonte de verdade do total do pedido
@@ -4866,16 +4868,27 @@ function getParcelas(p){
   const res=[];
   function pushItem(label,rawVal,liqKey,dataStr,confKey){
     const raw=$mDash(rawVal);
-    if(p.importadoPlanilha){
-      // Valor único digitado (Venda Manual/planilha) já É o líquido — bruto é estimado
-      // escalando pra cima usando a proporção real do pedido, só pra Financeiro exibir.
-      res.push({pedidoId:p.id,pedido:p,label,valor:raw,valorBruto:toBrutoFromLiq(raw),liqEstimado:false,dataStr,confKey});
+    const liqExplicito=pag[liqKey]?$mDash(pag[liqKey]):0;
+    if(p.importadoPlanilha&&!(liqExplicito>0)){
+      // BUG corrigido em 2026-07-13 (OS 56 "BURGER KING COLOMBO"): antes esse ramo rodava
+      // pra QUALQUER pedido importadoPlanilha, mesmo depois de editado em "Editar Valores"
+      // com Bruto e Líquido reais e distintos digitados — descartava o Bruto real
+      // (guardado em "Parcela N · data") e inventava um Bruto estimado no lugar, que não
+      // batia com o valor real da parcela (mostrou R$125.158 estimado quando o Bruto real
+      // era outro). Agora só entra aqui se NÃO existir Líquido explícito pra essa parcela —
+      // ou seja, só pedido recém-materializado da planilha que ainda não foi editado desde
+      // a revisão v2 (Bruto/Líquido separados). Único valor digitado aqui é tratado como
+      // Líquido (convenção antiga) e o Bruto é só uma ESTIMATIVA (valorBrutoEstimado:true).
+      res.push({pedidoId:p.id,pedido:p,label,valor:raw,valorBruto:toBrutoFromLiq(raw),liqEstimado:false,valorBrutoEstimado:true,dataStr,confKey});
       return;
     }
-    const liqExplicito=pag[liqKey]?$mDash(pag[liqKey]):0;
+    // Bruto (raw, "Parcela N · data") e Líquido (liqKey, "Parcela N (Líquido)") sempre
+    // digitados separados — ver regra no topo da função. Vale pra pedido normal E pra
+    // importadoPlanilha assim que ele tiver passado por "Editar Valores" (que sempre
+    // pede os dois campos, mesmo pra pedido vindo da planilha).
     const liqEstimadoFlag=!(liqExplicito>0);
     const liqV=liqExplicito>0?liqExplicito:estimarLiq(raw);
-    res.push({pedidoId:p.id,pedido:p,label,valor:liqV,valorBruto:raw,liqEstimado:liqEstimadoFlag,dataStr,confKey});
+    res.push({pedidoId:p.id,pedido:p,label,valor:liqV,valorBruto:raw,liqEstimado:liqEstimadoFlag,valorBrutoEstimado:false,dataStr,confKey});
   }
   if(pag['Valor de Entrada']&&pag['Data da Entrada']){
     pushItem('Entrada',pag['Valor de Entrada'],'Valor de Entrada (Líquido)',(pag['Data da Entrada']||'').trim(),`${p.id}::entrada`);
@@ -5846,6 +5859,16 @@ function renderDashComissoes(){
     if(!i.liqEstimado)return`<span style="font-weight:700">${fmtR(i.valor)}</span>`;
     return`<span style="font-weight:700">${fmtR(i.valor)}</span><br><span style="font-size:.6rem;color:#b45309;font-weight:700" title="Sem Líquido digitado nesta parcela — valor estimado pela proporção do pedido (Valor Líquido do Pedido / Valor Bruto). Preencha o Líquido em Editar Valores pra usar o valor exato.">⚠️ estimado</span>`;
   }
+  // Mesma lógica pro Bruto: pedido vindo da planilha que ainda não foi editado em "Editar
+  // Valores" desde a v2 só tem o Líquido real (da planilha) — o Bruto exibido aqui é uma
+  // ESTIMATIVA por proporção do pedido inteiro, NÃO um valor real (bug encontrado na OS 56
+  // "BURGER KING COLOMBO" em 2026-07-13: Bruto estimado em R$125.158 sem nenhuma base real
+  // foi mostrado como se fosse um número confiável). Preencher o Bruto real em Editar
+  // Valores faz esse aviso sumir.
+  function mkBrutoCell(i){
+    if(!i.valorBrutoEstimado)return fmtR(i.valorBruto);
+    return`${fmtR(i.valorBruto)}<br><span style="font-size:.6rem;color:#b45309;font-weight:700" title="Este pedido veio da planilha e ainda não teve o Bruto desta parcela editado — valor estimado pela proporção do pedido inteiro (Valor Bruto / Valor Líquido), NÃO é um valor real. Preencha o Bruto real em Editar Valores.">⚠️ estimado</span>`;
+  }
   function mkTable(items,emptyMsg){
     if(!items.length)return`<div style="padding:12px 0;color:#94a3b8;font-size:.82rem">${emptyMsg||'Nenhum lançamento nesta quinzena.'}</div>`;
     return`<div style="overflow-x:auto"><table class="dash-table">
@@ -5862,7 +5885,7 @@ function renderDashComissoes(){
           <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
           <td>${i.nomeVend}</td>
           <td style="font-size:.72rem">${i.label}</td>
-          <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}</td>
+          <td style="font-weight:700;color:#1e40af">${mkBrutoCell(i)}</td>
           <td>${mkLiqCell(i)}</td>
           <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
           <td style="font-weight:700;color:#e91e63">${i.pct>0?i.pct.toFixed(2).replace('.',',')+'%':'—'}</td>
@@ -6091,12 +6114,13 @@ function renderPagamentosFuturos(){
     const com=i.valor*pct/100;
     const estTag=i.liqEstimado?` <span style="font-size:.6rem;color:#b45309;font-weight:700" title="Sem Líquido digitado nesta parcela — valor estimado pela proporção do pedido. Preencha o Líquido em Editar Valores pra usar o valor exato.">⚠️ estimado</span>`:'';
     const divTag=i.divergePlanilha?` <span style="font-size:.6rem;color:#dc2626;font-weight:700" title="Número de parcelas cadastradas neste pedido não bate com a planilha mestre pra esse OS — provável parcela faltando (ex.: Entrada já paga que não foi redigitada em Editar Valores). Valor exatamente o digitado, sem ajuste. Confira antes de confirmar.">🚨 confira c/ planilha</span>`:'';
+    const estTagBr=i.valorBrutoEstimado?` <span style="font-size:.6rem;color:#b45309;font-weight:700" title="Pedido vindo da planilha ainda não editado — Bruto estimado por proporção do pedido, não é valor real. Preencha o Bruto real em Editar Valores.">⚠️ estimado</span>`:'';
     return`<tr>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
       <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px">${i.cliente}</td>
       ${useClabPct?`<td style="font-size:.72rem">${i.nomeVend}</td>`:''}
-      <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}</td>
+      <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}${estTagBr}</td>
       <td style="font-weight:700">${fmtR(i.valor)}${estTag}${divTag}</td>
       <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
       <td style="font-weight:700;color:#e91e63">${pct>0?pct.toFixed(2).replace('.',',')+'%':'—'}</td>
