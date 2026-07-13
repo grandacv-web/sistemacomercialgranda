@@ -613,10 +613,12 @@ select.fc{cursor:pointer}
 
       <!-- ═══ PAINEL POR VENDEDOR ═══ -->
       <div id="gc-painel-vend" style="display:none">
-        <!-- Input fields para dados manuais (orc, cv, pd) -->
-        <div class="gc-chart-card" style="background:var(--surface2,#f8fafc)">
+        <!-- Input fields para dados manuais (orc, cv, pd, motivos de perda) — só ADMIN vê/preenche.
+             Pro usuário comum esses números aparecem só na forma "bonita" no card gc-vend-pipeline
+             logo abaixo (sempre visível), nunca como formulário. Ver gcRenderVendPaineis(). -->
+        <div class="gc-chart-card" id="gc-vend-input-card" style="background:var(--surface2,#f8fafc);display:none">
           <div class="gc-chart-title" id="gc-vend-titulo">Vendedor</div>
-          <div class="gc-chart-sub" id="gc-vend-sub2">Dados do mês selecionado</div>
+          <div class="gc-chart-sub" id="gc-vend-sub2">Dados do mês selecionado (só admin edita)</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
             <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Orçamentos em aberto (R$)</div>
               <input id="gc-inp-orc" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
@@ -625,6 +627,25 @@ select.fc{cursor:pointer}
             <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Negócios perdidos (R$)</div>
               <input id="gc-inp-pd" type="number" placeholder="0" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
           </div>
+          <div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin:14px 0 4px">Negócios perdidos — quantidade por motivo (o valor em R$ de cada um é calculado automaticamente, proporcional ao total acima)</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Preço</div>
+              <input id="gc-inp-motPreco" type="number" placeholder="0" min="0" step="1" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Prazo</div>
+              <input id="gc-inp-motPrazo" type="number" placeholder="0" min="0" step="1" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Sem retorno</div>
+              <input id="gc-inp-motSemRetorno" type="number" placeholder="0" min="0" step="1" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+            <div><div style="font-size:.68rem;color:var(--ink4);font-weight:600;margin-bottom:4px">Desistiu do projeto</div>
+              <input id="gc-inp-motDesistiu" type="number" placeholder="0" min="0" step="1" oninput="gcSaveExtra()" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:.8rem;background:#fff"></div>
+          </div>
+        </div>
+        <!-- Card sempre visível (todo mundo vê) com Orçamentos em Aberto + Negócios Perdidos
+             por motivo, em formato "bonito" pra ficar legal na hora de tirar print/exportar. -->
+        <div class="gc-chart-card" id="gc-vend-pipeline">
+          <div class="gc-chart-title">Pipeline &amp; Oportunidades Perdidas</div>
+          <div class="gc-chart-sub">Orçamentos em aberto e motivos de perda do mês</div>
+          <div class="gc-krow-2" id="gc-vend-pipeline-kpis" style="margin-top:10px"></div>
+          <div id="gc-vend-motivos" style="margin-top:12px"></div>
         </div>
         <!-- KPIs do vendedor -->
         <div class="gc-krow" id="gc-vend-kpis-top"></div>
@@ -719,9 +740,9 @@ select.fc{cursor:pointer}
          de Lista de Vendas/Emissão) — continua exigindo administrador + PIN, igual antes. -->
     <div id="sec-cat-COMERCIAL" style="display:none">
       <div id="dash-comercial">
-        <div id="dash-comercial-restricted" style="display:none;padding:40px 4px;text-align:center;color:#94a3b8">
+        <div id="dash-comercial-restricted" style="display:none;padding:40px 4px;text-align:center;color:#dc2626">
           <div style="font-size:2rem;margin-bottom:8px">🔒</div>
-          <div style="font-size:.85rem;font-weight:600">Área restrita — apenas administradores podem acessar Metas &amp; Comissões.</div>
+          <div style="font-size:.85rem;font-weight:700">ACESSO NÃO PERMITIDO — apenas administradores podem acessar Metas &amp; Comissões.</div>
         </div>
         <div id="dash-comercial-body">
           <div class="dash-sec-title" style="margin-bottom:14px">🎯 Metas &amp; Comissões</div>
@@ -1861,6 +1882,14 @@ function _getUserCat(){
   return {cat:usuarioLogado?.categoria||(cfg.usuarioCats&&cfg.usuarioCats[email])||'',email,isAdm:(usuarioLogado?.categoria==='ADMINISTRADOR'||_ADMINS.includes(email))};
 }
 function setSection(sec){
+  // Trava de acesso ao Financeiro — não basta esconder o botão do sidebar (buildSidebarCats),
+  // porque setSection() pode ser chamada de qualquer jeito (ex: console do navegador,
+  // link antigo, etc). Se não for admin/categoria FINANCEIRO, barra aqui mesmo, sem trocar
+  // de seção nenhuma (currentSection nem muda) — Comercial não abre e não mexe em nada.
+  if(sec==='cat:FINANCEIRO'&&!_isFinanceiroUser()){
+    toast('ACESSO NÃO PERMITIDO','terr');
+    return;
+  }
   currentSection=sec;
   const isGeral=sec==='geral';
 
@@ -4862,16 +4891,40 @@ function getParcelas(p){
   // proporcionalmente pra corrigir, preservando a distribuição entre as parcelas quando
   // houver mais de uma. Corrige Contas a Receber, Pendentes de Revisão, Pagamentos
   // Futuros e a comissão calculada em cima (tudo passa por aqui via getComissaoItemsAll).
+  //
+  // BUG GRAVE corrigido em 2026-07-13 (OS 56 "BURGER KING COLOMBO"): esse reescalonamento
+  // só faz sentido quando TODAS as parcelas do pedido estão cadastradas em p.pagamento e
+  // só o VALOR de alguma delas está digitado errado. Mas salvarValoresPedido() reconstrói
+  // p.pagamento do zero a cada edição em "Editar Valores", renumerando "Parcela 1, 2..."
+  // só a partir dos campos que o admin preencheu na hora — se uma parcela já foi paga e
+  // não foi redigitada (ex.: Entrada já recebida e com comissão já paga), ela some de
+  // p.pagamento e `res` fica com MENOS itens do que a planilha prevê. Nesse caso o fator
+  // de reescala (xlsxRowGP.lq/sumLq) deixa de ser uma correção pequena de typo e passa a
+  // INFLAR a única parcela restante pro Líquido TOTAL do pedido — pagando comissão sobre
+  // dinheiro que ainda nem venceu. Foi exatamente isso: uma parcela de ~R$111k (a real,
+  // pendente, da coluna Julho II) virou R$278.492 (líquido total) e gerou comissão em
+  // cima do valor errado. Por isso só reescala agora quando a CONTAGEM de parcelas
+  // cadastradas bate com a contagem de parcelas da planilha pra esse OS — senão é sinal
+  // de que falta parcela cadastrada (não que uma tenha valor errado), e forçar a soma
+  // pra fechar esconderia isso em vez de corrigir. Quando não bate, marca
+  // `divergePlanilha:true` pra Contas a Receber/Pagamentos Futuros avisarem o admin,
+  // SEM alterar o valor digitado (mais seguro nunca inflar do que inflar errado).
   if(xlsxRowGP&&res.length){
+    const parcelasEsperadas=(xlsxRowGP.parcelas||[]).length;
+    const contagemBate=!parcelasEsperadas||res.length===parcelasEsperadas;
     const sumBr=res.reduce((s,r)=>s+r.valorBruto,0);
     const sumLq=res.reduce((s,r)=>s+r.valor,0);
-    if(xlsxRowGP.br&&sumBr>0&&Math.abs(sumBr-xlsxRowGP.br)>0.01){
-      const kBr=xlsxRowGP.br/sumBr;
-      res.forEach(r=>{r.valorBruto=r.valorBruto*kBr;});
-    }
-    if(xlsxRowGP.lq!=null&&sumLq>0&&Math.abs(sumLq-xlsxRowGP.lq)>0.01){
-      const kLq=xlsxRowGP.lq/sumLq;
-      res.forEach(r=>{r.valor=r.valor*kLq;r.liqEstimado=false;});
+    if(contagemBate){
+      if(xlsxRowGP.br&&sumBr>0&&Math.abs(sumBr-xlsxRowGP.br)>0.01){
+        const kBr=xlsxRowGP.br/sumBr;
+        res.forEach(r=>{r.valorBruto=r.valorBruto*kBr;});
+      }
+      if(xlsxRowGP.lq!=null&&sumLq>0&&Math.abs(sumLq-xlsxRowGP.lq)>0.01){
+        const kLq=xlsxRowGP.lq/sumLq;
+        res.forEach(r=>{r.valor=r.valor*kLq;r.liqEstimado=false;});
+      }
+    } else if((xlsxRowGP.lq!=null&&Math.abs(sumLq-xlsxRowGP.lq)>0.01)||(xlsxRowGP.br&&Math.abs(sumBr-xlsxRowGP.br)>0.01)){
+      res.forEach(r=>{r.divergePlanilha=true;});
     }
   }
   return res;
@@ -5639,7 +5692,7 @@ function renderFinanceiro(){
   // venda por vendedor, o que equivale a mostrar a comissão de cada um.
   if(!isFinAdm){
     const cardsElBlk=document.getElementById('fin-cards');if(cardsElBlk)cardsElBlk.innerHTML='';
-    body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">🔒 Acesso restrito — apenas Financeiro ou Administrador podem ver as Contas a Receber.</div>';
+    body.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador podem ver as Contas a Receber.</div>';
     return;
   }
   let items=getContasReceber();
@@ -5789,6 +5842,7 @@ function renderDashComissoes(){
   // de digitado explícito na parcela — assim dá pra ver de cara quais pedidos ainda
   // precisam do Líquido preenchido em Editar Valores, sem abrir um por um.
   function mkLiqCell(i){
+    if(i.divergePlanilha)return`<span style="font-weight:700">${fmtR(i.valor)}</span><br><span style="font-size:.6rem;color:#dc2626;font-weight:700" title="O número de parcelas cadastradas neste pedido não bate com o número de parcelas da planilha mestre pra esse OS (provavelmente falta parcela cadastrada, ex.: Entrada já paga que não foi redigitada em Editar Valores). O valor mostrado é EXATAMENTE o que está digitado, sem nenhum ajuste — confira contra a planilha antes de confirmar esta comissão.">🚨 confira c/ planilha</span>`;
     if(!i.liqEstimado)return`<span style="font-weight:700">${fmtR(i.valor)}</span>`;
     return`<span style="font-weight:700">${fmtR(i.valor)}</span><br><span style="font-size:.6rem;color:#b45309;font-weight:700" title="Sem Líquido digitado nesta parcela — valor estimado pela proporção do pedido (Valor Líquido do Pedido / Valor Bruto). Preencha o Líquido em Editar Valores pra usar o valor exato.">⚠️ estimado</span>`;
   }
@@ -5997,11 +6051,12 @@ function renderPagamentosFuturos(){
       const valLq=its.reduce((s,i)=>s+i.valor,0);
       const com=its.reduce((s,i)=>s+(i.valor*i.pct/100),0);
       const nEst=its.filter(i=>i.liqEstimado).length;
+      const nDiv=its.filter(i=>i.divergePlanilha).length;
       return`<tr>
         <td style="font-weight:600">${v}</td>
         <td style="text-align:center">${its.length}</td>
         <td style="font-weight:700;color:#1e40af">${fmtR(valBr)}</td>
-        <td style="font-weight:700">${fmtR(valLq)}${nEst?` <span style="font-size:.62rem;color:#b45309;font-weight:700" title="${nEst} parcela(s) sem Líquido explícito — valor estimado por proporção">⚠️ ${nEst} estimado(s)</span>`:''}</td>
+        <td style="font-weight:700">${fmtR(valLq)}${nEst?` <span style="font-size:.62rem;color:#b45309;font-weight:700" title="${nEst} parcela(s) sem Líquido explícito — valor estimado por proporção">⚠️ ${nEst} estimado(s)</span>`:''}${nDiv?` <span style="font-size:.62rem;color:#dc2626;font-weight:700" title="${nDiv} parcela(s) com contagem divergente da planilha mestre — confira antes de confirmar">🚨 ${nDiv} confira</span>`:''}</td>
         <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
       </tr>`;
     }).join('');
@@ -6009,15 +6064,16 @@ function renderPagamentosFuturos(){
     const valClab=items.reduce((s,i)=>s+i.valor,0);
     const comClab=items.reduce((s,i)=>s+(i.valor*i.pctClab/100),0);
     const nEstClab=items.filter(i=>i.liqEstimado).length;
+    const nDivClab=items.filter(i=>i.divergePlanilha).length;
     const rowClab=`<tr style="background:#fef3c7">
         <td style="font-weight:700">GUILHERME CLABONDE (Gerente)</td>
         <td style="text-align:center">${items.length}</td>
         <td style="font-weight:700;color:#1e40af">${fmtR(valBrClab)}</td>
-        <td style="font-weight:700">${fmtR(valClab)}${nEstClab?` <span style="font-size:.62rem;color:#b45309;font-weight:700">⚠️ ${nEstClab} estimado(s)</span>`:''}</td>
+        <td style="font-weight:700">${fmtR(valClab)}${nEstClab?` <span style="font-size:.62rem;color:#b45309;font-weight:700">⚠️ ${nEstClab} estimado(s)</span>`:''}${nDivClab?` <span style="font-size:.62rem;color:#dc2626;font-weight:700">🚨 ${nDivClab} confira</span>`:''}</td>
         <td style="font-weight:700;color:#7c3aed">${fmtR(comClab)}</td>
       </tr>`;
     const totalCom=items.reduce((s,i)=>s+(i.valor*i.pct/100),0);
-    body.innerHTML=`<div style="font-size:.78rem;color:#64748b;margin-bottom:8px">Clique num vendedor no filtro acima pra ver a lista detalhada dele. "⚠️ estimado" = parcela sem Líquido digitado, valor calculado por proporção — confira em Editar Valores.</div>
+    body.innerHTML=`<div style="font-size:.78rem;color:#64748b;margin-bottom:8px">Clique num vendedor no filtro acima pra ver a lista detalhada dele. "⚠️ estimado" = parcela sem Líquido digitado, valor calculado por proporção — confira em Editar Valores. "🚨 confira" = número de parcelas cadastradas no pedido não bate com a planilha mestre (provável parcela faltando, ex.: Entrada já paga que não foi redigitada) — valor mostrado é exatamente o digitado, sem ajuste algum.</div>
       <table class="dash-table">
         <thead><tr><th>Vendedor</th><th>Parcelas</th><th>Valor Bruto</th><th>Valor Líquido</th><th>Comissão pendente</th></tr></thead>
         <tbody>${rows}${rowClab}</tbody>
@@ -6034,13 +6090,14 @@ function renderPagamentosFuturos(){
     const pct=useClabPct?i.pctClab:i.pct;
     const com=i.valor*pct/100;
     const estTag=i.liqEstimado?` <span style="font-size:.6rem;color:#b45309;font-weight:700" title="Sem Líquido digitado nesta parcela — valor estimado pela proporção do pedido. Preencha o Líquido em Editar Valores pra usar o valor exato.">⚠️ estimado</span>`:'';
+    const divTag=i.divergePlanilha?` <span style="font-size:.6rem;color:#dc2626;font-weight:700" title="Número de parcelas cadastradas neste pedido não bate com a planilha mestre pra esse OS — provável parcela faltando (ex.: Entrada já paga que não foi redigitada em Editar Valores). Valor exatamente o digitado, sem ajuste. Confira antes de confirmar.">🚨 confira c/ planilha</span>`:'';
     return`<tr>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
       <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:120px">${i.cliente}</td>
       ${useClabPct?`<td style="font-size:.72rem">${i.nomeVend}</td>`:''}
       <td style="font-weight:700;color:#1e40af">${fmtR(i.valorBruto)}</td>
-      <td style="font-weight:700">${fmtR(i.valor)}${estTag}</td>
+      <td style="font-weight:700">${fmtR(i.valor)}${estTag}${divTag}</td>
       <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
       <td style="font-weight:700;color:#e91e63">${pct>0?pct.toFixed(2).replace('.',',')+'%':'—'}</td>
       <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
@@ -6892,12 +6949,30 @@ function renderDashVendas(){
 // GRÁFICOS — helpers
 // ════════════════════════════════════════
 function gcExtraKey(vend,y,m){return vend+'|'+y+'|'+m;}
+// Motivos de perda: o admin só digita a QUANTIDADE de oportunidades perdidas por motivo
+// (ex: Preço:4) — o valor em R$ de cada motivo é sempre calculado proporcionalmente à
+// contagem sobre o total de "Negócios perdidos (R$)" (pd), nunca digitado direto. Ver
+// gcMotivosPerda() pra essa distribuição.
+const GC_MOTIVOS_PERDA=[{k:'motPreco',l:'Preço'},{k:'motPrazo',l:'Prazo'},{k:'motSemRetorno',l:'Sem retorno'},{k:'motDesistiu',l:'Desistiu do projeto'}];
 function gcGetExtra(vend,y,m){
   const k=gcExtraKey(vend,y,m);
   const raw=(cfg.dashExtra||{})[k]||{};
   // cv (taxa de conversão) nunca pode passar de 100% — valores antigos fora da faixa
   // (ex: 327%) são saneados aqui na leitura, mesmo que já estejam salvos no Firestore.
-  return {orc:raw.orc||0,cv:Math.min(100,Math.max(0,raw.cv||0)),pd:raw.pd||0};
+  const out={orc:raw.orc||0,cv:Math.min(100,Math.max(0,raw.cv||0)),pd:raw.pd||0};
+  GC_MOTIVOS_PERDA.forEach(mo=>{out[mo.k]=Math.max(0,Math.round(raw[mo.k]||0));});
+  return out;
+}
+// Distribui o valor total de "Negócios perdidos" (pd, em R$) entre os motivos na mesma
+// proporção da contagem de oportunidades de cada um. Sem nenhuma contagem preenchida,
+// devolve tudo zerado (nada pra distribuir ainda).
+function gcMotivosPerda(ex){
+  const totalQtd=GC_MOTIVOS_PERDA.reduce((s,mo)=>s+(ex[mo.k]||0),0);
+  return GC_MOTIVOS_PERDA.map(mo=>{
+    const qtd=ex[mo.k]||0;
+    const valor=totalQtd>0?(ex.pd||0)*(qtd/totalQtd):0;
+    return {...mo,qtd,valor};
+  });
 }
 function setProspecOrc(nome,y,m,valor){
   if(!cfg.dashExtra)cfg.dashExtra={};
@@ -6928,7 +7003,11 @@ function gcSaveExtra(){
   }
   if(cv<0)cv=0;
   if(!cfg.dashExtra)cfg.dashExtra={};
-  cfg.dashExtra[gcExtraKey(gcVendIdx,gcMes.y,gcMes.m)]={orc,cv,pd};
+  const extra={orc,cv,pd};
+  // Motivos de perda — só a QUANTIDADE é digitada; o R$ de cada um é sempre recalculado
+  // na leitura (gcGetExtra/gcMotivosPerda), nunca persistido aqui.
+  GC_MOTIVOS_PERDA.forEach(mo=>{extra[mo.k]=Math.max(0,Math.round(parseFloat((document.getElementById('gc-inp-'+mo.k)||{}).value)||0));});
+  cfg.dashExtra[gcExtraKey(gcVendIdx,gcMes.y,gcMes.m)]=extra;
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   gcRenderVendPaineis();
@@ -7116,14 +7195,19 @@ function gcRenderGeralPaineis(y,m,todos){
   const metaAnoLq=cfg.metaAnoLq||metaAnoSomaMensal;
   const metaAnoBr=cfg.metaAnoBr||0;
   const faltaAno=Math.max(0,metaAnoLq-acumLq);
+  // Orçamentos em aberto do mês — soma o campo "Orçamentos em Aberto" (gcGetExtra().orc)
+  // de todos os vendedores, o mesmo valor que cada um preenche no painel individual
+  // (aba do vendedor > Pipeline). Aqui na aba Geral é só o total do time.
+  const orcAbertoMes=todos.reduce((s,v)=>s+(gcGetExtra(v,y,m).orc||0),0);
 
-  // KPIs topo (4 cards)
+  // KPIs topo (5 cards)
   const kTop=document.getElementById('gc-kpis-top');
   if(kTop)kTop.innerHTML=[
     {cls:'az',l:'Vendas Brutas do Mês',v:fmtR(brMes),s:''},
     {cls:'ro',l:'Vendas Líquidas do Mês',v:fmtR(lqMes),s:metaMes>0?'Meta: '+fmtR(metaMes):'Meta não definida'},
     {cls:'vd',l:'Faturado Confirmado',v:fmtR(ftMes),s:'Parcelas confirmadas'},
     {cls:'wn',l:'Meta do Mês',v:metaMes>0?fmtR(metaMes):'—',s:'Soma das metas individuais'},
+    {cls:'dk',l:'Orçamentos em Aberto',v:fmtR(orcAbertoMes),s:'Soma do pipeline de todos os vendedores'},
   ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv">${k.v}</div><div class="gc-ks">${k.s}</div></div>`).join('');
 
   // KPIs bot (3 cards)
@@ -7249,6 +7333,39 @@ function gcRenderVendPaineis(){
   const inpOrc=document.getElementById('gc-inp-orc');if(inpOrc)inpOrc.value=ex.orc||'';
   const inpCv=document.getElementById('gc-inp-cv');if(inpCv)inpCv.value=ex.cv||'';
   const inpPd=document.getElementById('gc-inp-pd');if(inpPd)inpPd.value=ex.pd||'';
+  GC_MOTIVOS_PERDA.forEach(mo=>{const inp=document.getElementById('gc-inp-'+mo.k);if(inp)inp.value=ex[mo.k]||'';});
+
+  // Formulário cru (orc/cv/pd/motivos) só aparece pra admin preencher — usuário comum só
+  // vê o resultado "bonito" no card gc-vend-pipeline (sempre visível), montado logo abaixo.
+  const inputCard=document.getElementById('gc-vend-input-card');
+  if(inputCard)inputCard.style.display=_getUserCat().isAdm?'':'none';
+
+  // Card "Pipeline & Oportunidades Perdidas" — visível pra todo mundo, pensado pra ficar
+  // bonito numa captura de tela do painel inteiro.
+  const pipeKpis=document.getElementById('gc-vend-pipeline-kpis');
+  if(pipeKpis)pipeKpis.innerHTML=[
+    {st:'background:#0d3347;border:1px solid #1a5270',l:'Orçamentos em Aberto',v:ex.orc>0?fmtR(ex.orc):'—',s:ex.cv>0?'Taxa de conversão: '+ex.cv+'%':''},
+    {st:'background:#7a1230;border:1px solid #9c1a3d',l:'Negócios Perdidos',v:ex.pd>0?fmtR(ex.pd):'—',s:'Total do mês'},
+  ].map(k=>`<div style="${k.st};border-radius:10px;padding:10px 14px;flex:1;min-width:140px"><div class="gc-kl">${k.l}</div><div class="gc-kv" style="color:#fff;font-size:1rem;font-weight:800;margin:4px 0">${k.v}</div><div class="gc-ks" style="color:rgba(255,255,255,.55);font-size:.68rem">${k.s||''}</div></div>`).join('');
+
+  const motivos=gcMotivosPerda(ex);
+  const motivosEl=document.getElementById('gc-vend-motivos');
+  if(motivosEl){
+    const totalQtd=motivos.reduce((s,mo)=>s+mo.qtd,0);
+    if(totalQtd<=0){
+      motivosEl.innerHTML=ex.pd>0?'<div style="font-size:.75rem;color:#94a3b8">Preencha a quantidade de oportunidades perdidas por motivo para ver a divisão em R$.</div>':'';
+    } else {
+      const motCores={motPreco:'#e0245e',motPrazo:'#d97706',motSemRetorno:'#7c3aed',motDesistiu:'#64748b'};
+      motivosEl.innerHTML=`<div style="font-size:.68rem;color:#64748b;font-weight:700;text-transform:uppercase;margin-bottom:8px">Motivos da Perda</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+        ${motivos.map(mo=>`<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;border-left:4px solid ${motCores[mo.k]}">
+          <div style="font-size:.68rem;color:var(--ink4);font-weight:600">${mo.l}</div>
+          <div style="font-size:.95rem;font-weight:800;color:var(--ink1,#1e293b);margin:2px 0">${mo.valor>0?fmtR(mo.valor):'—'}</div>
+          <div style="font-size:.66rem;color:#94a3b8">${mo.qtd} oportunidade${mo.qtd===1?'':'s'}</div>
+        </div>`).join('')}
+        </div>`;
+    }
+  }
 
   const lqMes=getVendasMes(y,m,v);
   const brMes=getVendasBrutoMes(y,m,v);
