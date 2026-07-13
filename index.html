@@ -133,6 +133,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .gc-kp.vd{background:#dcfce7;border-color:#bbf7d0}
 .gc-kp.wn{background:#fef3c7;border-color:#fde68a}
 .gc-kp.dk{background:#0d1628;border-color:#1e3a5f}
+.gc-kp.la{background:#9a3412;border-color:#c2410c}
 .gc-kl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;margin-bottom:4px}
 .gc-kp.vd .gc-kl{color:#166534}
 .gc-kp.wn .gc-kl{color:#92400e}
@@ -4735,6 +4736,19 @@ function calcDiasUteisRestantesMes(hoje){
   }
   return count;
 }
+// Quanto falta vender por dia útil pra bater a meta, dado o quanto ainda falta (em R$) e o
+// mês/ano sendo visto nos Gráficos. Dias úteis restantes são sempre contados a partir de
+// HOJE (calcDiasUteisRestantesMes) — só fazem sentido pro mês corrente real; navegando pra
+// um mês passado ou futuro nos Gráficos, o card mostra "—" em vez de uma conta sem sentido
+// (mês passado já acabou, mês futuro ainda nem começou a contar dias úteis "restantes").
+function gcFaltaPorDiaUtil(y,m,falta){
+  const hoje=new Date();
+  const isMesAtual=y===hoje.getFullYear()&&m===(hoje.getMonth()+1);
+  if(!isMesAtual)return{isMesAtual:false,dias:0,porDia:0};
+  const dias=calcDiasUteisRestantesMes(hoje);
+  const porDia=(falta>0&&dias>0)?falta/dias:0;
+  return{isMesAtual:true,dias,porDia};
+}
 function dasKey(y,m){return `${y}-${String(m).padStart(2,'0')}`;}
 
 function getTiposPedido(){
@@ -7017,6 +7031,14 @@ function savePctProspeccao(nome,pct){
   renderDashMetas();
 }
 function gcSaveExtra(){
+  // Mesma trava de gcSetVend/gcRenderVendPaineis, aqui de novo porque é quem realmente
+  // grava o dado — vendedor comum só pode salvar na PRÓPRIA aba (gcVendIdx), nunca na de
+  // um colega, mesmo que essa função seja chamada de outro jeito (ex.: console).
+  const {isAdm:_isAdmSave}=_getUserCat();
+  if(!_isAdmSave&&!vendedorMatch(gcVendIdx,usuarioLogado?.nomeExibicao||'')){
+    toast('ACESSO NÃO PERMITIDO — você só pode editar os próprios dados.','terr');
+    return;
+  }
   const orc=parseFloat((document.getElementById('gc-inp-orc')||{}).value)||0;
   let cv=parseFloat((document.getElementById('gc-inp-cv')||{}).value)||0;
   const pd=parseFloat((document.getElementById('gc-inp-pd')||{}).value)||0;
@@ -7129,6 +7151,20 @@ function gcMovMes(dir){
 }
 
 function gcSetVend(v){
+  // Trava de acesso — não basta esconder a aba do colega na barra (renderDashGraficos já
+  // não desenha o botão), porque gcSetVend pode ser chamada de qualquer jeito (console,
+  // etc.). Vendedor comum só pode entrar na própria aba ou em Geral; admin entra em
+  // qualquer uma. Mesmo padrão do gate de Financeiro em setSection().
+  if(v!=='GERAL'){
+    const {isAdm}=_getUserCat();
+    if(!isAdm){
+      const meuNome=usuarioLogado?.nomeExibicao||'';
+      if(!vendedorMatch(v,meuNome)){
+        toast('ACESSO NÃO PERMITIDO — você só pode ver os próprios dados.','terr');
+        return;
+      }
+    }
+  }
   gcVendIdx=v;
   renderDashGraficos();
 }
@@ -7184,11 +7220,22 @@ function renderDashGraficos(){
   const {y,m}=gcMes;
   const todos=getVendedores();
 
+  // Vendedor comum só pode ver a PRÓPRIA aba nos Gráficos por vendedor, nunca a de um
+  // colega — só Geral (agregado, sem detalhe individual de ninguém) fica aberto pra todos.
+  // Admin continua vendo todas. `todos` (lista completa) segue intacto pra gcRenderGeralPaineis
+  // logo abaixo, que precisa somar TODO mundo pro agregado — só a lista de ABAS é filtrada.
+  const {isAdm:_isAdmGc}=_getUserCat();
+  const _meuNomeGc=usuarioLogado?.nomeExibicao||'';
+  const todosTabs=_isAdmGc?todos:todos.filter(v=>vendedorMatch(v,_meuNomeGc));
+  if(!_isAdmGc&&gcVendIdx!=='GERAL'&&!vendedorMatch(gcVendIdx,_meuNomeGc)){
+    gcVendIdx=todosTabs[0]||'GERAL';
+  }
+
   // Tabs
   const tabsEl=document.getElementById('gc-vend-tabs');
   if(tabsEl){
     tabsEl.innerHTML=`<button class="gc-vend-tab ${gcVendIdx==='GERAL'?'active':''}" onclick="gcSetVend('GERAL')">⭐ Geral</button>`
-      +todos.map(v=>`<button class="gc-vend-tab ${gcVendIdx===v?'active':''}" onclick="gcSetVend('${v.replace(/'/g,"\\'")}')">
+      +todosTabs.map(v=>`<button class="gc-vend-tab ${gcVendIdx===v?'active':''}" onclick="gcSetVend('${v.replace(/'/g,"\\'")}')">
         ${v}</button>`).join('');
   }
 
@@ -7223,8 +7270,11 @@ function gcRenderGeralPaineis(y,m,todos){
   // de todos os vendedores, o mesmo valor que cada um preenche no painel individual
   // (aba do vendedor > Pipeline). Aqui na aba Geral é só o total do time.
   const orcAbertoMes=todos.reduce((s,v)=>s+(gcGetExtra(v,y,m).orc||0),0);
+  // Quanto o time inteiro precisa vender por dia útil pra bater a meta do mês — só calcula
+  // de verdade se o mês navegado nos Gráficos for o mês corrente real (ver gcFaltaPorDiaUtil).
+  const fpdMes=gcFaltaPorDiaUtil(y,m,faltaMes);
 
-  // KPIs topo (5 cards)
+  // KPIs topo (6 cards)
   const kTop=document.getElementById('gc-kpis-top');
   if(kTop)kTop.innerHTML=[
     {cls:'az',l:'Vendas Brutas do Mês',v:fmtR(brMes),s:''},
@@ -7232,6 +7282,7 @@ function gcRenderGeralPaineis(y,m,todos){
     {cls:'vd',l:'Faturado Confirmado',v:fmtR(ftMes),s:'Parcelas confirmadas'},
     {cls:'wn',l:'Meta do Mês',v:metaMes>0?fmtR(metaMes):'—',s:'Soma das metas individuais'},
     {cls:'dk',l:'Orçamentos em Aberto',v:fmtR(orcAbertoMes),s:'Soma do pipeline de todos os vendedores'},
+    {cls:'la',l:'Falta Vender por Dia Útil',v:!fpdMes.isMesAtual?'—':(metaMes<=0?'—':(faltaMes<=0?'✅ Meta batida':fmtR(fpdMes.porDia))),s:!fpdMes.isMesAtual?'Só disponível no mês corrente':(faltaMes<=0?'':fpdMes.dias+' dia'+(fpdMes.dias===1?'':'s')+' útil'+(fpdMes.dias===1?'':'eis')+' restante'+(fpdMes.dias===1?'':'s'))},
   ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv">${k.v}</div><div class="gc-ks">${k.s}</div></div>`).join('');
 
   // KPIs bot (3 cards)
@@ -7359,10 +7410,16 @@ function gcRenderVendPaineis(){
   const inpPd=document.getElementById('gc-inp-pd');if(inpPd)inpPd.value=ex.pd||'';
   GC_MOTIVOS_PERDA.forEach(mo=>{const inp=document.getElementById('gc-inp-'+mo.k);if(inp)inp.value=ex[mo.k]||'';});
 
-  // Formulário cru (orc/cv/pd/motivos) só aparece pra admin preencher — usuário comum só
-  // vê o resultado "bonito" no card gc-vend-pipeline (sempre visível), montado logo abaixo.
+  // Formulário cru (orc/cv/pd/motivos) aparece pro admin OU pro próprio vendedor dessa aba
+  // preencher — desde que a aba de outro vendedor nem dê pra abrir (gate em gcSetVend), "o
+  // próprio vendedor" aqui é sempre a pessoa vendo a própria aba. Pra qualquer outra pessoa
+  // (ex.: admin olhando a aba de outro vendedor), o resultado "bonito" no card
+  // gc-vend-pipeline (sempre visível) é o que aparece, sem o formulário editável.
+  const {isAdm:_isAdmVP}=_getUserCat();
+  const _meuNomeVP=usuarioLogado?.nomeExibicao||'';
+  const podeEditarPipeline=_isAdmVP||vendedorMatch(v,_meuNomeVP);
   const inputCard=document.getElementById('gc-vend-input-card');
-  if(inputCard)inputCard.style.display=_getUserCat().isAdm?'':'none';
+  if(inputCard)inputCard.style.display=podeEditarPipeline?'':'none';
 
   // Card "Pipeline & Oportunidades Perdidas" — visível pra todo mundo, pensado pra ficar
   // bonito numa captura de tela do painel inteiro.
@@ -7409,6 +7466,9 @@ function gcRenderVendPaineis(){
   // antes só olhava `pedidos` do Firestore com match exato de nome, subcontando pedidos
   // que só existem em XLSX_VENDAS ou com nome curto na planilha (ex: "JULIO").
   const nPeds=getVendaRowsMerged().filter(r=>r.m===m&&vendedorMatch(r.v,v)).length;
+  // Quanto esse vendedor precisa vender por dia útil pra bater a meta dele — só calcula de
+  // verdade se o mês navegado for o mês corrente real (ver gcFaltaPorDiaUtil).
+  const fpdVend=gcFaltaPorDiaUtil(y,m,faltaMes);
 
   // KPIs top
   const kTopV=document.getElementById('gc-vend-kpis-top');
@@ -7416,6 +7476,7 @@ function gcRenderVendPaineis(){
     {cls:'az',l:'Vendas Brutas do Mês',v:fmtR(brMes),s:''},
     {cls:'ro',l:'Vendas Líquidas do Mês',v:fmtR(lqMes),s:metaMes>0?'Meta: '+fmtR(metaMes):'Sem meta'},
     {cls:'vd',l:'Faturado Confirmado',v:fmtR(ftMes),s:'Parcelas confirmadas'},
+    {cls:'la',l:'Falta Vender por Dia Útil',v:!fpdVend.isMesAtual?'—':(metaMes<=0?'—':(faltaMes<=0?'✅ Meta batida':fmtR(fpdVend.porDia))),s:!fpdVend.isMesAtual?'Só disponível no mês corrente':(faltaMes<=0?'':fpdVend.dias+' dia'+(fpdVend.dias===1?'':'s')+' útil'+(fpdVend.dias===1?'':'eis')+' restante'+(fpdVend.dias===1?'':'s'))},
     {cls:'wn',l:'Pedidos no Mês',v:String(nPeds),s:'pedidos emitidos'},
   ].map(k=>`<div class="gc-kp ${k.cls}"><div class="gc-kl">${k.l}</div><div class="gc-kv">${k.v}</div><div class="gc-ks">${k.s}</div></div>`).join('');
 
