@@ -793,6 +793,7 @@ select.fc{cursor:pointer}
           <input id="fin-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
           <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
           <input id="fin-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
+          <button onclick="gerarPDFFinanceiro()" class="dash-btn-conf" style="white-space:nowrap">📄 Gerar PDF</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:10px">
           <span style="font-size:.78rem;color:#92400e">🧹 Vendas antigas que já foram pagas na vida real mas nunca foram confirmadas aqui (de antes de usar essa tela)? Confirme tudo de uma vez até uma data:</span>
@@ -5817,6 +5818,159 @@ function renderFinanceiro(){
     <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor</th><th>Data prev.</th><th>Atraso</th><th>Status</th><th>Motivo</th><th>Ação</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
+}
+
+// PDF de Contas a Receber — aplica exatamente os mesmos filtros que estão selecionados
+// na tela (busca, vendedor, status, período), igual o que renderFinanceiro() mostra.
+async function gerarPDFFinanceiro(){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem gerar esse relatório','terr');return;}
+  if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
+  const {jsPDF}=window.jspdf;
+
+  let items=getContasReceber();
+  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fv=document.getElementById('fin-fil-vend')?.value||'';
+  const fs=document.getElementById('fin-fil-status')?.value||'';
+  const di=document.getElementById('fin-fil-data-ini')?.value||'';
+  const df=document.getElementById('fin-fil-data-fim')?.value||'';
+  const toIso=s=>{const d=parseDataBR(s);return d&&!isNaN(d)?d.toISOString().slice(0,10):'';};
+  items=items.filter(i=>{
+    const iso=toIso(i.dataAtiva);
+    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fv||vendedorMatch(i.nomeVend,fv))
+      &&(!fs||i.statusCalc===fs)
+      &&(!di||(iso&&iso>=di))
+      &&(!df||(iso&&iso<=df));
+  });
+  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+
+  if(!items.length){toast('Nenhuma conta encontrada com esses filtros para gerar o PDF.','terr');return;}
+
+  const statusLbl=s=>({confirmado:'Recebido',nao_recebido:'Não recebido',atrasado:'Atrasado',pendente:'Pendente'}[s]||s);
+
+  const totPend=items.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+  const totAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valorBruto,0);
+  const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+
+  const filtrosAtivos=[];
+  if(fv)filtrosAtivos.push('Vendedor: '+fv);
+  if(fs)filtrosAtivos.push('Status: '+statusLbl(fs));
+  if(di)filtrosAtivos.push('De: '+fmtD(di));
+  if(df)filtrosAtivos.push('Até: '+fmtD(df));
+  if(q)filtrosAtivos.push('Busca: "'+q+'"');
+  const filtrosLbl=filtrosAtivos.length?filtrosAtivos.join('  ·  '):'Todos os lançamentos (sem filtro)';
+
+  const doc=new jsPDF();
+  const NAVY=[26,43,94], PINK=[233,30,99], LIGHT=[241,245,249], GRAY=[100,116,139];
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const logo=await _getLogoGrandaPDF();
+  const drawnFooterPages=new Set();
+
+  function drawHeader(){
+    if(logo){try{doc.addImage(logo,'PNG',14,9,36,12.9);}catch(e){}}
+    doc.setTextColor(...NAVY);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(15);
+    doc.text('RELATÓRIO FINANCEIRO',pageW-14,15,{align:'right'});
+    doc.setTextColor(...PINK);
+    doc.setFontSize(10);
+    doc.text('Contas a Receber',pageW-14,21,{align:'right'});
+    doc.setTextColor(...GRAY);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    const lines=doc.splitTextToSize('Filtros: '+filtrosLbl,pageW-28);
+    doc.text(lines,pageW-14,26.5,{align:'right'});
+    const lineY=27.5+(lines.length-1)*3.2;
+    doc.setDrawColor(...PINK);
+    doc.setLineWidth(0.7);
+    doc.line(14,lineY,pageW-14,lineY);
+    doc.setFont('helvetica','normal');
+    return lineY+6;
+  }
+
+  function drawFooter(pageNum){
+    if(drawnFooterPages.has(pageNum))return;
+    drawnFooterPages.add(pageNum);
+    doc.setPage(pageNum);
+    doc.setDrawColor(220,224,230);
+    doc.setLineWidth(0.3);
+    doc.line(14,pageH-14,pageW-14,pageH-14);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('GRANDA Comunicação Visual · Sistema Comercial Granda',14,pageH-9);
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
+    doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
+  }
+
+  let curY=drawHeader();
+
+  // Caixas de resumo — mesmos totais mostrados nos cards da tela de Contas a Receber
+  const boxes=[
+    {label:'A receber',val:totPend,color:[219,234,254],text:[30,64,175]},
+    {label:'Em atraso',val:totAtraso,color:[254,226,226],text:[185,28,28]},
+    {label:'Recebido',val:totConf,color:[220,252,231],text:[22,163,74]},
+    {label:'Itens',val:items.length,color:[241,245,249],text:[71,85,105],isCount:true}
+  ];
+  const boxW=(pageW-28-3*4)/4;
+  boxes.forEach((b,idx)=>{
+    const x=14+idx*(boxW+4);
+    doc.setFillColor(...b.color);
+    doc.roundedRect(x,curY,boxW,14,1.5,1.5,'F');
+    doc.setTextColor(...b.text);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(7);
+    doc.text(b.label.toUpperCase(),x+4,curY+5.5);
+    doc.setFontSize(10.5);
+    doc.text(b.isCount?String(b.val):fmtR(b.val),x+4,curY+11);
+  });
+  curY+=20;
+  doc.setTextColor(0,0,0);
+  doc.setFont('helvetica','normal');
+
+  const head=['Mês','Pedido','Cliente','Vendedor','Parcela','Valor','Data prev.','Atraso','Status','Motivo'];
+  const body=items.map(i=>[
+    i.mesPedido||'—',
+    pedidoDisplay(i.pedidoOs)||'—',
+    i.cliente||'—',
+    i.nomeVend||'—',
+    i.label||'—',
+    fmtR(i.valorBruto),
+    i.dataAtiva||'—',
+    i.diasAtraso>0?i.diasAtraso+'d':'—',
+    statusLbl(i.statusCalc),
+    i.motivoAtraso||'—'
+  ]);
+
+  doc.autoTable({
+    startY:curY,head:[head],body,
+    theme:'grid',
+    styles:{fontSize:6.8,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1,cellPadding:1.6},
+    headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7},
+    alternateRowStyles:{fillColor:LIGHT},
+    columnStyles:{5:{halign:'right',fontStyle:'bold',textColor:PINK},7:{halign:'center'}},
+    margin:{top:32,left:14,right:14,bottom:20},
+    didParseCell:(data)=>{
+      if(data.section==='body'){
+        const st=items[data.row.index]?.statusCalc;
+        if(st==='nao_recebido'||st==='atrasado')data.cell.styles.fillColor=[254,242,242];
+        else if(st==='confirmado')data.cell.styles.fillColor=[240,253,244];
+      }
+    },
+    didDrawPage:(data)=>{
+      if(data.pageNumber>1)drawHeader();
+      drawFooter(data.pageNumber);
+    }
+  });
+
+  for(let p=1;p<=doc.internal.getNumberOfPages();p++)drawFooter(p);
+
+  const slug=(fv?fv.toLowerCase().replace(/\s+/g,'_'):'todos')+(fs?'_'+fs:'');
+  const hoje=new Date();
+  const stamp=hoje.getFullYear()+String(hoje.getMonth()+1).padStart(2,'0')+String(hoje.getDate()).padStart(2,'0');
+  doc.save(`contas_a_receber_${slug}_${stamp}.pdf`);
+  toast('PDF gerado! 📄','tok');
 }
 
 function renderDashComissoes(){
