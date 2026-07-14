@@ -5558,7 +5558,7 @@ function getComissaoItemsAll(){
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parc,conf);
-      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -5585,7 +5585,7 @@ function getComissaoItemsAll(){
       const xRatio=x.br>0?(x.lq/x.br):1;
       const parcComBruto={valor:parc.valor,valorBruto:xRatio>0?parc.valor/xRatio:parc.valor};
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parcComBruto,conf);
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -5607,6 +5607,13 @@ function getComissaoItemsFuturos(vendedorFiltro){
   if(!vendedorFiltro)return pend;
   if(vendedorFiltro==='__CLABONDE__')return pend; // Clabonde ganha sobre o total, não por vendedor
   return pend.filter(i=>vendedorMatch(i.nomeVend,vendedorFiltro));
+}
+
+// Ordena pelo mês da VENDA (emY/emM — não o mês de pagamento), do mais antigo pro mais
+// novo, com a data prevista como desempate dentro do mesmo mês. Usado em Contas a Receber
+// e na lista de Comissões pra nunca alternar meses dentro da mesma lista/PDF.
+function _cmpMesVenda(a,b){
+  return (a.emY-b.emY)||(a.emM-b.emM)||((parseDataBR(a.dataAtiva)||0)-(parseDataBR(b.dataAtiva)||0));
 }
 
 // ════════════════════════════════════════
@@ -5770,7 +5777,7 @@ function renderFinanceiro(){
       &&(!di||(iso&&iso>=di))
       &&(!df||(iso&&iso<=df));
   });
-  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+  items.sort(_cmpMesVenda);
 
   // Cards resumo
   const cardsEl=document.getElementById('fin-cards');
@@ -5842,7 +5849,7 @@ async function gerarPDFFinanceiro(){
       &&(!di||(iso&&iso>=di))
       &&(!df||(iso&&iso<=df));
   });
-  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+  items.sort(_cmpMesVenda);
 
   if(!items.length){toast('Nenhuma conta encontrada com esses filtros para gerar o PDF.','terr');return;}
 
@@ -6201,6 +6208,10 @@ function renderDashComissoes(){
     </div>`;
   }
 
+  // Ordem fixa por mês de venda (Jan, Fev, Mar...) do mais antigo ao mais novo — nunca
+  // alternar meses dentro da mesma lista de pendentes/consolidados.
+  itemsI.sort(_cmpMesVenda);
+  itemsII.sort(_cmpMesVenda);
   const pendI=itemsI.filter(i=>i.status!=='confirmado');
   const consI=itemsI.filter(i=>i.status==='confirmado');
   const pendII=itemsII.filter(i=>i.status!=='confirmado');
@@ -6427,6 +6438,8 @@ async function gerarPDFComissao(vend,quinzena){
 
   // Apenas o que o cliente já pagou (confirmado). O que não foi pago é adiado para a próxima quinzena.
   items=items.filter(i=>i.status==='confirmado');
+  // Mesma ordem da tela: mês de venda mais antigo primeiro, sem alternar dentro da lista/seção.
+  items.sort(_cmpMesVenda);
 
   let title, note='', useClabPct=false, groupByVend=false;
   if(vend==='__CLABONDE__'){
