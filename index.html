@@ -58,6 +58,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .btn-novo{background:#e91e63;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:.83rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 4px 14px rgba(233,30,99,.4);letter-spacing:-.1px}
 .btn-novo:hover{background:#c2185b;transform:translateY(-1px);box-shadow:0 6px 18px rgba(233,30,99,.5)}
 .btn-novo:active{transform:none}
+/* Botão que abre o sistema externo de Garantia (Gquali) — visual distinto do Novo
+   Pedido, pra ficar claro que sai do Sistema Comercial e abre em outra aba. */
+.btn-garantia{background:transparent;color:#fff;border:1.5px solid #475569;padding:8px 18px;border-radius:8px;font-size:.83rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;letter-spacing:-.1px}
+.btn-garantia:hover{background:#1f2937;border-color:#94a3b8}
 
 /* ── STATS ── */
 .hdr-stat{display:flex;flex-direction:column;align-items:center;min-width:44px}
@@ -446,6 +450,10 @@ select.fc{cursor:pointer}
       </div>
     </div>
     <div class="hdr-r">
+      <button class="btn-garantia" onclick="window.open('https://gquali-granda.vercel.app/','_blank','noopener')" title="Abre o sistema de Qualidade (Gquali) em outra aba">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Solicitação de Garantia
+      </button>
       <button class="btn-novo" id="btn-novo-pedido-vendas" onclick="openEmissao()" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Pedido
@@ -729,6 +737,10 @@ select.fc{cursor:pointer}
       <div><h2 id="cat-hdr-name">Comercial</h2><p id="cat-hdr-desc" style="font-size:.67rem;color:#9ca3af;margin-top:1px;font-weight:400"></p></div>
     </div>
     <div class="hdr-r">
+      <button class="btn-garantia" onclick="window.open('https://gquali-granda.vercel.app/','_blank','noopener')" title="Abre o sistema de Qualidade (Gquali) em outra aba">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Solicitação de Garantia
+      </button>
       <button class="btn-novo" id="btn-novo-pedido" onclick="openEmissao()" style="display:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Novo Pedido
@@ -784,7 +796,7 @@ select.fc{cursor:pointer}
           </select>
           <select id="fin-fil-status" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
             <option value="">Todos os status</option>
-            <option value="pendente">⏳ Pendente</option>
+            <option value="pendente" selected>⏳ Pendente</option>
             <option value="atrasado">⚠️ Em atraso</option>
             <option value="nao_recebido">❌ Não recebido (com motivo)</option>
             <option value="confirmado">✅ Recebido</option>
@@ -4951,6 +4963,13 @@ function getParcelas(p){
         const kLq=xlsxRowGP.lq/sumLq;
         res.forEach(r=>{r.valor=r.valor*kLq;r.liqEstimado=false;});
       }
+      // Contagem de parcelas bate com a planilha — o Bruto de cada parcela já foi
+      // conferido (ou ajustado acima) pra fechar exatamente com o Bruto real da OS
+      // colada, então deixa de ser uma suposição solta e o aviso "estimado" não faz
+      // mais sentido. Corrigido 2026-07-14: antes esse reset só acontecia no ramo de
+      // contagem que NÃO bate (abaixo), então pedido com 1 parcela só (ex.: OS 30, 28,
+      // 29, 40) ficava com "⚠️ estimado" pra sempre mesmo com o Bruto já exato.
+      if(xlsxRowGP.br)res.forEach(r=>{r.valorBrutoEstimado=false;});
     } else if((xlsxRowGP.lq!=null&&Math.abs(sumLq-xlsxRowGP.lq)>0.01)||(xlsxRowGP.br&&Math.abs(sumBr-xlsxRowGP.br)>0.01)){
       // AJUSTE em 2026-07-13 (mesmo dia, depois do usuário confirmar): quando a contagem não
       // bate, antes eu marcava TUDO como "divergente" mesmo quando dava pra saber com certeza
