@@ -4208,7 +4208,14 @@ async function submit(){
   if(ed.art==='Sim'&&ed.vart)proj['Valor da ART']=fmtV(moneyToNum(ed.vart));
   const _pedidoExistente=editing?pedidos.find(x=>x.id===editing):null;
   const _emissaoExistente=_pedidoExistente?_pedidoExistente.emissaoEm:null;
-  const p={id:editing||uid(),os:ed.os||(pedidos.length+200),tipo:ed.tipo,tipoPedido:ed.tipoPedido||'',responsavel:ed.resp,
+  // OS sempre obrigatória (já bloqueada acima em "erros" se vazia) — removido o fallback
+  // antigo "pedidos.length+200" que gerava um número sozinho quando a OS vinha em branco.
+  // Esse fallback nunca deveria de fato disparar (a validação acima já barra o submit sem
+  // OS), mas ele existia como código morto arriscado: se dois pedidos fossem emitidos ao
+  // mesmo tempo sem OS digitada, os dois calculariam o MESMO número (mesma contagem local
+  // de pedidos carregados), gerando OS duplicada e pedidos se sobrepondo em Contas a
+  // Receber/Comissões/Lista de Vendas. Sem o fallback, é impossível criar pedido sem OS.
+  const p={id:editing||uid(),os:ed.os,tipo:ed.tipo,tipoPedido:ed.tipoPedido||'',responsavel:ed.resp,
     cliente:ed.cli,emails:[ed.email_comprador,ed.email_engenheiro].filter(Boolean),email_comprador:ed.email_comprador||'',email_engenheiro:ed.email_engenheiro||'',email_financeiro:ed.email_financeiro||'',job:ed.job,prazo:ed.prazo,
     emissaoEm:_emissaoExistente||new Date().toISOString().slice(0,10),
     origemComercial:true,
