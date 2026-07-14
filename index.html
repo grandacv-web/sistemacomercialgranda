@@ -791,6 +791,12 @@ select.fc{cursor:pointer}
         <div id="fin-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
           <input id="fin-fil-busca" placeholder="Buscar cliente, pedido, OS..." oninput="renderFinanceiro()" style="flex:1;min-width:200px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+          <select id="fin-fil-mes-venda" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+            <option value="">📅 Todos os meses (venda)</option>
+            <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
+            <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
+            <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
+          </select>
           <select id="fin-fil-vend" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
             <option value="">Todos os vendedores</option>
           </select>
@@ -801,9 +807,9 @@ select.fc{cursor:pointer}
             <option value="nao_recebido">❌ Não recebido (com motivo)</option>
             <option value="confirmado">✅ Recebido</option>
           </select>
-          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">De</span>
+          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Pagamento de</span>
           <input id="fin-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
-          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
+          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Pagamento até</span>
           <input id="fin-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
           <button onclick="gerarPDFFinanceiro()" class="dash-btn-conf" style="white-space:nowrap">📄 Gerar PDF</button>
         </div>
@@ -5781,6 +5787,7 @@ function renderFinanceiro(){
   }
 
   const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
   const fv=document.getElementById('fin-fil-vend')?.value||'';
   const fs=document.getElementById('fin-fil-status')?.value||'';
   const di=document.getElementById('fin-fil-data-ini')?.value||'';
@@ -5791,6 +5798,7 @@ function renderFinanceiro(){
   items=items.filter(i=>{
     const iso=toIso(i.dataAtiva);
     return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fmv||MESES_PT[i.emM]===fmv)
       &&(!fv||vendedorMatch(i.nomeVend,fv))
       &&(!fs||i.statusCalc===fs)
       &&(!di||(iso&&iso>=di))
@@ -5855,6 +5863,7 @@ async function gerarPDFFinanceiro(){
 
   let items=getContasReceber();
   const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
   const fv=document.getElementById('fin-fil-vend')?.value||'';
   const fs=document.getElementById('fin-fil-status')?.value||'';
   const di=document.getElementById('fin-fil-data-ini')?.value||'';
@@ -5863,6 +5872,7 @@ async function gerarPDFFinanceiro(){
   items=items.filter(i=>{
     const iso=toIso(i.dataAtiva);
     return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fmv||MESES_PT[i.emM]===fmv)
       &&(!fv||vendedorMatch(i.nomeVend,fv))
       &&(!fs||i.statusCalc===fs)
       &&(!di||(iso&&iso>=di))
@@ -5879,10 +5889,11 @@ async function gerarPDFFinanceiro(){
   const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
 
   const filtrosAtivos=[];
+  if(fmv)filtrosAtivos.push('Mês da venda: '+fmv);
   if(fv)filtrosAtivos.push('Vendedor: '+fv);
   if(fs)filtrosAtivos.push('Status: '+statusLbl(fs));
-  if(di)filtrosAtivos.push('De: '+fmtD(di));
-  if(df)filtrosAtivos.push('Até: '+fmtD(df));
+  if(di)filtrosAtivos.push('Pagamento de: '+fmtD(di));
+  if(df)filtrosAtivos.push('Pagamento até: '+fmtD(df));
   if(q)filtrosAtivos.push('Busca: "'+q+'"');
   const filtrosLbl=filtrosAtivos.length?filtrosAtivos.join('  ·  '):'Todos os lançamentos (sem filtro)';
 
