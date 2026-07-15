@@ -6062,12 +6062,28 @@ function _aplicaValorConfirmado(parc,conf){
 // pedidos de julho em diante são emitidos direto no sistema, não vêm mais da planilha.
 // Ver uso em getComissaoItemsAll() — só entra em vigor quando NÃO existe confirmação/
 // motivo manual já registrado (cfg.pagConf), pra nunca sobrepor uma decisão humana.
-function _antesOuIgualJulhoI(qy,qm,qhalf){
-  if(qy<2026)return true;
-  if(qy>2026)return false;
-  if(qm<7)return true;
-  if(qm>7)return false;
-  return qhalf==='I';
+//
+// BUG GRAVE corrigido em 2026-07-15 (mesmo dia, MAX CHAPADA "Parcela 1 · 05/07/2026"
+// continuou aparecendo como Pendente com botão Confirmar): a versão anterior recebia
+// qy/qm/qhalf (a QUINZENA DE PAGAMENTO DA COMISSÃO, vinda de getComissaoQuinzena), não a
+// data real mostrada na tela. Pra pedido normal (emitido pelo sistema, não importadoPlanilha),
+// essa quinzena passa por getQuinzenaInfo(), que DESLOCA a data: cliente paga entre os dias
+// 1 e 14 → comissão cai no dia 15 do MESMO mês (half='II', não 'I'!); cliente paga entre 15
+// e 31 → comissão só cai no dia 5 do mês SEGUINTE (half='I', mas de outro mês). Por isso uma
+// parcela com data 05/07/2026 (dia 5, óbvio Julho I pra quem olha o calendário) virava
+// qm=7/half='II' e a regra achava que ainda não tinha chegado em "Julho I" — nunca marcava
+// como pago. Agora a função recebe a DATA REAL (dataAtiva, a mesma que aparece na tela pro
+// usuário) e decide direto pelo calendário (dia 1–7 = quinzena I, dia 8+ = quinzena II),
+// sem passar pela transformação de janela de pagamento de comissão.
+function _antesOuIgualJulhoI(dataStr){
+  const d=parseDataBR(dataStr);
+  if(!d||isNaN(d))return false; // sem data reconhecível — não decide nada, não mexe no status
+  const y=d.getFullYear(),m=d.getMonth()+1,dia=d.getDate();
+  if(y<2026)return true;
+  if(y>2026)return false;
+  if(m<7)return true;
+  if(m>7)return false;
+  return dia<=7;
 }
 function getComissaoItemsAll(){
   if(_comItemsCache)return _comItemsCache;
@@ -6110,7 +6126,7 @@ function getComissaoItemsAll(){
       // rastreadas fora do sistema; e só quando NÃO existe confirmação/motivo manual já
       // registrado (conf), pra nunca sobrepor uma decisão humana real (ex.: Financeiro já
       // marcou "não recebido" com motivo, ou já confirmou com valor negociado).
-      const autoHistorico=!!xlsxRef&&!conf&&_antesOuIgualJulhoI(qi.y,qi.m,qi.half);
+      const autoHistorico=!!xlsxRef&&!conf&&_antesOuIgualJulhoI(dataAtiva);
       const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',categoria:xlsxRef?(xlsxRef.cat||''):(p.tipoPedido||p.tipo||''),mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
@@ -6141,7 +6157,7 @@ function getComissaoItemsAll(){
       // Regra Julho I (ver _antesOuIgualJulhoI acima) — aqui SEMPRE é pedido "pré-julho"
       // (só existe planilha, nunca foi emitido no sistema), então só depende de não
       // existir confirmação/motivo manual já registrado.
-      const autoHistorico=!conf&&_antesOuIgualJulhoI(qi.y,qi.m,qi.half);
+      const autoHistorico=!conf&&_antesOuIgualJulhoI(dataAtiva);
       const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',categoria:x.cat||'',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
