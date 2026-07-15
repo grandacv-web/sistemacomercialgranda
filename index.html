@@ -4019,10 +4019,14 @@ function buildEmissaoEmailContent(p){
       ${p.arq_chumb_url?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pedido de Chumbador</td><td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(p.arq_chumb_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td></tr>`:''}
       `:`<tr><td colspan="2" style="padding:10px 0;color:#9ca3af;font-size:13px;font-style:italic">Não tem base neste pedido.</td></tr>`}
 
-      ${proj.art==='Sim'?`
+      <!-- PROJETOS — cabeçalho da seção sempre aparece: Pasta de Arquivos é obrigatória em
+      todo pedido (ver validação em submit()), então não faz sentido a seção só existir
+      quando tem ART. ART/CNPJ continuam condicionais, como sempre foram. -->
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63"><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Projetos</span></td></tr>
-      <tr><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ EMITIDA ART</td></tr>
-      ${proj.cnpj_art?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${proj.cnpj_art_url?`<a href="${cldDownload(proj.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${proj.cnpj_art}`}</td></tr>`:''}
+      ${proj.pasta_arquivos?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Pasta de Arquivos para Projetos</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${proj.pasta_arquivos}</td></tr>`:''}
+      ${proj.art==='Sim'?`
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">SERÁ EMITIDA ART</td></tr>
+      ${proj.cnpj_art?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Cartão CNPJ da Obra</td><td style="padding:10px 0;font-size:13px;font-weight:600">${proj.cnpj_art_url?`<a href="${cldDownload(proj.cnpj_art_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:`${proj.cnpj_art}`}</td></tr>`:''}
       `:''}
     </table>
 
