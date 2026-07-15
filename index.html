@@ -5162,23 +5162,40 @@ function getParcelas(p){
     const contagemBate=!parcelasEsperadas||res.length===parcelasEsperadas;
     const sumBr=res.reduce((s,r)=>s+r.valorBruto,0);
     const sumLq=res.reduce((s,r)=>s+r.valor,0);
+    // Alvo da reconciliação: SOMA das parcelas listadas em xlsxRowGP.parcelas — NUNCA o
+    // Bruto/Líquido TOTAL do pedido (xlsxRowGP.br/lq direto). Motivo (bug real, OS 172
+    // "MAX CHAPADA - PONTA GROSSA", 2026-07-15): pedido com Entrada já recebida ANTES
+    // dessa planilha (ex.: paga em Julho I ou antes) some de p.pagamento (mesmo padrão já
+    // documentado acima pra OS 56) — mas o TOTAL do pedido (xlsxRowGP.br/lq) continua
+    // sendo o valor CHEIO, incluindo essa entrada já paga, enquanto xlsxRowGP.parcelas só
+    // lista o que ainda está em aberto. Se a contagem de parcelas restantes coincidir com
+    // a contagem da planilha (aqui, coincidentemente 1=1), o código antigo reescalava a
+    // ÚNICA parcela restante pro Bruto/Líquido CHEIO do pedido (R$129.000) em vez do valor
+    // real ainda pendente (R$103.200) — contando de novo, em Contas a Receber/Fluxo de
+    // Caixa e na comissão, dinheiro que já tinha sido recebido antes. Comparando contra a
+    // SOMA das parcelas da planilha (que é o mesmo nível de detalhe de `res`) em vez do
+    // total do pedido (nível de pedido inteiro, que pode incluir algo que não está mais
+    // em nenhuma das duas listas), a reconciliação nunca mais infla uma parcela aberta pro
+    // valor cheio do pedido.
+    const sumParcelasLq=(xlsxRowGP.parcelas||[]).reduce((s,pc)=>s+(pc.valor||0),0);
+    const sumParcelasBr=sumParcelasLq>0&&trueRatio>0?sumParcelasLq/trueRatio:sumParcelasLq;
     if(contagemBate){
-      if(xlsxRowGP.br&&sumBr>0&&Math.abs(sumBr-xlsxRowGP.br)>0.01){
-        const kBr=xlsxRowGP.br/sumBr;
+      if(sumParcelasBr>0&&sumBr>0&&Math.abs(sumBr-sumParcelasBr)>0.01){
+        const kBr=sumParcelasBr/sumBr;
         res.forEach(r=>{r.valorBruto=r.valorBruto*kBr;});
       }
-      if(xlsxRowGP.lq!=null&&sumLq>0&&Math.abs(sumLq-xlsxRowGP.lq)>0.01){
-        const kLq=xlsxRowGP.lq/sumLq;
+      if(sumParcelasLq>0&&sumLq>0&&Math.abs(sumLq-sumParcelasLq)>0.01){
+        const kLq=sumParcelasLq/sumLq;
         res.forEach(r=>{r.valor=r.valor*kLq;r.liqEstimado=false;});
       }
       // Contagem de parcelas bate com a planilha — o Bruto de cada parcela já foi
-      // conferido (ou ajustado acima) pra fechar exatamente com o Bruto real da OS
-      // colada, então deixa de ser uma suposição solta e o aviso "estimado" não faz
+      // conferido (ou ajustado acima) pra fechar exatamente com a soma das parcelas reais
+      // da OS colada, então deixa de ser uma suposição solta e o aviso "estimado" não faz
       // mais sentido. Corrigido 2026-07-14: antes esse reset só acontecia no ramo de
       // contagem que NÃO bate (abaixo), então pedido com 1 parcela só (ex.: OS 30, 28,
       // 29, 40) ficava com "⚠️ estimado" pra sempre mesmo com o Bruto já exato.
-      if(xlsxRowGP.br)res.forEach(r=>{r.valorBrutoEstimado=false;});
-    } else if((xlsxRowGP.lq!=null&&Math.abs(sumLq-xlsxRowGP.lq)>0.01)||(xlsxRowGP.br&&Math.abs(sumBr-xlsxRowGP.br)>0.01)){
+      if(sumParcelasBr>0)res.forEach(r=>{r.valorBrutoEstimado=false;});
+    } else if((sumParcelasLq>0&&Math.abs(sumLq-sumParcelasLq)>0.01)||(sumParcelasBr>0&&Math.abs(sumBr-sumParcelasBr)>0.01)){
       // AJUSTE em 2026-07-13 (mesmo dia, depois do usuário confirmar): quando a contagem não
       // bate, antes eu marcava TUDO como "divergente" mesmo quando dava pra saber com certeza
       // qual parcela real da planilha é aquela — ex.: OS 56, só sobrou 1 parcela cadastrada
@@ -6032,6 +6049,26 @@ function _aplicaValorConfirmado(parc,conf){
   }
   return{valor:parc.valor,valorBruto:parc.valorBruto};
 }
+// Regra do usuário (2026-07-15): toda parcela de Julho I/2026 pra trás já foi recebida
+// pela empresa e a comissão já foi paga ao vendedor — isso aconteceu ANTES desse sistema
+// existir/rastrear confirmação de recebimento (cfg.pagConf), então nunca vai ter um
+// registro de confirmação real pra essas parcelas antigas, e elas ficariam PRA SEMPRE
+// "pendente"/"atrasado" em Contas a Receber, Fluxo de Caixa e Comissões. Pior: se alguém
+// clicar "Confirmar" numa dessas achando que acabou de cair na conta, o sistema libera a
+// comissão de novo pra pagamento — pagando em DOBRO algo que já foi pago manualmente antes
+// do sistema (isso é o que o usuário reportou: planilha real tem erro de preenchimento
+// em várias células que não estão pintadas de verde, mas que na real já foram recebidas).
+// A partir de Julho II é que o pagamento passa a ser rastreado de verdade pelo sistema —
+// pedidos de julho em diante são emitidos direto no sistema, não vêm mais da planilha.
+// Ver uso em getComissaoItemsAll() — só entra em vigor quando NÃO existe confirmação/
+// motivo manual já registrado (cfg.pagConf), pra nunca sobrepor uma decisão humana.
+function _antesOuIgualJulhoI(qy,qm,qhalf){
+  if(qy<2026)return true;
+  if(qy>2026)return false;
+  if(qm<7)return true;
+  if(qm>7)return false;
+  return qhalf==='I';
+}
 function getComissaoItemsAll(){
   if(_comItemsCache)return _comItemsCache;
   const all=[];
@@ -6068,7 +6105,13 @@ function getComissaoItemsAll(){
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parc,conf);
-      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',categoria:xlsxRef?(xlsxRef.cat||''):(p.tipoPedido||p.tipo||''),mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      // Regra Julho I (ver _antesOuIgualJulhoI acima) — só se aplica a pedido que também
+      // existe na planilha reconciliada (xlsxRef), que é o universo "pré-julho" de vendas
+      // rastreadas fora do sistema; e só quando NÃO existe confirmação/motivo manual já
+      // registrado (conf), pra nunca sobrepor uma decisão humana real (ex.: Financeiro já
+      // marcou "não recebido" com motivo, ou já confirmou com valor negociado).
+      const autoHistorico=!!xlsxRef&&!conf&&_antesOuIgualJulhoI(qi.y,qi.m,qi.half);
+      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',categoria:xlsxRef?(xlsxRef.cat||''):(p.tipoPedido||p.tipo||''),mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -6095,7 +6138,11 @@ function getComissaoItemsAll(){
       const xRatio=x.br>0?(x.lq/x.br):1;
       const parcComBruto={valor:parc.valor,valorBruto:xRatio>0?parc.valor/xRatio:parc.valor};
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parcComBruto,conf);
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',categoria:x.cat||'',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      // Regra Julho I (ver _antesOuIgualJulhoI acima) — aqui SEMPRE é pedido "pré-julho"
+      // (só existe planilha, nunca foi emitido no sistema), então só depende de não
+      // existir confirmação/motivo manual já registrado.
+      const autoHistorico=!conf&&_antesOuIgualJulhoI(qi.y,qi.m,qi.half);
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',categoria:x.cat||'',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -6364,7 +6411,7 @@ function renderFinanceiro(){
   if(!items.length){body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhuma conta encontrada com esses filtros.</div>';return;}
 
   const statusPill=i=>{
-    if(i.statusCalc==='confirmado')return'<span class="dash-badge ok">✅ Recebido</span>';
+    if(i.statusCalc==='confirmado')return i.historicoAutoConfirmado?'<span class="dash-badge ok" title="Parcela de Julho I/2026 ou anterior — considerada já recebida antes deste sistema existir (marcado automaticamente, sem confirmação manual).">✅ Recebido (histórico)</span>':'<span class="dash-badge ok">✅ Recebido</span>';
     if(i.statusCalc==='nao_recebido')return'<span class="dash-badge no">❌ Não recebido</span>';
     if(i.statusCalc==='atrasado')return'<span class="dash-badge no">⚠️ Atrasado</span>';
     return'<span class="dash-badge pend">⏳ Pendente</span>';
@@ -6421,7 +6468,7 @@ let _finClientesHistItens={};
 // Modal (montado na hora, igual _dashShowPinModal()) com a lista de parcelas de uma
 // faixa dos KPIs do Fluxo de Caixa — abre ao clicar em qualquer um dos 5 cards.
 function _finStatusPill(i){
-  if(i.statusCalc==='confirmado')return'<span class="dash-badge ok">✅ Recebido</span>';
+  if(i.statusCalc==='confirmado')return i.historicoAutoConfirmado?'<span class="dash-badge ok" title="Parcela de Julho I/2026 ou anterior — considerada já recebida antes deste sistema existir (marcado automaticamente, sem confirmação manual).">✅ Recebido (histórico)</span>':'<span class="dash-badge ok">✅ Recebido</span>';
   if(i.statusCalc==='nao_recebido')return'<span class="dash-badge no">❌ Não recebido</span>';
   if(i.statusCalc==='atrasado')return'<span class="dash-badge no">⚠️ Atrasado</span>';
   return'<span class="dash-badge pend">⏳ Pendente</span>';
@@ -6977,7 +7024,7 @@ function renderDashComissoes(){
       <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor Bruto</th><th>Valor Líquido</th><th>Pagto comissão</th><th>%</th><th>Comissão</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead>
       <tbody>${items.map(i=>{
         const com=i.valor*i.pct/100;
-        const sb=i.status==='confirmado'?'<span class="dash-badge ok">✅ Confirmado</span>':i.status==='adiado'?'<span class="dash-badge pend">⏭ Adiado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
+        const sb=i.status==='confirmado'?(i.historicoAutoConfirmado?'<span class="dash-badge ok" title="Parcela de Julho I/2026 ou anterior — considerada já recebida e com comissão já paga antes deste sistema existir (marcado automaticamente, sem confirmação manual). Confira na planilha antiga se sobrar dúvida.">✅ Confirmado (histórico)</span>':'<span class="dash-badge ok">✅ Confirmado</span>'):i.status==='adiado'?'<span class="dash-badge pend">⏭ Adiado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
         const ck=i.confKey.replace(/'/g,"\\'");
         const da=i.dataAtiva.replace(/'/g,"\\'");
         const ac=i.status==='confirmado'?`<span style="font-size:.72rem;color:#16a34a">Pago ✓</span>`:`<button class="dash-btn-conf" onclick="confPag('${ck}','${da}')">✅ Confirmar</button><button class="dash-btn-adiar" onclick="adiarPag('${ck}','${da}')">⏭ Adiar</button>`;
