@@ -780,7 +780,9 @@ select.fc{cursor:pointer}
               <button onclick="dashMov(-1)">◀</button>
               <div class="dash-mes-label" id="dash-mes-lbl">—</div>
               <button onclick="dashMov(1)">▶</button>
+              <button onclick="auditarLiquidosMes()" style="margin-left:auto;background:#fefce8;border:1.5px solid #fde68a;color:#92400e;border-radius:8px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔍 Auditar Bruto/Líquido do Mês</button>
             </div>
+            <div id="dash-audit-liq"></div>
             <div id="dash-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
             <div class="dash-card">
               <div class="dash-sec-title">🎯 Metas do Mês</div>
@@ -5127,6 +5129,131 @@ function getParcelas(p){
   return res;
 }
 
+// Auditoria manual (2026-07-15): confere, pedido a pedido, se a soma do Bruto/Líquido
+// de todas as parcelas (Entrada + Parcela N, via getParcelas()) bate com o Bruto/Líquido
+// TOTAL salvo no pedido (p.valores). Existe porque, antes do Líquido virar calculado
+// automaticamente na emissão (ver _ratioLiq()), o vendedor digitava o Líquido de cada
+// parcela à mão — um pedido com uma única parcela com Líquido diferente do Líquido do
+// Pedido (ex.: R$62.497 numa parcela de um pedido cujo Líquido total é R$64.497) é sinal
+// de erro de digitação, não de desconto real. Roda só sobre `pedidos` (Firestore, já
+// carregado no navegador) — não enxerga nada que não esteja carregado na tela.
+function auditarLiquidosMes(){
+  const el=document.getElementById('dash-audit-liq');if(!el)return;
+  const {y,m}=dashMesAtual;
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const mNum=n=>parseFloat(String(n||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
+  const problemas=[];
+  pedidos.filter(isComercialPedido).forEach(p=>{
+    const anoNatural=p.emissaoEm?(parseInt(p.emissaoEm.split('-')[0],10)||0):0;
+    const mesNatural=p.emissaoEm?(parseInt(p.emissaoEm.split('-')[1],10)||0):0;
+    const mesConta=p.mesVendaOverride||mesNatural;
+    if(mesConta!==m||anoNatural!==y)return;
+    const vals=p.valores||{};
+    const brutoPedido=mNum(vals['Valor Bruto']);
+    const liqPedido=mNum(vals['Valor Líquido do Pedido']);
+    const parcs=getParcelas(p);
+    if(!parcs.length)return;
+    const somaBruto=parcs.reduce((s,i)=>s+i.valorBruto,0);
+    const somaLiq=parcs.reduce((s,i)=>s+i.valor,0);
+    const diffBruto=brutoPedido-somaBruto;
+    const diffLiq=liqPedido-somaLiq;
+    const temEstimado=parcs.some(i=>i.liqEstimado);
+    if(Math.abs(diffBruto)>0.01||Math.abs(diffLiq)>0.01){
+      problemas.push({os:p.os,cliente:p.cliente,brutoPedido,somaBruto,diffBruto,liqPedido,somaLiq,diffLiq,temEstimado,pedidoId:p.id});
+    }
+  });
+  if(!problemas.length){
+    el.innerHTML=`<div style="padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;color:#16a34a;font-weight:700;font-size:.78rem;margin:10px 0">✅ Nenhuma divergência de Bruto/Líquido encontrada entre o total do pedido e a soma das parcelas em ${MESES_PT[m]} ${y}.</div>`;
+    return;
+  }
+  el.innerHTML=`<div style="margin:10px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+      <div style="font-size:.78rem;font-weight:700;color:#b91c1c">⚠️ ${problemas.length} pedido(s) em ${MESES_PT[m]} ${y} com a soma das parcelas divergente do Bruto/Líquido do pedido:</div>
+      <button onclick="corrigirLiquidosMes()" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.74rem;font-weight:700;cursor:pointer;white-space:nowrap">🔧 Corrigir Líquido de todos ({{N}})</button>
+    </div>
+    <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>OS</th><th>Cliente</th><th>Bruto Pedido</th><th>Soma Parcelas (Bruto)</th><th>Líquido Pedido</th><th>Soma Parcelas (Líquido)</th><th>Diferença Líquido</th><th></th></tr></thead><tbody>
+    ${problemas.map(pr=>`<tr>
+      <td>${pr.os}</td><td>${pr.cliente}</td>
+      <td>${fmt(pr.brutoPedido)}</td>
+      <td style="color:${Math.abs(pr.diffBruto)>0.01?'#dc2626':'inherit'}">${fmt(pr.somaBruto)}</td>
+      <td>${fmt(pr.liqPedido)}</td>
+      <td style="color:${Math.abs(pr.diffLiq)>0.01?'#dc2626':'inherit'};font-weight:700">${fmt(pr.somaLiq)}${pr.temEstimado?' <span title="Pelo menos uma parcela sem Líquido explícito — valor estimado por proporção" style="color:#b45309">⚠️ estimado</span>':''}</td>
+      <td style="font-weight:700;color:#dc2626">${fmt(pr.diffLiq)}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <button onclick="corrigirLiquidoUm('${pr.pedidoId}')" style="background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap">🔧 Corrigir Líquido</button>
+        <button onclick="editarValoresPedido('${pr.pedidoId}')" style="background:#111827;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap">Editar Valores</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table></div>
+    <div style="font-size:.68rem;color:#92400e;margin-top:8px">"Corrigir Líquido" recalcula o Líquido de cada parcela como Bruto da parcela × (Líquido do Pedido ÷ Bruto do Pedido) — o Bruto (o que o cliente paga) não muda, só o Líquido salvo (base da comissão) é substituído pelo valor calculado. Se a diferença de Bruto também estiver destacada em vermelho, corrija primeiro em "Editar Valores" antes de usar o "Corrigir Líquido" automático.</div>
+  </div>`.replace('{{N}}',problemas.length);
+}
+
+// Recalcula o Líquido de cada parcela/entrada de UM pedido a partir do próprio Bruto e do
+// Líquido total do pedido já salvos (p.valores) — usa a mesma fórmula do cálculo automático
+// da emissão (_ratioLiq()). NÃO mexe em nenhum valor de Bruto. Retorna false se não deu pra
+// calcular (ex.: pedido sem Bruto salvo).
+function _recalcularLiquidoPedido(p){
+  const vals=p.valores||{};
+  const mNum=n=>parseFloat(String(n||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
+  const brutoPedido=mNum(vals['Valor Bruto']);
+  const liqPedido=mNum(vals['Valor Líquido do Pedido']);
+  if(brutoPedido<=0)return false;
+  const ratio=liqPedido/brutoPedido;
+  const fmtV=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  const pag=p.pagamento||{};
+  if(pag['Valor de Entrada']){
+    pag['Valor de Entrada (Líquido)']=fmtV(mNum(pag['Valor de Entrada'])*ratio);
+  }
+  Object.keys(pag).forEach(k=>{
+    const mt=k.match(/^Parcela\s+(\d+)\s+·/);
+    if(mt)pag[`Parcela ${mt[1]} (Líquido)`]=fmtV(mNum(pag[k])*ratio);
+  });
+  p.pagamento=pag;
+  return true;
+}
+async function corrigirLiquidoUm(pedidoId){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  if(!confirm('Recalcular o Líquido de cada parcela deste pedido (Bruto × proporção Líquido/Bruto do pedido)? O Bruto de cada parcela não muda.'))return;
+  if(!_recalcularLiquidoPedido(p)){toast('Não foi possível calcular — pedido sem Valor Bruto salvo.','terr');return;}
+  await savePedidoFS(p);
+  toast('Líquido corrigido! ✅','tok');
+  _invalidateDashCache();
+  auditarLiquidosMes();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  if(typeof renderFinanceiro==='function')renderFinanceiro();
+}
+async function corrigirLiquidosMes(){
+  const {y,m}=dashMesAtual;
+  const mNum=n=>parseFloat(String(n||0).replace(/[^0-9.,-]/g,'').replace(',','.'))||0;
+  const alvo=[];
+  pedidos.filter(isComercialPedido).forEach(p=>{
+    const anoNatural=p.emissaoEm?(parseInt(p.emissaoEm.split('-')[0],10)||0):0;
+    const mesNatural=p.emissaoEm?(parseInt(p.emissaoEm.split('-')[1],10)||0):0;
+    const mesConta=p.mesVendaOverride||mesNatural;
+    if(mesConta!==m||anoNatural!==y)return;
+    const vals=p.valores||{};
+    const brutoPedido=mNum(vals['Valor Bruto']);
+    const liqPedido=mNum(vals['Valor Líquido do Pedido']);
+    const parcs=getParcelas(p);
+    if(!parcs.length||brutoPedido<=0)return;
+    const somaLiq=parcs.reduce((s,i)=>s+i.valor,0);
+    if(Math.abs(liqPedido-somaLiq)>0.01)alvo.push(p);
+  });
+  if(!alvo.length){toast('Nenhum pedido pra corrigir neste mês','tinf');return;}
+  if(!confirm(`Recalcular o Líquido de cada parcela em ${alvo.length} pedido(s) de ${MESES_PT[m]} ${y}? O Bruto de cada parcela não muda — só o Líquido salvo é substituído pelo valor calculado (Bruto × proporção Líquido/Bruto do pedido). Essa ação não pode ser desfeita automaticamente.`))return;
+  let ok=0;
+  for(const p of alvo){
+    if(_recalcularLiquidoPedido(p)){await savePedidoFS(p);ok++;}
+  }
+  toast(`${ok} pedido(s) corrigido(s)! ✅`,'tok');
+  _invalidateDashCache();
+  auditarLiquidosMes();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  if(typeof renderFinanceiro==='function')renderFinanceiro();
+}
+
 function parseDataBR(s){
   if(!s)return null;
   const pts=s.trim().split('/');
@@ -7289,10 +7416,14 @@ function verVendaDetalhe(os,pedidoId){
           'Valor Líquido do Pedido':fmtBR2(xlsxRowVV.lq!=null?xlsxRowVV.lq:(xlsxRowVV.br-(xlsxRowVV.ft+xlsxRowVV.vi+xlsxRowVV.el+xlsxRowVV.mo+xlsxRowVV.art+xlsxRowVV.rem+xlsxRowVV.med))),
           ...(xlsxRowVV.el?{'Valor das Elevações':fmtBR2(xlsxRowVV.el)}:{})};
       }
+      // "Ver Detalhes" é a tela de conferência de pagamento (o que o cliente deve/pagou),
+      // não a base de comissão — por isso mostra o Bruto (valorBruto) de cada parcela, não
+      // o Líquido (valor). A comissão em si (Metas & Comissões/Financeiro) continua sendo
+      // calculada sempre pelo Líquido, via getComissaoItemsAll() — isso aqui é só exibição.
       const parcRows=getParcelas(p).map(parc=>{
         const conf=getPagConf(parc.confKey);
         const st=conf?.status==='confirmado'?'✅ Recebido':'⏳ Pendente';
-        return{l:`${parc.label} · ${(conf&&conf.novaData)?conf.novaData:parc.dataStr}`,v:`${fmtR(parc.valor)} — ${st}`};
+        return{l:`${parc.label} · ${(conf&&conf.novaData)?conf.novaData:parc.dataStr}`,v:`${fmtR(parc.valorBruto)} — ${st}`};
       });
       document.getElementById('vv-bd').innerHTML=`
         <div class="vm-sec"><h4>Dados Gerais</h4><div class="vm-gr">
