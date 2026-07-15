@@ -512,6 +512,8 @@ select.fc{cursor:pointer}
           <option value="">🏷️ Todas as categorias</option>
         </select>
         <button id="btn-vnd-todas" onclick="vndMostrarTodas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#1a2b5e;font-weight:700;cursor:pointer">📆 Mostrar Todas (Ano)</button>
+        <button onclick="exportarExcelVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#166534;font-weight:700;cursor:pointer">📊 Exportar Excel</button>
+        <button onclick="gerarPDFVendas()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#e91e63;font-weight:700;cursor:pointer">📄 Gerar PDF</button>
         <button id="btn-add-venda-manual" onclick="abrirVendaManual()" style="display:none;margin-left:auto;background:#1a2b5e;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer">➕ Adicionar Venda Manual</button>
       </div>
       <!-- Totalizadores -->
@@ -540,6 +542,8 @@ select.fc{cursor:pointer}
       <input id="f-data-ini" type="date" style="width:150px" onchange="renderAll()">
       <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Até</span>
       <input id="f-data-fim" type="date" style="width:150px" onchange="renderAll()">
+      <button onclick="exportarExcelEmissao()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#166534;font-weight:700;cursor:pointer">📊 Exportar Excel</button>
+      <button onclick="gerarPDFEmissao()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#e91e63;font-weight:700;cursor:pointer">📄 Gerar PDF</button>
     </div>
 
     <div class="lv" id="lv">
@@ -565,6 +569,8 @@ select.fc{cursor:pointer}
         <button onclick="gcMovMes(-1)">◀</button>
         <div class="dash-mes-label" id="gc-mes-lbl">—</div>
         <button onclick="gcMovMes(1)">▶</button>
+        <button onclick="exportarExcelGraficos()" style="width:auto;height:auto;margin-left:auto;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#166534;font-weight:700;cursor:pointer">📊 Exportar Excel</button>
+        <button onclick="gerarPDFGraficos()" style="width:auto;height:auto;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#e91e63;font-weight:700;cursor:pointer">📄 Gerar PDF</button>
       </div>
       <!-- Tabs de vendedor -->
       <div class="gc-vend-tabs" id="gc-vend-tabs"></div>
@@ -1953,6 +1959,86 @@ function renderList(){
     <td>${p.prazo?fmtD(p.prazo):'—'}</td><td>${p.responsavel||'—'}</td>
     <td style="white-space:nowrap"><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600;margin-right:4px" onclick="viewP('${p.id}')">Ver</button>${_isAdmLista?`<button style="padding:5px 12px;border:1.5px solid #dbeafe;border-radius:7px;background:#dbeafe;color:#1a2b5e;cursor:pointer;font-size:.75rem;font-weight:600" onclick="reenviarEmailPedido('${p.id}')">🔁 Reenviar Email</button>`:''}</td>
   </tr>`).join('');
+}
+function exportarExcelEmissao(){
+  const {isAdm:_isAdmExp}=_getUserCat();
+  const sorted=[...filt()].sort((a,b)=>{let va=a[sf]||'',vb=b[sf]||'';if(sf==='os'){va=+va;vb=+vb;}return va<vb?(sa?-1:1):va>vb?(sa?1:-1):0;});
+  if(!sorted.length){toast('Nenhum pedido encontrado com esses filtros para exportar','terr');return;}
+  const headers=['OS','Cliente','JOB','Categoria','Emissão','Prazo','Responsável'];
+  const body=sorted.map(p=>[String(p.os||''),p.cliente||'',p.job||'',p.tipo||'',p.emissaoEm?fmtD(p.emissaoEm):'',p.prazo?fmtD(p.prazo):'',p.responsavel||'']);
+  _csvDownload(`lista_de_emissao_${new Date().toISOString().slice(0,10)}.csv`,headers,body);
+  toast('Exportado! Abra o arquivo baixado no Excel.','tok');
+}
+async function gerarPDFEmissao(){
+  if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
+  const {jsPDF}=window.jspdf;
+  const sorted=[...filt()].sort((a,b)=>{let va=a[sf]||'',vb=b[sf]||'';if(sf==='os'){va=+va;vb=+vb;}return va<vb?(sa?-1:1):va>vb?(sa?1:-1):0;});
+  if(!sorted.length){toast('Nenhum pedido encontrado com esses filtros para gerar o PDF.','terr');return;}
+
+  const q=(document.getElementById('srch')||{}).value||'';
+  const ft=(document.getElementById('f-tipo')||{}).value||'';
+  const fm=(document.getElementById('f-mes')||{}).value||'';
+  const di=(document.getElementById('f-data-ini')||{}).value||'';
+  const df=(document.getElementById('f-data-fim')||{}).value||'';
+  const filtrosAtivos=[];
+  if(q)filtrosAtivos.push('Busca: "'+q+'"');
+  if(ft)filtrosAtivos.push('Categoria: '+ft);
+  if(fm)filtrosAtivos.push('Mês: '+(MESES_PT[+fm]||fm));
+  if(di)filtrosAtivos.push('Emissão de: '+fmtD(di));
+  if(df)filtrosAtivos.push('Emissão até: '+fmtD(df));
+  const filtrosLbl=filtrosAtivos.length?filtrosAtivos.join('  ·  '):'Todos os pedidos (sem filtro)';
+
+  const doc=new jsPDF();
+  const NAVY=[26,43,94],PINK=[233,30,99],LIGHT=[241,245,249],GRAY=[100,116,139];
+  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
+  const logo=await _getLogoGrandaPDF();
+  const drawnFooterPages=new Set();
+
+  function drawHeader(){
+    if(logo){try{doc.addImage(logo,'PNG',14,9,36,12.9);}catch(e){}}
+    doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(15);
+    doc.text('LISTA DE EMISSÃO',pageW-14,15,{align:'right'});
+    doc.setTextColor(...PINK);doc.setFontSize(10);
+    doc.text('Sistema Comercial Granda',pageW-14,21,{align:'right'});
+    doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+    const lines=doc.splitTextToSize('Filtros: '+filtrosLbl,pageW-28);
+    doc.text(lines,pageW-14,26.5,{align:'right'});
+    const lineY=27.5+(lines.length-1)*3.2;
+    doc.setDrawColor(...PINK);doc.setLineWidth(0.7);doc.line(14,lineY,pageW-14,lineY);
+    doc.setFont('helvetica','normal');
+    return lineY+6;
+  }
+  function drawFooter(pageNum){
+    if(drawnFooterPages.has(pageNum))return;
+    drawnFooterPages.add(pageNum);
+    doc.setPage(pageNum);
+    doc.setDrawColor(220,224,230);doc.setLineWidth(0.3);doc.line(14,pageH-14,pageW-14,pageH-14);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...GRAY);
+    doc.text('GRANDA Comunicação Visual · Sistema Comercial Granda',14,pageH-9);
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
+    doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
+  }
+
+  let curY=drawHeader();
+  doc.setFontSize(9);doc.setTextColor(...GRAY);
+  doc.text(`${sorted.length} pedido${sorted.length!==1?'s':''} emitido${sorted.length!==1?'s':''}`,14,curY+2);
+  curY+=8;
+  doc.setTextColor(0,0,0);
+
+  const head=['OS','Cliente','JOB','Categoria','Emissão','Prazo','Responsável'];
+  const body=sorted.map(p=>[String(p.os||'—'),p.cliente||'—',p.job||'—',p.tipo||'—',p.emissaoEm?fmtD(p.emissaoEm):'—',p.prazo?fmtD(p.prazo):'—',p.responsavel||'—']);
+
+  doc.autoTable({
+    startY:curY,head:[head],body,theme:'grid',
+    styles:{fontSize:7.2,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1,cellPadding:1.8},
+    headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7.5},
+    alternateRowStyles:{fillColor:LIGHT},
+    margin:{top:32,left:14,right:14,bottom:20},
+    didDrawPage:(data)=>{drawFooter(doc.internal.getNumberOfPages());}
+  });
+  drawFooter(doc.internal.getNumberOfPages());
+  doc.save(`lista_de_emissao_${new Date().toISOString().slice(0,10)}.pdf`);
+  toast('PDF gerado!','tok');
 }
 function limparFiltrosLista(){
   const ids=['srch','f-tipo','f-mes','f-data-ini','f-data-fim'];
@@ -7887,16 +7973,36 @@ function pedidoToVendaRow(p){
   // independente da data real de emissão (p.emissaoEm) — pro caso de pedido vendido num
   // mês mas só emitido depois (ex.: vendeu em maio, problema com o cliente, só emitiu em
   // julho — sem isso a venda contaria em julho e duplicaria/desalinharia a meta de maio
-  // já lançada). Editável em "Editar Valores" na Lista de Vendas.
+  // já lançada). Editável em "Editar Valores" na Lista de Vendas. Continua tendo PRIORIDADE
+  // MÁXIMA — é uma correção manual explícita, sempre vence até a planilha.
+  //
+  // BUG GRAVE corrigido em 2026-07-15 (usuário: "Vendas do Mês" de junho batendo R$49.083,38
+  // a menos que a planilha — 3 pedidos do Bruno, OS 234/235/236, sumidos do total de junho):
+  // esse bloco só olhava p.mesVendaOverride/p.emissaoEm — NUNCA o mês da planilha reconciliada
+  // (xlsxRow.m), mesmo já usando xlsxRow pra Bruto/Líquido/despesas ali em cima. Um pedido
+  // registrado/emitido no sistema numa data diferente do mês real da venda (sem ninguém
+  // lembrar de preencher mesVendaOverride pra corrigir) contava no mês da emissão em vez do
+  // mês da planilha — sumindo de Vendas do Mês/Metas do mês certo. Agora, na falta de
+  // override manual, o mês da planilha reconciliada vence — mesmo princípio já aplicado aos
+  // valores financeiros, agora também pro mês da venda: pedido que está na planilha SEMPRE
+  // bate com ela (mês e valor), só usa p.emissaoEm como último recurso pra pedido que nunca
+  // esteve na planilha (emitido direto, ex.: tudo a partir de julho).
   if(p.mesVendaOverride){
     m=parseInt(p.mesVendaOverride,10)||0;
+    mes=MESES_PT[m]||'';
+  } else if(xlsxRow&&xlsxRow.m){
+    m=xlsxRow.m;
     mes=MESES_PT[m]||'';
   } else if(p.emissaoEm){
     const partes=p.emissaoEm.split('-');
     m=parseInt(partes[1],10)||0;
     mes=MESES_PT[m]||'';
   }
-  return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:p.responsavel||'',
+  // Vendedor: mesmo motivo — planilha reconciliada vence sobre p.responsavel quando existir
+  // (já é assim em getComissaoItemsAll(), essa função tinha ficado de fora). Evita pedido
+  // contando no vendedor errado (ou "sem vendedor") por nome divergente/vazio no Firestore.
+  const vendaVend=xlsxRow?(mapVendedorName(xlsxRow.v)||p.responsavel||''):(p.responsavel||'');
+  return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:vendaVend,
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
     numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||'',cidade:p.locCidade||'',
     mesAjustado:!!p.mesVendaOverride};
@@ -8014,6 +8120,138 @@ function verVendaDetalhe(os,pedidoId){
   openM('mo-vv');
 }
 
+// Helpers genéricos de exportação (CSV/Excel), extraídos em 2026-07-15 pra Lista de
+// Vendas/Emissão/Gráficos reaproveitarem em vez de duplicar o boilerplate de Blob/BOM/
+// delimitador — mesmo padrão já usado em exportarExcelFinanceiro().
+function _csvEscape(v){const s=String(v??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function _csvDownload(filename,headers,rows){
+  const csv='﻿'+[headers,...rows].map(r=>r.map(_csvEscape).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+// Extraído de dentro de renderDashVendas() (2026-07-15) pra Exportar Excel/Gerar PDF
+// usarem exatamente os mesmos filtros/linhas que a tabela na tela mostra, sem duplicar a
+// lógica de filtro (mesmo motivo do _finFilteredItems() em Financeiro). Respeita a mesma
+// restrição de visibilidade da tabela: vendedor comum só vê (e só exporta) as próprias vendas.
+function _vndFilteredRows(){
+  const {isAdm}=_getUserCat();
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  const allRowsForFil=isAdm?getVendaRowsMerged():(meuNome?getVendaRowsMerged().filter(r=>vendedorMatch(r.v,meuNome)):[]);
+  const filMes=(document.getElementById('vnd-fil-mes')||{}).value||'';
+  const filVend=(document.getElementById('vnd-fil-vend')||{}).value||'';
+  const filCat=(document.getElementById('vnd-fil-cat')||{}).value||'';
+  const filBusca=norm((document.getElementById('vnd-fil-busca')||{}).value||'');
+  // Busca livre: OS, cliente, JOB, cidade, vendedor, categoria e Nº de OC — tudo num campo só,
+  // sem acento/maiúsculas (norm()) pra não depender de digitar exatamente igual.
+  const _buscaMatch=r=>!filBusca||[r.p,r.cl,r.job,r.cidade,r.v,r.cat,r.numOC].some(v=>v&&norm(String(v)).includes(filBusca));
+  let rows2=allRowsForFil.filter(r=>(!filMes||r.mes===filMes)&&(!filVend||r.v===filVend)&&(!filCat||r.cat===filCat)&&_buscaMatch(r));
+  rows2=rows2.map(r=>({...r,rem:r.rem||0,med:r.med||0,opAdj:(r.op||0),lqAdj:(r.lq||0)}));
+  rows2.sort((a,b)=>a.m-b.m||a.cl.localeCompare(b.cl));
+  return rows2;
+}
+function exportarExcelVendas(){
+  const rows2=_vndFilteredRows();
+  if(!rows2.length){toast('Nenhuma venda encontrada com esses filtros para exportar','terr');return;}
+  const headers=['Mês','OS','Cliente','JOB','Categoria','Vendedor','Valor Bruto (R$)','Operacionais (R$)','Valor Líquido (R$)','Cidade','Nº OC'];
+  const body=rows2.map(r=>[
+    r.mes||'',String(r.p||''),r.cl||'',r.job||'',r.cat||'',r.v||'',
+    (r.br||0).toFixed(2).replace('.',','),(r.opAdj||0).toFixed(2).replace('.',','),(r.lqAdj||0).toFixed(2).replace('.',','),
+    r.cidade||'',r.numOC||''
+  ]);
+  _csvDownload(`lista_de_vendas_${new Date().toISOString().slice(0,10)}.csv`,headers,body);
+  toast('Exportado! Abra o arquivo baixado no Excel.','tok');
+}
+async function gerarPDFVendas(){
+  if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
+  const {jsPDF}=window.jspdf;
+  const rows2=_vndFilteredRows();
+  if(!rows2.length){toast('Nenhuma venda encontrada com esses filtros para gerar o PDF.','terr');return;}
+
+  const filMes=(document.getElementById('vnd-fil-mes')||{}).value||'';
+  const filVend=(document.getElementById('vnd-fil-vend')||{}).value||'';
+  const filCat=(document.getElementById('vnd-fil-cat')||{}).value||'';
+  const filBusca=(document.getElementById('vnd-fil-busca')||{}).value||'';
+  const filtrosAtivos=[];
+  if(filMes)filtrosAtivos.push('Mês: '+filMes);
+  if(filVend)filtrosAtivos.push('Vendedor: '+filVend);
+  if(filCat)filtrosAtivos.push('Categoria: '+filCat);
+  if(filBusca)filtrosAtivos.push('Busca: "'+filBusca+'"');
+  const filtrosLbl=filtrosAtivos.length?filtrosAtivos.join('  ·  '):'Todas as vendas (sem filtro)';
+
+  const totBr=rows2.reduce((s,r)=>s+r.br,0);
+  const totOp=rows2.reduce((s,r)=>s+r.opAdj,0);
+  const totLq=rows2.reduce((s,r)=>s+r.lqAdj,0);
+
+  const doc=new jsPDF();
+  const NAVY=[26,43,94],PINK=[233,30,99],LIGHT=[241,245,249],GRAY=[100,116,139];
+  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
+  const logo=await _getLogoGrandaPDF();
+  const drawnFooterPages=new Set();
+
+  function drawHeader(){
+    if(logo){try{doc.addImage(logo,'PNG',14,9,36,12.9);}catch(e){}}
+    doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(15);
+    doc.text('LISTA DE VENDAS',pageW-14,15,{align:'right'});
+    doc.setTextColor(...PINK);doc.setFontSize(10);
+    doc.text('Sistema Comercial Granda',pageW-14,21,{align:'right'});
+    doc.setTextColor(...GRAY);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+    const lines=doc.splitTextToSize('Filtros: '+filtrosLbl,pageW-28);
+    doc.text(lines,pageW-14,26.5,{align:'right'});
+    const lineY=27.5+(lines.length-1)*3.2;
+    doc.setDrawColor(...PINK);doc.setLineWidth(0.7);doc.line(14,lineY,pageW-14,lineY);
+    doc.setFont('helvetica','normal');
+    return lineY+6;
+  }
+  function drawFooter(pageNum){
+    if(drawnFooterPages.has(pageNum))return;
+    drawnFooterPages.add(pageNum);
+    doc.setPage(pageNum);
+    doc.setDrawColor(220,224,230);doc.setLineWidth(0.3);doc.line(14,pageH-14,pageW-14,pageH-14);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...GRAY);
+    doc.text('GRANDA Comunicação Visual · Sistema Comercial Granda',14,pageH-9);
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
+    doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
+  }
+
+  let curY=drawHeader();
+  const boxes=[
+    {label:'Valor Bruto',val:totBr,color:[219,234,254],text:[30,64,175]},
+    {label:'Operacionais',val:totOp,color:[237,233,254],text:[109,40,217]},
+    {label:'Valor Líquido',val:totLq,color:[252,231,243],text:[194,24,91]},
+    {label:'Pedidos',val:rows2.length,color:[241,245,249],text:[71,85,105],isCount:true}
+  ];
+  const boxW=(pageW-28-3*4)/4;
+  boxes.forEach((b,idx)=>{
+    const x=14+idx*(boxW+4);
+    doc.setFillColor(...b.color);doc.roundedRect(x,curY,boxW,14,1.5,1.5,'F');
+    doc.setTextColor(...b.text);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text(b.label.toUpperCase(),x+4,curY+5.5);
+    doc.setFontSize(10.5);
+    doc.text(b.isCount?String(b.val):fmtR(b.val),x+4,curY+11);
+  });
+  curY+=20;
+  doc.setTextColor(0,0,0);doc.setFont('helvetica','normal');
+
+  const head=['Mês','OS','Cliente','Categoria','Vendedor','Bruto','Operac.','Líquido'];
+  const body=rows2.map(r=>[r.mes?r.mes.slice(0,3):'—',pedidoDisplay(r.p)||'—',r.cl||'—',r.cat||'—',r.v||'—',fmtR(r.br),fmtR(r.opAdj),fmtR(r.lqAdj)]);
+
+  doc.autoTable({
+    startY:curY,head:[head],body,theme:'grid',
+    styles:{fontSize:7,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1,cellPadding:1.8},
+    headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7.5},
+    alternateRowStyles:{fillColor:LIGHT},
+    columnStyles:{5:{halign:'right',fontStyle:'bold',textColor:NAVY},6:{halign:'right',textColor:[109,40,217]},7:{halign:'right',fontStyle:'bold',textColor:PINK}},
+    margin:{top:32,left:14,right:14,bottom:20},
+    didDrawPage:(data)=>{drawFooter(doc.internal.getNumberOfPages());}
+  });
+  drawFooter(doc.internal.getNumberOfPages());
+  doc.save(`lista_de_vendas_${new Date().toISOString().slice(0,10)}.pdf`);
+  toast('PDF gerado!','tok');
+}
 function renderDashVendas(){
   _invalidateDashCache();
   const {isAdm}=_getUserCat();
@@ -8042,19 +8280,7 @@ function renderDashVendas(){
     const cats=[...new Set(allRowsForFil.map(r=>r.cat).filter(Boolean))].sort();
     cats.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;selC.appendChild(o);});
   }
-  const filMes=(document.getElementById('vnd-fil-mes')||{}).value||'';
-  const filVend=(document.getElementById('vnd-fil-vend')||{}).value||'';
-  const filCat=(document.getElementById('vnd-fil-cat')||{}).value||'';
-  const filBusca=norm((document.getElementById('vnd-fil-busca')||{}).value||'');
-  // Busca livre: OS, cliente, JOB, cidade, vendedor, categoria e Nº de OC — tudo num campo só,
-  // sem acento/maiúsculas (norm()) pra não depender de digitar exatamente igual.
-  const _buscaMatch=r=>!filBusca||[r.p,r.cl,r.job,r.cidade,r.v,r.cat,r.numOC].some(v=>v&&norm(String(v)).includes(filBusca));
-  let rows2=allRowsForFil.filter(r=>(!filMes||r.mes===filMes)&&(!filVend||r.v===filVend)&&(!filCat||r.cat===filCat)&&_buscaMatch(r));
-  rows2=rows2.map(r=>{
-    const ba=r.ba||0,ou=r.ou||0;
-    return {...r,rem:r.rem||0,med:r.med||0,opAdj:(r.op||0),lqAdj:(r.lq||0)};
-  });
-  rows2.sort((a,b)=>a.m-b.m||a.cl.localeCompare(b.cl));
+  let rows2=_vndFilteredRows();
   const totBr=rows2.reduce((s,r)=>s+r.br,0);
   const totLq=rows2.reduce((s,r)=>s+r.lqAdj,0);
   const totOp=rows2.reduce((s,r)=>s+r.opAdj,0);
@@ -8388,6 +8614,117 @@ function gcChartOpts(extraPlugins){
     }};
 }
 
+// Exportar Excel/Gerar PDF dos Gráficos (2026-07-15) — o painel Geral tem vários
+// gráficos/cards diferentes, sem uma tabela única por trás; em vez de tentar tirar
+// print de canvas, monta um relatório com os MESMOS números mostrados na tela: KPIs do
+// mês navegado (gcMes), evolução mês a mês do ano e o comparativo meta x realizado por
+// vendedor. Sempre reflete o mês navegado nos Gráficos, igual a tela.
+function _gcDadosRelatorio(){
+  const {y,m}=gcMes;
+  const todos=getVendedores();
+  const lqMes=getVendasMes(y,m,null),brMes=getVendasBrutoMes(y,m,null),ftMes=getFaturadoMes(y,m,null);
+  const metaMes=todos.reduce((s,v)=>s+getMetaMes(y,m,v),0);
+  const evolucao=[...Array(12)].map((_,i)=>({mes:MESES_PT[i+1],lq:getVendasMes(y,i+1,null),br:getVendasBrutoMes(y,i+1,null),meta:todos.reduce((s,v)=>s+getMetaMes(y,i+1,v),0)}));
+  const porVendedor=todos.map(v=>{
+    const lv=getVendasMes(y,m,v),mv=getMetaMes(y,m,v);
+    return {vend:v,meta:mv,realizado:lv,pct:mv>0?(lv/mv*100):null};
+  });
+  return {y,m,lqMes,brMes,ftMes,metaMes,evolucao,porVendedor};
+}
+function exportarExcelGraficos(){
+  const d=_gcDadosRelatorio();
+  const headers=['Seção','Item','Valor Bruto (R$)','Valor Líquido (R$)','Meta (R$)','% da Meta'];
+  const body=[
+    ['KPIs do Mês',MESES_PT[d.m]+'/'+d.y,d.brMes.toFixed(2).replace('.',','),d.lqMes.toFixed(2).replace('.',','),d.metaMes.toFixed(2).replace('.',','),d.metaMes>0?(d.lqMes/d.metaMes*100).toFixed(1).replace('.',',')+'%':''],
+    ['KPIs do Mês','Faturado Confirmado','', d.ftMes.toFixed(2).replace('.',','),'',''],
+    ...d.evolucao.map(e=>['Evolução Mensal '+d.y,e.mes,e.br.toFixed(2).replace('.',','),e.lq.toFixed(2).replace('.',','),e.meta.toFixed(2).replace('.',','),e.meta>0?(e.lq/e.meta*100).toFixed(1).replace('.',',')+'%':'']),
+    ...d.porVendedor.map(v=>['Por Vendedor — '+MESES_PT[d.m]+'/'+d.y,v.vend,'',v.realizado.toFixed(2).replace('.',','),v.meta.toFixed(2).replace('.',','),v.pct!=null?v.pct.toFixed(1).replace('.',',')+'%':''])
+  ];
+  _csvDownload(`graficos_${new Date().toISOString().slice(0,10)}.csv`,headers,body);
+  toast('Exportado! Abra o arquivo baixado no Excel.','tok');
+}
+async function gerarPDFGraficos(){
+  if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
+  const {jsPDF}=window.jspdf;
+  const d=_gcDadosRelatorio();
+
+  const doc=new jsPDF();
+  const NAVY=[26,43,94],PINK=[233,30,99],LIGHT=[241,245,249],GRAY=[100,116,139];
+  const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
+  const logo=await _getLogoGrandaPDF();
+  const drawnFooterPages=new Set();
+
+  function drawHeader(){
+    if(logo){try{doc.addImage(logo,'PNG',14,9,36,12.9);}catch(e){}}
+    doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(15);
+    doc.text('RELATÓRIO DE GRÁFICOS',pageW-14,15,{align:'right'});
+    doc.setTextColor(...PINK);doc.setFontSize(10);
+    doc.text('Indicadores Comerciais — '+MESES_PT[d.m]+' '+d.y,pageW-14,21,{align:'right'});
+    doc.setDrawColor(...PINK);doc.setLineWidth(0.7);doc.line(14,26,pageW-14,26);
+    doc.setFont('helvetica','normal');
+    return 32;
+  }
+  function drawFooter(pageNum){
+    if(drawnFooterPages.has(pageNum))return;
+    drawnFooterPages.add(pageNum);
+    doc.setPage(pageNum);
+    doc.setDrawColor(220,224,230);doc.setLineWidth(0.3);doc.line(14,pageH-14,pageW-14,pageH-14);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...GRAY);
+    doc.text('GRANDA Comunicação Visual · Sistema Comercial Granda',14,pageH-9);
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
+    doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
+  }
+
+  let curY=drawHeader();
+  const boxes=[
+    {label:'Vendas Brutas',val:d.brMes,color:[219,234,254],text:[30,64,175]},
+    {label:'Vendas Líquidas',val:d.lqMes,color:[252,231,243],text:[194,24,91]},
+    {label:'Faturado Confirmado',val:d.ftMes,color:[220,252,231],text:[22,163,74]},
+    {label:'Meta do Mês',val:d.metaMes,color:[241,245,249],text:[71,85,105]}
+  ];
+  const boxW=(pageW-28-3*4)/4;
+  boxes.forEach((b,idx)=>{
+    const x=14+idx*(boxW+4);
+    doc.setFillColor(...b.color);doc.roundedRect(x,curY,boxW,14,1.5,1.5,'F');
+    doc.setTextColor(...b.text);doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text(b.label.toUpperCase(),x+4,curY+5.5);
+    doc.setFontSize(10);
+    doc.text(fmtR(b.val),x+4,curY+11);
+  });
+  curY+=22;
+  doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('Evolução Mensal — '+d.y,14,curY);
+  curY+=4;
+  doc.autoTable({
+    startY:curY,head:[['Mês','Bruto','Líquido','Meta','% da Meta']],
+    body:d.evolucao.map(e=>[e.mes,fmtR(e.br),fmtR(e.lq),e.meta>0?fmtR(e.meta):'—',e.meta>0?(e.lq/e.meta*100).toFixed(1)+'%':'—']),
+    theme:'grid',styles:{fontSize:7,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1,cellPadding:1.6},
+    headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7.5},
+    alternateRowStyles:{fillColor:LIGHT},
+    columnStyles:{1:{halign:'right'},2:{halign:'right',fontStyle:'bold',textColor:PINK},3:{halign:'right'},4:{halign:'right'}},
+    margin:{top:32,left:14,right:14,bottom:20},
+    didDrawPage:(data)=>{drawFooter(doc.internal.getNumberOfPages());}
+  });
+
+  let curY2=doc.lastAutoTable.finalY+10;
+  if(curY2>pageH-50){doc.addPage();curY2=32;}
+  doc.setTextColor(...NAVY);doc.setFont('helvetica','bold');doc.setFontSize(10);
+  doc.text('Por Vendedor — '+MESES_PT[d.m]+'/'+d.y,14,curY2);
+  curY2+=4;
+  doc.autoTable({
+    startY:curY2,head:[['Vendedor','Meta','Realizado','% Atingido']],
+    body:d.porVendedor.map(v=>[v.vend,v.meta>0?fmtR(v.meta):'—',fmtR(v.realizado),v.pct!=null?v.pct.toFixed(1)+'%':'—']),
+    theme:'grid',styles:{fontSize:7,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1,cellPadding:1.6},
+    headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7.5},
+    alternateRowStyles:{fillColor:LIGHT},
+    columnStyles:{1:{halign:'right'},2:{halign:'right',fontStyle:'bold',textColor:PINK},3:{halign:'right'}},
+    margin:{top:32,left:14,right:14,bottom:20},
+    didDrawPage:(data)=>{drawFooter(doc.internal.getNumberOfPages());}
+  });
+  drawFooter(doc.internal.getNumberOfPages());
+  doc.save(`graficos_${new Date().toISOString().slice(0,10)}.pdf`);
+  toast('PDF gerado!','tok');
+}
 function renderDashGraficos(){
   _invalidateDashCache();
   // Contador de dias úteis restantes — sempre do mês corrente real (hoje), independente
