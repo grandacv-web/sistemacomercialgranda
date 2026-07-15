@@ -830,13 +830,21 @@ select.fc{cursor:pointer}
           <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Pagamento até</span>
           <input id="fin-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
           <button onclick="gerarPDFFinanceiro()" class="dash-btn-conf" style="white-space:nowrap">📄 Gerar PDF</button>
+          <button onclick="exportarExcelFinanceiro()" class="dash-btn-conf" style="white-space:nowrap;background:#16a34a">📊 Exportar Excel</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:10px">
-          <span style="font-size:.78rem;color:#92400e">🧹 Vendas antigas que já foram pagas na vida real mas nunca foram confirmadas aqui (de antes de usar essa tela)? Confirme tudo de uma vez até uma data:</span>
-          <input id="fin-lote-data" type="date" style="width:150px;padding:8px 10px;border-radius:8px;border:1.5px solid #fde68a;font-size:.82rem;font-family:inherit">
-          <button onclick="confirmarEmLoteAteData()" style="background:#92400e;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Confirmar tudo até essa data</button>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="dash-tab active fin-view-tab" onclick="finSetView('lista',this)">📋 Lista de Parcelas</button>
+          <button class="dash-tab fin-view-tab" onclick="finSetView('fluxo',this)">📊 Fluxo de Caixa</button>
         </div>
-        <div id="fin-body"></div>
+        <div id="fin-view-lista">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:10px">
+            <span style="font-size:.78rem;color:#92400e">🧹 Vendas antigas que já foram pagas na vida real mas nunca foram confirmadas aqui (de antes de usar essa tela)? Confirme tudo de uma vez até uma data:</span>
+            <input id="fin-lote-data" type="date" style="width:150px;padding:8px 10px;border-radius:8px;border:1.5px solid #fde68a;font-size:.82rem;font-family:inherit">
+            <button onclick="confirmarEmLoteAteData()" style="background:#92400e;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Confirmar tudo até essa data</button>
+          </div>
+          <div id="fin-body"></div>
+        </div>
+        <div id="fin-view-fluxo" style="display:none"></div>
       </div>
     </div>
     <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
@@ -6173,6 +6181,68 @@ function confirmarEmLoteAteData(){
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
 }
+// Filtro compartilhado por TODA a tela Financeiro — Lista, PDF, Excel e os painéis de
+// Fluxo de Caixa/Aging/Concentração. Extraído em 2026-07-15 (antes era duplicado dentro
+// de renderFinanceiro() e gerarPDFFinanceiro()) pra qualquer view nova ler exatamente os
+// mesmos itens que a tabela mostra, sem repetir a lógica de filtro em 4 lugares.
+function _finToIso(s){const d=parseDataBR(s);return d&&!isNaN(d)?d.toISOString().slice(0,10):'';}
+function _finFilteredItems(){
+  let items=getContasReceber();
+  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
+  const fv=document.getElementById('fin-fil-vend')?.value||'';
+  const fs=document.getElementById('fin-fil-status')?.value||'';
+  const di=document.getElementById('fin-fil-data-ini')?.value||'';
+  const df=document.getElementById('fin-fil-data-fim')?.value||'';
+  items=items.filter(i=>{
+    const iso=_finToIso(i.dataAtiva);
+    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fmv||MESES_PT[i.emM]===fmv)
+      &&(!fv||vendedorMatch(i.nomeVend,fv))
+      &&(!fs||i.statusCalc===fs)
+      &&(!di||(iso&&iso>=di))
+      &&(!df||(iso&&iso<=df));
+  });
+  items.sort(_cmpMesVenda);
+  return items;
+}
+// Mesmo filtro, mas ignorando o dropdown de Status — usado pelos painéis de Fluxo de
+// Caixa/Aging/Concentração, que por definição só fazem sentido sobre o que ainda está
+// em aberto (Pendente ou Atrasado). Sem isso, se alguém deixasse o filtro de Status em
+// "Recebido" na Lista, o Fluxo de Caixa apareceria zerado ao trocar de aba, o que
+// pareceria um bug (a projeção "sumiu") em vez de ser só o filtro de outra tela.
+function _finItemsEmAberto(){
+  let items=getContasReceber().filter(i=>i.statusCalc==='pendente'||i.statusCalc==='atrasado');
+  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
+  const fv=document.getElementById('fin-fil-vend')?.value||'';
+  const di=document.getElementById('fin-fil-data-ini')?.value||'';
+  const df=document.getElementById('fin-fil-data-fim')?.value||'';
+  items=items.filter(i=>{
+    const iso=_finToIso(i.dataAtiva);
+    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fmv||MESES_PT[i.emM]===fmv)
+      &&(!fv||vendedorMatch(i.nomeVend,fv))
+      &&(!di||(iso&&iso>=di))
+      &&(!df||(iso&&iso<=df));
+  });
+  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+  return items;
+}
+// Alterna entre a tabela item-a-item (Lista) e os painéis de Fluxo de Caixa/Aging/
+// Concentração (Fluxo) dentro do Financeiro. Os filtros no topo (busca/mês/vendedor/
+// período) são compartilhados pelas duas views — só o Status é ignorado pela Fluxo
+// (ver _finItemsEmAberto()).
+let finView='lista';
+function finSetView(v,btn){
+  finView=v;
+  document.querySelectorAll('.fin-view-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const elLista=document.getElementById('fin-view-lista'),elFluxo=document.getElementById('fin-view-fluxo');
+  if(elLista)elLista.style.display=v==='lista'?'':'none';
+  if(elFluxo)elFluxo.style.display=v==='fluxo'?'':'none';
+  if(v==='fluxo')renderFinFluxo();
+}
 function renderFinanceiro(){
   const body=document.getElementById('fin-body');if(!body)return;
   const isFinAdm=_isFinanceiroUser();
@@ -6184,35 +6254,15 @@ function renderFinanceiro(){
     body.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador podem ver as Contas a Receber.</div>';
     return;
   }
-  let items=getContasReceber();
-
   // Popula o dropdown de vendedores uma vez (não sobrescreve seleção atual)
   const selVend=document.getElementById('fin-fil-vend');
   if(selVend&&selVend.dataset.built!=='1'){
-    const vends=[...new Set(items.map(i=>(i.nomeVend||'').trim()).filter(Boolean))].sort();
+    const vends=[...new Set(getContasReceber().map(i=>(i.nomeVend||'').trim()).filter(Boolean))].sort();
     selVend.innerHTML='<option value="">Todos os vendedores</option>'+vends.map(v=>`<option>${v}</option>`).join('');
     selVend.dataset.built='1';
   }
 
-  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
-  const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
-  const fv=document.getElementById('fin-fil-vend')?.value||'';
-  const fs=document.getElementById('fin-fil-status')?.value||'';
-  const di=document.getElementById('fin-fil-data-ini')?.value||'';
-  const df=document.getElementById('fin-fil-data-fim')?.value||'';
-  // Datas do item vêm em dd/mm/aaaa; converte pra ISO só pra comparar com os filtros (type=date)
-  const toIso=s=>{const d=parseDataBR(s);return d&&!isNaN(d)?d.toISOString().slice(0,10):'';};
-
-  items=items.filter(i=>{
-    const iso=toIso(i.dataAtiva);
-    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
-      &&(!fmv||MESES_PT[i.emM]===fmv)
-      &&(!fv||vendedorMatch(i.nomeVend,fv))
-      &&(!fs||i.statusCalc===fs)
-      &&(!di||(iso&&iso>=di))
-      &&(!df||(iso&&iso<=df));
-  });
-  items.sort(_cmpMesVenda);
+  let items=_finFilteredItems();
 
   // Cards resumo
   const cardsEl=document.getElementById('fin-cards');
@@ -6260,33 +6310,169 @@ function renderFinanceiro(){
     <thead><tr><th>Mês Venda</th><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor</th><th>Data prev.</th><th>Atraso</th><th>Status</th><th>Motivo</th><th>Ação</th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
+  // Se a aba Fluxo de Caixa estiver aberta, mantém ela em sincronia com os filtros —
+  // sem isso, mudar o filtro de vendedor/período na Lista não atualizaria o Fluxo até
+  // o usuário clicar na aba de novo, parecendo dado desatualizado.
+  if(finView==='fluxo')renderFinFluxo();
+}
+
+// Fluxo de Caixa de Recebíveis (2026-07-15) — só recebíveis, sem contas a pagar (não
+// existe esse conceito no sistema). Três painéis, todos em cima de _finItemsEmAberto()
+// (Pendente + Atrasado, ignorando o filtro de Status pelo motivo explicado lá):
+//   1) KPIs por janela de vencimento (atrasado / 7 / 30 / 60 / 60+ dias) — visão imediata.
+//   2) Projeção mensal com saldo acumulado + gráfico — visão de médio prazo.
+//   3) Aging (só o que já está atrasado, por faixa de dias) — prioriza cobrança.
+//   4) Concentração por cliente — onde está o maior risco/volume em aberto.
+let finCharts={};
+function renderFinFluxo(){
+  const el=document.getElementById('fin-view-fluxo');if(!el)return;
+  if(!_isFinanceiroUser()){el.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador.</div>';return;}
+  const itens=_finItemsEmAberto();
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  if(!itens.length){
+    el.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhuma conta em aberto (pendente ou atrasada) com esses filtros.</div>';
+    return;
+  }
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+
+  // --- KPIs por janela de vencimento (relativas a hoje) ---
+  let vAtrasado=0,v7=0,v30=0,v60=0,vDepois=0;
+  itens.forEach(i=>{
+    const d=parseDataBR(i.dataAtiva);
+    if(!d||isNaN(d)){vDepois+=i.valorBruto;return;}
+    const dias=Math.round((d-hoje)/86400000);
+    if(dias<0)vAtrasado+=i.valorBruto;
+    else if(dias<=7)v7+=i.valorBruto;
+    else if(dias<=30)v30+=i.valorBruto;
+    else if(dias<=60)v60+=i.valorBruto;
+    else vDepois+=i.valorBruto;
+  });
+  const totalAberto=vAtrasado+v7+v30+v60+vDepois;
+
+  // --- Projeção mensal com saldo acumulado (agrupa pela data prevista) ---
+  const porMes={};
+  itens.forEach(i=>{
+    const d=parseDataBR(i.dataAtiva);
+    const key=d&&!isNaN(d)?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')):'sem-data';
+    if(!porMes[key])porMes[key]={total:0,qtd:0};
+    porMes[key].total+=i.valorBruto;
+    porMes[key].qtd++;
+  });
+  const mesesOrdenados=Object.keys(porMes).filter(k=>k!=='sem-data').sort();
+  let acumulado=0;
+  const projRows=mesesOrdenados.map(key=>{
+    const [ay,am]=key.split('-').map(Number);
+    acumulado+=porMes[key].total;
+    return {label:MESES_PT[am]+'/'+ay,total:porMes[key].total,acumulado,qtd:porMes[key].qtd};
+  });
+
+  // --- Aging (só o que já está atrasado) ---
+  const atrasados=itens.filter(i=>i.diasAtraso>0);
+  const buckets=[{l:'1–15 dias',min:1,max:15},{l:'16–30 dias',min:16,max:30},{l:'31–60 dias',min:31,max:60},{l:'60+ dias',min:61,max:Infinity}];
+  const agingRows=buckets.map(b=>{
+    const its=atrasados.filter(i=>i.diasAtraso>=b.min&&i.diasAtraso<=b.max);
+    return {...b,qtd:its.length,total:its.reduce((s,i)=>s+i.valorBruto,0)};
+  });
+  const totalAtrasado=atrasados.reduce((s,i)=>s+i.valorBruto,0);
+
+  // --- Concentração por cliente ---
+  const porCliente={};
+  itens.forEach(i=>{porCliente[i.cliente||'—']=(porCliente[i.cliente||'—']||0)+i.valorBruto;});
+  const topClientes=Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  el.innerHTML=`
+    <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+      📊 Considera só o que está Pendente ou Atrasado (ignora o filtro de Status acima — usa busca/mês/vendedor/período se preenchidos). Total em aberto: <strong>${fmt(totalAberto)}</strong>.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">
+      <div style="background:#fee2e2;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Atrasado</div><div style="font-size:1.05rem;font-weight:800;color:#b91c1c">${fmt(vAtrasado)}</div></div>
+      <div style="background:#ffedd5;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#c2410c">Próx. 7 dias</div><div style="font-size:1.05rem;font-weight:800;color:#c2410c">${fmt(v7)}</div></div>
+      <div style="background:#fef9c3;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#a16207">8–30 dias</div><div style="font-size:1.05rem;font-weight:800;color:#a16207">${fmt(v30)}</div></div>
+      <div style="background:#dbeafe;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">31–60 dias</div><div style="font-size:1.05rem;font-weight:800;color:#1e40af">${fmt(v60)}</div></div>
+      <div style="background:#e0e7ff;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#4338ca">60+ dias</div><div style="font-size:1.05rem;font-weight:800;color:#4338ca">${fmt(vDepois)}</div></div>
+    </div>
+    <div class="dash-card" style="margin-bottom:16px">
+      <div class="dash-sec-title">📈 Projeção Mensal (saldo acumulado)</div>
+      <div style="height:220px;margin-bottom:14px"><canvas id="fin-chart-proj"></canvas></div>
+      <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Mês</th><th>Parcelas</th><th>Previsto no mês</th><th>Acumulado</th></tr></thead><tbody>
+        ${projRows.map(r=>`<tr><td>${r.label}</td><td>${r.qtd}</td><td>${fmt(r.total)}</td><td style="font-weight:700">${fmt(r.acumulado)}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+    <div class="dash-card" style="margin-bottom:16px">
+      <div class="dash-sec-title">⏰ Aging de Recebíveis (só o que já está atrasado — total ${fmt(totalAtrasado)})</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+        ${agingRows.map(b=>`<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:#b91c1c">${b.l}</div>
+          <div style="font-size:1rem;font-weight:800;color:#b91c1c">${fmt(b.total)}</div>
+          <div style="font-size:.68rem;color:#94a3b8">${b.qtd} parcela(s)</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-sec-title">🏢 Concentração por Cliente (top 10 em aberto)</div>
+      <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Cliente</th><th>Em aberto</th><th>% do total</th></tr></thead><tbody>
+        ${topClientes.map(([cl,v])=>`<tr><td>${cl}</td><td style="font-weight:700">${fmt(v)}</td><td>${totalAberto>0?((v/totalAberto)*100).toFixed(1):'0.0'}%</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>
+  `;
+
+  if(finCharts.proj){try{finCharts.proj.destroy();}catch(e){}}
+  const ctx=document.getElementById('fin-chart-proj');
+  if(ctx&&typeof Chart!=='undefined'){
+    finCharts.proj=new Chart(ctx,{
+      type:'bar',
+      data:{labels:projRows.map(r=>r.label),datasets:[
+        {type:'bar',label:'Previsto no mês',data:projRows.map(r=>r.total),backgroundColor:'rgba(26,43,94,.7)',borderRadius:3,order:2},
+        {type:'line',label:'Acumulado',data:projRows.map(r=>r.acumulado),borderColor:'#e91e63',backgroundColor:'#e91e63',tension:.3,order:1}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx2=>ctx2.dataset.label+': '+fmt(ctx2.raw)}}},
+        scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}
+      }
+    });
+  }
 }
 
 // PDF de Contas a Receber — aplica exatamente os mesmos filtros que estão selecionados
 // na tela (busca, vendedor, status, período), igual o que renderFinanceiro() mostra.
+// Exporta a Lista de Contas a Receber (com os mesmos filtros aplicados na tela) como
+// CSV — abre direto no Excel. Separador ";" (não ",") porque o Excel em português usa
+// vírgula como separador decimal; com "," como delimitador de coluna, qualquer valor
+// como "1.234,56" quebraria em duas colunas. BOM (﻿) no início pra acentuação
+// (Líquido, não recebido etc.) não vir corrompida ao abrir no Excel do Windows.
+function exportarExcelFinanceiro(){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem exportar','terr');return;}
+  const items=_finFilteredItems();
+  if(!items.length){toast('Nenhuma conta encontrada com esses filtros para exportar','terr');return;}
+  const statusLbl=s=>({confirmado:'Recebido',nao_recebido:'Não recebido',atrasado:'Atrasado',pendente:'Pendente'}[s]||s);
+  const headers=['Mês Venda','Pedido','Cliente','Vendedor','Parcela','Valor Bruto (R$)','Data Prevista','Dias em Atraso','Status','Motivo'];
+  const rows=items.map(i=>[
+    i.mesPedido||'',String(i.pedidoOs||''),i.cliente||'',i.nomeVend||'',i.label||'',
+    (i.valorBruto||0).toFixed(2).replace('.',','),i.dataAtiva||'',i.diasAtraso>0?i.diasAtraso:0,
+    statusLbl(i.statusCalc),i.motivoAtraso||''
+  ]);
+  const csvEscape=v=>{const s=String(v??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const csv='﻿'+[headers,...rows].map(r=>r.map(csvEscape).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`contas_a_receber_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Exportado! Abra o arquivo baixado no Excel.','tok');
+}
 async function gerarPDFFinanceiro(){
   if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem gerar esse relatório','terr');return;}
   if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
   const {jsPDF}=window.jspdf;
 
-  let items=getContasReceber();
-  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
   const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
   const fv=document.getElementById('fin-fil-vend')?.value||'';
   const fs=document.getElementById('fin-fil-status')?.value||'';
   const di=document.getElementById('fin-fil-data-ini')?.value||'';
   const df=document.getElementById('fin-fil-data-fim')?.value||'';
-  const toIso=s=>{const d=parseDataBR(s);return d&&!isNaN(d)?d.toISOString().slice(0,10):'';};
-  items=items.filter(i=>{
-    const iso=toIso(i.dataAtiva);
-    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
-      &&(!fmv||MESES_PT[i.emM]===fmv)
-      &&(!fv||vendedorMatch(i.nomeVend,fv))
-      &&(!fs||i.statusCalc===fs)
-      &&(!di||(iso&&iso>=di))
-      &&(!df||(iso&&iso<=df));
-  });
-  items.sort(_cmpMesVenda);
+  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  let items=_finFilteredItems();
 
   if(!items.length){toast('Nenhuma conta encontrada com esses filtros para gerar o PDF.','terr');return;}
 
