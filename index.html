@@ -837,11 +837,6 @@ select.fc{cursor:pointer}
           <button class="dash-tab fin-view-tab" onclick="finSetView('fluxo',this)">📊 Fluxo de Caixa</button>
         </div>
         <div id="fin-view-lista">
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;padding:10px 14px;background:#fefce8;border:1px solid #fde68a;border-radius:10px">
-            <span style="font-size:.78rem;color:#92400e">🧹 Vendas antigas que já foram pagas na vida real mas nunca foram confirmadas aqui (de antes de usar essa tela)? Confirme tudo de uma vez até uma data:</span>
-            <input id="fin-lote-data" type="date" style="width:150px;padding:8px 10px;border-radius:8px;border:1.5px solid #fde68a;font-size:.82rem;font-family:inherit">
-            <button onclick="confirmarEmLoteAteData()" style="background:#92400e;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Confirmar tudo até essa data</button>
-          </div>
           <div id="fin-body"></div>
         </div>
         <div id="fin-view-fluxo" style="display:none"></div>
@@ -1351,6 +1346,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="permissoes" onclick="setCfgSec('permissoes',this)">🔐 Permissões</button>
       <button class="cfg-menu-btn admin-only" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
       <button class="cfg-menu-btn admin-only" data-sec="tipospedido" onclick="setCfgSec('tipospedido',this)">🏷️ Categoria de Pedido</button>
+      <button class="cfg-menu-btn admin-only" data-sec="gruposcliente" onclick="setCfgSec('gruposcliente',this)">🏢 Grupos de Cliente</button>
       <button class="cfg-menu-btn admin-only" data-sec="tarefasauto" onclick="setCfgSec('tarefasauto',this)">📌 Tarefas Automáticas</button>
       <button class="cfg-menu-btn admin-only" data-sec="metas" onclick="setCfgSec('metas',this)">🎯 Metas</button>
     </div>
@@ -1531,6 +1527,20 @@ select.fc{cursor:pointer}
         <div style="display:flex;gap:8px">
           <input class="fc" id="cfg-novo-tipo" placeholder="Ex: FACHADA" style="flex:1;text-transform:uppercase" onkeydown="if(event.key==='Enter')addTipoPedido()">
           <button class="btn-next" onclick="addTipoPedido()" style="white-space:nowrap;padding:9px 16px">+ Adicionar</button>
+        </div>
+      </div>
+      <div class="cfg-sec" id="cfg-sec-gruposcliente" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Grupos de Cliente (Financeiro)</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Usado na Concentração por Cliente do Fluxo de Caixa (Financeiro) — junta todas as lojas de uma mesma rede numa linha só (ex: todo "BOB'S" vira uma linha), a não ser que "Separar franqueado" esteja marcado: nesse caso, qualquer pedido cuja Categoria contenha a palavra "FRANQUEADO" fica de fora do grupo e aparece com o nome do cliente, separado (porque o franqueado paga por conta própria, é uma empresa diferente da rede). As palavras-chave são comparadas com o Cliente e com o JOB do pedido — coloque mais de uma separada por vírgula se a marca aparecer escrita de formas diferentes.</p>
+        <div id="cfg-grupos-cliente-list" style="margin-bottom:14px"></div>
+        <div style="background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:10px;padding:14px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink3);margin-bottom:10px">+ Novo Grupo</div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:8px">
+            <input class="fc" id="cfg-novo-grupo-nome" placeholder="Ex: MADERO" style="text-transform:uppercase">
+            <input class="fc" id="cfg-novo-grupo-palavras" placeholder="Palavras-chave, separadas por vírgula" style="text-transform:uppercase">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink3);margin-bottom:10px"><input type="checkbox" id="cfg-novo-grupo-franq"> Separar franqueado (pedidos com "FRANQUEADO" na Categoria ficam de fora do grupo)</label>
+          <button class="btn-next" style="width:100%;padding:9px" onclick="addGrupoCliente()">+ Adicionar Grupo</button>
         </div>
       </div>
       <div class="cfg-sec" id="cfg-sec-tarefasauto" style="display:none">
@@ -4671,6 +4681,7 @@ function setCfgSec(sec,btn){
   if(btn)btn.classList.add('active');
   if(sec==='permissoes')renderCfgPermissoes();
   if(sec==='tipospedido')renderTiposPedido();
+  if(sec==='gruposcliente')renderGruposCliente();
   if(sec==='tarefasauto')renderRegrasTarefasAuto();
   if(sec==='metas')initPagamentosExtrasForm();
 }
@@ -4946,6 +4957,64 @@ function removeTipoPedido(t){
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderTiposPedido();
   toast('Categoria removida','tok');
+}
+
+// Grupos de Cliente (Financeiro) — ver _finGrupoCliente()/_finGruposPadrao() pra lógica
+// de agrupamento em si. Aqui é só o CRUD que alimenta cfg.gruposClienteFinanceiro.
+function renderGruposCliente(){
+  const el=document.getElementById('cfg-grupos-cliente-list');if(!el)return;
+  // Primeira vez que alguém abre essa tela: materializa os grupos padrão (Burger King/
+  // Bob's) em cfg pra virarem editáveis, em vez de ficarem só como fallback invisível
+  // dentro de _finGruposPadrao().
+  if(!cfg.gruposClienteFinanceiro||!cfg.gruposClienteFinanceiro.length){
+    cfg.gruposClienteFinanceiro=_finGruposPadrao().map(g=>({...g}));
+  }
+  const grupos=cfg.gruposClienteFinanceiro;
+  if(!grupos.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhum grupo cadastrado.</p>';return;}
+  el.innerHTML=grupos.map((g,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 2fr auto auto;gap:8px;align-items:center;background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+      <input class="fc" value="${(g.nome||'').replace(/"/g,'&quot;')}" style="text-transform:uppercase" onchange="atualizaGrupoCliente(${i},'nome',this.value)">
+      <input class="fc" value="${(g.palavras||[]).join(', ').replace(/"/g,'&quot;')}" placeholder="Palavras-chave, separadas por vírgula" style="text-transform:uppercase" onchange="atualizaGrupoCliente(${i},'palavras',this.value)">
+      <label style="display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--ink3);white-space:nowrap"><input type="checkbox" ${g.separarFranqueado?'checked':''} onchange="atualizaGrupoCliente(${i},'separarFranqueado',this.checked)"> Separar franqueado</label>
+      <button onclick="removeGrupoCliente(${i})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.9rem" title="Remover">🗑</button>
+    </div>`).join('');
+}
+function atualizaGrupoCliente(i,campo,valor){
+  const g=cfg.gruposClienteFinanceiro?.[i];if(!g)return;
+  if(campo==='palavras')g.palavras=String(valor).split(',').map(v=>v.trim().toUpperCase()).filter(Boolean);
+  else if(campo==='nome')g.nome=String(valor).trim().toUpperCase();
+  else g[campo]=valor;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  toast('Grupo atualizado!','tok');
+  if(typeof finView!=='undefined'&&finView==='fluxo'&&typeof renderFinFluxo==='function')renderFinFluxo();
+}
+function addGrupoCliente(){
+  const inpNome=document.getElementById('cfg-novo-grupo-nome');
+  const inpPalavras=document.getElementById('cfg-novo-grupo-palavras');
+  const chkFranq=document.getElementById('cfg-novo-grupo-franq');
+  const nome=(inpNome?.value||'').trim().toUpperCase();
+  const palavras=(inpPalavras?.value||'').split(',').map(v=>v.trim().toUpperCase()).filter(Boolean);
+  if(!nome||!palavras.length){toast('Preencha o nome do grupo e ao menos uma palavra-chave!','terr');return;}
+  if(!cfg.gruposClienteFinanceiro||!cfg.gruposClienteFinanceiro.length)cfg.gruposClienteFinanceiro=_finGruposPadrao().map(g=>({...g}));
+  cfg.gruposClienteFinanceiro.push({nome,palavras,separarFranqueado:!!chkFranq?.checked});
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  if(inpNome)inpNome.value='';
+  if(inpPalavras)inpPalavras.value='';
+  if(chkFranq)chkFranq.checked=false;
+  renderGruposCliente();
+  toast('Grupo adicionado!','tok');
+  if(typeof finView!=='undefined'&&finView==='fluxo'&&typeof renderFinFluxo==='function')renderFinFluxo();
+}
+function removeGrupoCliente(i){
+  if(!confirm('Remover este grupo?'))return;
+  cfg.gruposClienteFinanceiro.splice(i,1);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderGruposCliente();
+  toast('Grupo removido','tok');
+  if(typeof finView!=='undefined'&&finView==='fluxo'&&typeof renderFinFluxo==='function')renderFinFluxo();
 }
 
 // Nomes de todos os usuários cadastrados (qualquer categoria — Comercial, Financeiro,
@@ -5999,7 +6068,7 @@ function getComissaoItemsAll(){
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
       const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parc,conf);
-      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',categoria:xlsxRef?(xlsxRef.cat||''):(p.tipoPedido||p.tipo||''),mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -6026,7 +6095,7 @@ function getComissaoItemsAll(){
       const xRatio=x.br>0?(x.lq/x.br):1;
       const parcComBruto={valor:parc.valor,valorBruto:xRatio>0?parc.valor/xRatio:parc.valor};
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parcComBruto,conf);
-      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:'pendente',confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',categoria:x.cat||'',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -6155,32 +6224,6 @@ function salvarConfirmarRecebimento(){
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
 }
-// Limpeza em lote pra vendas antigas (de antes da tela de Contas a Receber existir/ser
-// usada) cuja comissão já foi paga na vida real mas nunca foi confirmada aqui — sem isso
-// elas ficam aparecendo pra sempre como "pendente"/"atrasado" mesmo já quitadas de fato.
-// Só marca como confirmado quem ainda não tinha status nenhum (não mexe em quem já foi
-// marcado "não recebido" com motivo — isso é uma decisão explícita que não deve ser
-// sobrescrita silenciosamente).
-function confirmarEmLoteAteData(){
-  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem confirmar recebimento','terr');return;}
-  const dataStr=(document.getElementById('fin-lote-data')||{}).value||'';
-  if(!dataStr){toast('Escolha uma data limite primeiro','terr');return;}
-  const limite=new Date(dataStr+'T00:00:00');
-  const alvo=getContasReceber().filter(i=>{
-    if(i.statusCalc==='confirmado'||i.statusCalc==='nao_recebido')return false;
-    const d=parseDataBR(i.dataAtiva);
-    return d&&!isNaN(d)&&d<=limite;
-  });
-  if(!alvo.length){toast('Nenhum item pendente encontrado até essa data','tinf');return;}
-  if(!confirm(`Confirmar recebimento de ${alvo.length} parcela(s) com vencimento até ${fmtD(dataStr)}, liberando a comissão de cada uma? Isso não mexe em nada marcado como "não recebido".`))return;
-  alvo.forEach(i=>{
-    setPagConf(i.confKey,{status:'confirmado',novaData:i.dataAtiva,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:''});
-  });
-  toast(`${alvo.length} parcela(s) confirmada(s) em lote! ✅`,'tok');
-  renderFinanceiro();
-  if(typeof renderDashComissoes==='function')renderDashComissoes();
-  if(typeof renderDashCards==='function')renderDashCards();
-}
 // Filtro compartilhado por TODA a tela Financeiro — Lista, PDF, Excel e os painéis de
 // Fluxo de Caixa/Aging/Concentração. Extraído em 2026-07-15 (antes era duplicado dentro
 // de renderFinanceiro() e gerarPDFFinanceiro()) pra qualquer view nova ler exatamente os
@@ -6229,6 +6272,39 @@ function _finItemsEmAberto(){
   items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
   return items;
 }
+// Mesmo filtro (busca/mês/vendedor/período), mas SEM restringir por status — inclui
+// Confirmado e Não recebido também. Usado pelos painéis históricos (Saúde de Recebimento
+// e Clientes com Atraso Recorrente), que precisam olhar o passado inteiro pra calcular uma
+// taxa de atraso, não só o que ainda está em aberto hoje.
+function _finItemsTodosStatus(){
+  let items=getContasReceber();
+  const q=(document.getElementById('fin-fil-busca')?.value||'').toLowerCase().trim();
+  const fmv=document.getElementById('fin-fil-mes-venda')?.value||'';
+  const fv=document.getElementById('fin-fil-vend')?.value||'';
+  const di=document.getElementById('fin-fil-data-ini')?.value||'';
+  const df=document.getElementById('fin-fil-data-fim')?.value||'';
+  items=items.filter(i=>{
+    const iso=_finToIso(i.dataAtiva);
+    return (!q||(i.cliente||'').toLowerCase().includes(q)||String(i.pedidoOs||'').toLowerCase().includes(q))
+      &&(!fmv||MESES_PT[i.emM]===fmv)
+      &&(!fv||vendedorMatch(i.nomeVend,fv))
+      &&(!di||(iso&&iso>=di))
+      &&(!df||(iso&&iso<=df));
+  });
+  items.sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+  return items;
+}
+// true se a parcela foi (ou está) atrasada, de qualquer forma: já confirmada mas paga
+// depois do prazo, marcada "não recebido", ou ainda pendente e já vencida hoje.
+function _finFoiAtrasada(i){
+  if(i.statusCalc==='confirmado'){
+    const dv=parseDataBR(i.dataAtiva),dc=i.confirmedAt?new Date(i.confirmedAt):null;
+    if(!dv||isNaN(dv)||!dc||isNaN(dc))return false;
+    dv.setHours(0,0,0,0);dc.setHours(0,0,0,0);
+    return dc>dv;
+  }
+  return i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido';
+}
 // Alterna entre a tabela item-a-item (Lista) e os painéis de Fluxo de Caixa/Aging/
 // Concentração (Fluxo) dentro do Financeiro. Os filtros no topo (busca/mês/vendedor/
 // período) são compartilhados pelas duas views — só o Status é ignorado pela Fluxo
@@ -6264,18 +6340,25 @@ function renderFinanceiro(){
 
   let items=_finFilteredItems();
 
-  // Cards resumo
+  // Cards resumo — SEMPRE ignoram o filtro de Status (usam _finItemsTodosStatus(), só com
+  // busca/mês/vendedor/período), senão viravam um espelho furado do próprio filtro: com
+  // "Status = Pendente" selecionado, os itens já vêm todos pendente, então "Em atraso" e
+  // "Recebido" davam sempre R$0,00 — não porque não existisse nada atrasado/recebido, mas
+  // porque o filtro já tinha excluído esses status antes de somar. Corrigido 2026-07-15
+  // (usuário reparou R$85mil atrasado no Fluxo de Caixa e R$0,00 aqui em cima, mesmos
+  // filtros). A tabela abaixo continua respeitando o filtro de Status normalmente.
   const cardsEl=document.getElementById('fin-cards');
   if(cardsEl){
-    const totPend=items.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
-    const totAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valorBruto,0);
-    const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
-    const qtdAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').length;
+    const itemsCards=_finItemsTodosStatus();
+    const totPend=itemsCards.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+    const totAtraso=itemsCards.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valorBruto,0);
+    const totConf=itemsCards.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+    const qtdAtraso=itemsCards.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').length;
     cardsEl.innerHTML=`
       <div style="background:#dbeafe;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">A receber</div><div style="font-size:1.1rem;font-weight:800;color:#1e40af">${fmtR(totPend)}</div></div>
       <div style="background:#fee2e2;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Em atraso (${qtdAtraso})</div><div style="font-size:1.1rem;font-weight:800;color:#b91c1c">${fmtR(totAtraso)}</div></div>
       <div style="background:#dcfce7;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#16a34a">Recebido</div><div style="font-size:1.1rem;font-weight:800;color:#16a34a">${fmtR(totConf)}</div></div>
-      <div style="background:#f1f5f9;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#475569">Total de itens</div><div style="font-size:1.1rem;font-weight:800;color:#475569">${items.length}</div></div>`;
+      <div style="background:#f1f5f9;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#475569">Itens na lista abaixo</div><div style="font-size:1.1rem;font-weight:800;color:#475569">${items.length}</div></div>`;
   }
 
   if(!items.length){body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhuma conta encontrada com esses filtros.</div>';return;}
@@ -6324,29 +6407,137 @@ function renderFinanceiro(){
 //   3) Aging (só o que já está atrasado, por faixa de dias) — prioriza cobrança.
 //   4) Concentração por cliente — onde está o maior risco/volume em aberto.
 let finCharts={};
+// Guarda os itens de cada faixa dos KPIs de vencimento (atrasado/7/30/60/60+ dias),
+// preenchido a cada renderFinFluxo() — finVerBucket() lê daqui pra listar o que compõe
+// o card clicado, sem precisar recalcular tudo de novo no clique.
+let _finBucketsAberto={atrasado:[],d7:[],d30:[],d60:[],depois:[]};
+// Itens de cada linha da Concentração por Cliente (chave = nome do grupo/marca ou nome
+// do cliente individual), preenchido a cada renderFinFluxo() — finVerGrupoCliente() lê
+// daqui pra listar o que compõe a linha clicada.
+let _finPorClienteItens={};
+// Itens históricos (todos os status) de cada grupo/cliente, preenchido a cada
+// renderFinFluxo() — finVerClienteHistorico() lê daqui pro painel de Atraso Recorrente.
+let _finClientesHistItens={};
+// Modal (montado na hora, igual _dashShowPinModal()) com a lista de parcelas de uma
+// faixa dos KPIs do Fluxo de Caixa — abre ao clicar em qualquer um dos 5 cards.
+function _finStatusPill(i){
+  if(i.statusCalc==='confirmado')return'<span class="dash-badge ok">✅ Recebido</span>';
+  if(i.statusCalc==='nao_recebido')return'<span class="dash-badge no">❌ Não recebido</span>';
+  if(i.statusCalc==='atrasado')return'<span class="dash-badge no">⚠️ Atrasado</span>';
+  return'<span class="dash-badge pend">⏳ Pendente</span>';
+}
+// Modal genérico (montado na hora, igual _dashShowPinModal()) pra listar qualquer grupo
+// de parcelas — usado pelos cards de vencimento (finVerBucket), pela Concentração por
+// Cliente (finVerGrupoCliente) e pelos Clientes com Atraso Recorrente.
+function _finAbrirListaModal(titulo,itensList){
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const itens=(itensList||[]).slice().sort((a,b)=>{const da=parseDataBR(a.dataAtiva),db=parseDataBR(b.dataAtiva);return (da&&db)?da-db:0;});
+  const total=itens.reduce((s,i)=>s+i.valorBruto,0);
+  const rows=itens.map(i=>`<tr>
+    <td style="font-size:.72rem;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
+    <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
+    <td>${i.nomeVend}</td>
+    <td style="font-size:.72rem">${i.label}</td>
+    <td style="font-weight:700;white-space:nowrap">${fmt(i.valorBruto)}</td>
+    <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
+    <td>${_finStatusPill(i)}</td>
+  </tr>`).join('');
+  document.getElementById('fin-bucket-modal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='fin-bucket-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px 24px;max-width:920px;width:92%;max-height:82vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:10px">
+      <div style="font-size:1rem;font-weight:800;color:#1a1f36">${titulo}</div>
+      <button onclick="document.getElementById('fin-bucket-modal').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div style="font-size:.8rem;color:#64748b;margin-bottom:14px">${itens.length} parcela(s) · Total: <strong style="color:#1a1f36">${fmt(total)}</strong></div>
+    ${itens.length?`<div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor</th><th>Data prev.</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div style="padding:16px 4px;color:#94a3b8;font-size:.85rem">Nenhuma parcela encontrada.</div>'}
+  </div>`;
+  document.body.appendChild(modal);
+}
+function finVerBucket(key){
+  const labels={atrasado:'⚠️ Atrasado',d7:'Vencendo nos próximos 7 dias',d30:'Vencendo em 8–30 dias',d60:'Vencendo em 31–60 dias',depois:'Vencendo em mais de 60 dias (ou sem data prevista)'};
+  _finAbrirListaModal(labels[key]||'',_finBucketsAberto[key]||[]);
+}
+function finVerGrupoCliente(nome){
+  _finAbrirListaModal(`🏢 ${nome}`,_finPorClienteItens[nome]||[]);
+}
+function finVerClienteHistorico(nome){
+  _finAbrirListaModal(`🏢 ${nome} — histórico completo`,_finClientesHistItens[nome]||[]);
+}
+
+// Agrupamento por marca na Concentração por Cliente (2026-07-15). Problema: o campo
+// Cliente vem cru da venda (ex: "BURGER KING CAMPINAS SP", "BURGER KING - CARAPICUÍBA")
+// — cada loja de uma mesma rede aparece como uma linha separada no ranking, o que não
+// ajuda a enxergar o risco de concentração REAL (é tudo a mesma rede pagando). Mas
+// simplesmente juntar tudo por rede também está errado no caso de franqueado: uma loja
+// "FRANQUEADO SHOPPING/DRIVE" (ver categoria do pedido) é operada e paga por uma empresa
+// diferente do franqueador, então precisa continuar separada — já lojas próprias da rede
+// (sem "franqueado" na categoria) são todas a mesma fonte de pagamento e devem somar juntas.
+// cfg.gruposClienteFinanceiro é a lista configurável (editável em Configurações → Grupos
+// de Cliente) de {nome, palavras, separarFranqueado}. Cada grupo casa por palavra-chave
+// contra o Cliente OU o JOB do pedido (JOB às vezes identifica a marca melhor que a razão
+// social/nome do cliente, que pode vir só com o nome do shopping/endereço).
+function _finGruposPadrao(){
+  return [
+    {nome:'BURGER KING',palavras:['BURGER KING'],separarFranqueado:true},
+    {nome:"BOB'S",palavras:["BOB'S","BOBS"],separarFranqueado:false}
+  ];
+}
+function getGruposClienteFinanceiro(){
+  return (cfg.gruposClienteFinanceiro&&cfg.gruposClienteFinanceiro.length)?cfg.gruposClienteFinanceiro:_finGruposPadrao();
+}
+function _finGrupoCliente(item){
+  const cliente=(item.cliente||'').toUpperCase();
+  const job=(item.job||'').toUpperCase();
+  const categoria=(item.categoria||'').toUpperCase();
+  const grupos=getGruposClienteFinanceiro();
+  for(const g of grupos){
+    const palavras=g.palavras||[];
+    const bateu=palavras.some(p=>{const pu=(p||'').toUpperCase().trim();return pu&&(cliente.includes(pu)||job.includes(pu));});
+    if(!bateu)continue;
+    // Franqueado é uma empresa própria, distinta do franqueador — não entra no bucket da
+    // rede, mas também não devem se misturar dois franqueados diferentes um com o outro;
+    // por isso o nome que sobra é o Cliente real (cada loja franqueada é única na base).
+    if(g.separarFranqueado&&categoria.includes('FRANQUEADO'))return item.cliente||'—';
+    return g.nome;
+  }
+  return item.cliente||'—'; // sem grupo cadastrado pra essa palavra-chave: cliente individual, como sempre foi
+}
 function renderFinFluxo(){
   const el=document.getElementById('fin-view-fluxo');if(!el)return;
   if(!_isFinanceiroUser()){el.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador.</div>';return;}
   const itens=_finItemsEmAberto();
-  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
-  if(!itens.length){
-    el.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhuma conta em aberto (pendente ou atrasada) com esses filtros.</div>';
+  const itensTodos=_finItemsTodosStatus();
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // Só bloqueia a tela inteira se não houver NADA (nem em aberto, nem histórico) com
+  // esses filtros — Saúde de Recebimento e Atraso Recorrente usam o histórico completo
+  // (itensTodos) e continuam fazendo sentido mesmo quando está tudo em dia agora (nada
+  // em aberto no momento não deveria esconder o histórico de como a cobrança se saiu).
+  if(!itensTodos.length){
+    el.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhuma conta encontrada com esses filtros.</div>';
     return;
   }
   const hoje=new Date();hoje.setHours(0,0,0,0);
 
-  // --- KPIs por janela de vencimento (relativas a hoje) ---
-  let vAtrasado=0,v7=0,v30=0,v60=0,vDepois=0;
+  // --- KPIs por janela de vencimento (relativas a hoje) — guarda os itens de cada
+  // faixa em _finBucketsAberto pra clicar no card e ver a lista (ver finVerBucket()).
+  const bkt={atrasado:[],d7:[],d30:[],d60:[],depois:[]};
   itens.forEach(i=>{
     const d=parseDataBR(i.dataAtiva);
-    if(!d||isNaN(d)){vDepois+=i.valorBruto;return;}
+    if(!d||isNaN(d)){bkt.depois.push(i);return;}
     const dias=Math.round((d-hoje)/86400000);
-    if(dias<0)vAtrasado+=i.valorBruto;
-    else if(dias<=7)v7+=i.valorBruto;
-    else if(dias<=30)v30+=i.valorBruto;
-    else if(dias<=60)v60+=i.valorBruto;
-    else vDepois+=i.valorBruto;
+    if(dias<0)bkt.atrasado.push(i);
+    else if(dias<=7)bkt.d7.push(i);
+    else if(dias<=30)bkt.d30.push(i);
+    else if(dias<=60)bkt.d60.push(i);
+    else bkt.depois.push(i);
   });
+  _finBucketsAberto=bkt;
+  const somaBkt=arr=>arr.reduce((s,i)=>s+i.valorBruto,0);
+  const vAtrasado=somaBkt(bkt.atrasado),v7=somaBkt(bkt.d7),v30=somaBkt(bkt.d30),v60=somaBkt(bkt.d60),vDepois=somaBkt(bkt.depois);
   const totalAberto=vAtrasado+v7+v30+v60+vDepois;
 
   // --- Projeção mensal com saldo acumulado (agrupa pela data prevista) ---
@@ -6376,20 +6567,79 @@ function renderFinFluxo(){
   const totalAtrasado=atrasados.reduce((s,i)=>s+i.valorBruto,0);
 
   // --- Concentração por cliente ---
+  // Agrupado por marca (ver _finGrupoCliente) — todas as lojas próprias de uma rede
+  // somam juntas (ex: BURGER KING, BOB'S), mas franqueado fica separado por conta própria.
+  // Configurável em Configurações → Grupos de Cliente.
   const porCliente={};
-  itens.forEach(i=>{porCliente[i.cliente||'—']=(porCliente[i.cliente||'—']||0)+i.valorBruto;});
+  const porClienteItens={};
+  itens.forEach(i=>{
+    const g=_finGrupoCliente(i);
+    porCliente[g]=(porCliente[g]||0)+i.valorBruto;
+    if(!porClienteItens[g])porClienteItens[g]=[];
+    porClienteItens[g].push(i);
+  });
+  _finPorClienteItens=porClienteItens;
   const topClientes=Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  // --- Saúde de Recebimento (histórico completo, todos os status) ---
+  // Diferente dos painéis acima (só o que está em aberto agora), este olha o passado
+  // inteiro: de tudo que já venceu, quanto foi pago no prazo x com atraso x ainda não
+  // resolvido. _finFoiAtrasada() já cobre os três jeitos de "atrasar": confirmado depois
+  // do prazo, marcado "não recebido", ou pendente/atrasado ainda em aberto hoje.
+  const saudePorMes={};
+  itensTodos.forEach(i=>{
+    const d=parseDataBR(i.dataAtiva);
+    const key=d&&!isNaN(d)?(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')):'sem-data';
+    if(!saudePorMes[key])saudePorMes[key]={noPrazo:0,comAtraso:0,emAberto:0};
+    if(i.statusCalc==='confirmado'){
+      if(_finFoiAtrasada(i))saudePorMes[key].comAtraso+=i.valorBruto;
+      else saudePorMes[key].noPrazo+=i.valorBruto;
+    }else{
+      saudePorMes[key].emAberto+=i.valorBruto;
+    }
+  });
+  const saudeMeses=Object.keys(saudePorMes).filter(k=>k!=='sem-data').sort();
+  const saudeRows=saudeMeses.map(key=>{
+    const [ay,am]=key.split('-').map(Number);
+    const s=saudePorMes[key];
+    const resolvido=s.noPrazo+s.comAtraso;
+    return {label:MESES_PT[am]+'/'+ay,...s,pct:resolvido>0?(s.noPrazo/resolvido*100):null};
+  });
+  const totalNoPrazoHist=itensTodos.filter(i=>i.statusCalc==='confirmado'&&!_finFoiAtrasada(i)).reduce((s,i)=>s+i.valorBruto,0);
+  const totalComAtrasoHist=itensTodos.filter(i=>i.statusCalc==='confirmado'&&_finFoiAtrasada(i)).reduce((s,i)=>s+i.valorBruto,0);
+  const resolvidoHist=totalNoPrazoHist+totalComAtrasoHist;
+  const pctSaudeGeral=resolvidoHist>0?(totalNoPrazoHist/resolvidoHist*100):null;
+
+  // --- Clientes/grupos com atraso recorrente (histórico completo) ---
+  // Sinal de risco diferente da Concentração (que só olha quem deve MAIS agora): aqui é
+  // quem atrasa/atrasou com frequência, mesmo que o valor em aberto no momento seja baixo.
+  // Limiar: pelo menos 3 parcelas no histórico (senão 1 atraso isolado vira "recorrente" à
+  // toa) e taxa de atraso >= 40%.
+  const porClienteHist={};
+  itensTodos.forEach(i=>{
+    const g=_finGrupoCliente(i);
+    if(!porClienteHist[g])porClienteHist[g]={total:0,atrasados:0,valorAtrasado:0,itens:[]};
+    porClienteHist[g].total++;
+    porClienteHist[g].itens.push(i);
+    if(_finFoiAtrasada(i)){porClienteHist[g].atrasados++;porClienteHist[g].valorAtrasado+=i.valorBruto;}
+  });
+  _finClientesHistItens=Object.fromEntries(Object.entries(porClienteHist).map(([k,v])=>[k,v.itens]));
+  const clientesRecorrentes=Object.entries(porClienteHist)
+    .map(([nome,d])=>({nome,total:d.total,atrasados:d.atrasados,valorAtrasado:d.valorAtrasado,taxa:d.total>0?d.atrasados/d.total*100:0}))
+    .filter(d=>d.total>=3&&d.taxa>=40)
+    .sort((a,b)=>b.taxa-a.taxa)
+    .slice(0,10);
 
   el.innerHTML=`
     <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
       📊 Considera só o que está Pendente ou Atrasado (ignora o filtro de Status acima — usa busca/mês/vendedor/período se preenchidos). Total em aberto: <strong>${fmt(totalAberto)}</strong>.
     </div>
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px">
-      <div style="background:#fee2e2;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Atrasado</div><div style="font-size:1.05rem;font-weight:800;color:#b91c1c">${fmt(vAtrasado)}</div></div>
-      <div style="background:#ffedd5;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#c2410c">Próx. 7 dias</div><div style="font-size:1.05rem;font-weight:800;color:#c2410c">${fmt(v7)}</div></div>
-      <div style="background:#fef9c3;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#a16207">8–30 dias</div><div style="font-size:1.05rem;font-weight:800;color:#a16207">${fmt(v30)}</div></div>
-      <div style="background:#dbeafe;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">31–60 dias</div><div style="font-size:1.05rem;font-weight:800;color:#1e40af">${fmt(v60)}</div></div>
-      <div style="background:#e0e7ff;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#4338ca">60+ dias</div><div style="font-size:1.05rem;font-weight:800;color:#4338ca">${fmt(vDepois)}</div></div>
+      <div onclick="finVerBucket('atrasado')" title="Clique pra ver a lista" style="cursor:pointer;background:#fee2e2;border-radius:8px;padding:12px;transition:filter .15s" onmouseover="this.style.filter='brightness(.96)'" onmouseout="this.style.filter='none'"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Atrasado</div><div style="font-size:1.05rem;font-weight:800;color:#b91c1c">${fmt(vAtrasado)}</div><div style="font-size:.62rem;color:#b91c1c;opacity:.75">${bkt.atrasado.length} parcela(s) · ver lista</div></div>
+      <div onclick="finVerBucket('d7')" title="Clique pra ver a lista" style="cursor:pointer;background:#ffedd5;border-radius:8px;padding:12px;transition:filter .15s" onmouseover="this.style.filter='brightness(.96)'" onmouseout="this.style.filter='none'"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#c2410c">Próx. 7 dias</div><div style="font-size:1.05rem;font-weight:800;color:#c2410c">${fmt(v7)}</div><div style="font-size:.62rem;color:#c2410c;opacity:.75">${bkt.d7.length} parcela(s) · ver lista</div></div>
+      <div onclick="finVerBucket('d30')" title="Clique pra ver a lista" style="cursor:pointer;background:#fef9c3;border-radius:8px;padding:12px;transition:filter .15s" onmouseover="this.style.filter='brightness(.96)'" onmouseout="this.style.filter='none'"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#a16207">8–30 dias</div><div style="font-size:1.05rem;font-weight:800;color:#a16207">${fmt(v30)}</div><div style="font-size:.62rem;color:#a16207;opacity:.75">${bkt.d30.length} parcela(s) · ver lista</div></div>
+      <div onclick="finVerBucket('d60')" title="Clique pra ver a lista" style="cursor:pointer;background:#dbeafe;border-radius:8px;padding:12px;transition:filter .15s" onmouseover="this.style.filter='brightness(.96)'" onmouseout="this.style.filter='none'"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">31–60 dias</div><div style="font-size:1.05rem;font-weight:800;color:#1e40af">${fmt(v60)}</div><div style="font-size:.62rem;color:#1e40af;opacity:.75">${bkt.d60.length} parcela(s) · ver lista</div></div>
+      <div onclick="finVerBucket('depois')" title="Clique pra ver a lista" style="cursor:pointer;background:#e0e7ff;border-radius:8px;padding:12px;transition:filter .15s" onmouseover="this.style.filter='brightness(.96)'" onmouseout="this.style.filter='none'"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#4338ca">60+ dias</div><div style="font-size:1.05rem;font-weight:800;color:#4338ca">${fmt(vDepois)}</div><div style="font-size:.62rem;color:#4338ca;opacity:.75">${bkt.depois.length} parcela(s) · ver lista</div></div>
     </div>
     <div class="dash-card" style="margin-bottom:16px">
       <div class="dash-sec-title">📈 Projeção Mensal (saldo acumulado)</div>
@@ -6408,11 +6658,26 @@ function renderFinFluxo(){
         </div>`).join('')}
       </div>
     </div>
-    <div class="dash-card">
-      <div class="dash-sec-title">🏢 Concentração por Cliente (top 10 em aberto)</div>
+    <div class="dash-card" style="margin-bottom:16px">
+      <div class="dash-sec-title">💚 Saúde de Recebimento (histórico — ${pctSaudeGeral!=null?pctSaudeGeral.toFixed(1)+'% recebido no prazo':'sem dados suficientes ainda'})</div>
+      <p style="font-size:.72rem;color:var(--ink4);margin:0 0 12px">De tudo que já venceu (qualquer status), quanto foi recebido no prazo, com atraso, ou ainda não foi resolvido — mês a mês. Ajuda a ver se a cobrança está melhorando ou piorando ao longo do tempo.</p>
+      ${saudeRows.length?`<div style="height:200px;margin-bottom:14px"><canvas id="fin-chart-saude"></canvas></div>
+      <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Mês</th><th>No prazo</th><th>Com atraso</th><th>Ainda em aberto</th><th>% no prazo</th></tr></thead><tbody>
+        ${saudeRows.map(r=>`<tr><td>${r.label}</td><td style="color:#16a34a;font-weight:700">${fmt(r.noPrazo)}</td><td style="color:#dc2626;font-weight:700">${fmt(r.comAtraso)}</td><td style="color:#94a3b8">${fmt(r.emAberto)}</td><td style="font-weight:700">${r.pct!=null?r.pct.toFixed(1)+'%':'—'}</td></tr>`).join('')}
+      </tbody></table></div>`:'<div style="padding:12px 4px;color:#94a3b8;font-size:.82rem">Nenhum histórico com data identificável pra mostrar.</div>'}
+    </div>
+    <div class="dash-card" style="margin-bottom:16px">
+      <div class="dash-sec-title">🏢 Concentração por Cliente (top 10 em aberto — clique numa linha pra ver a lista)</div>
       <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Cliente</th><th>Em aberto</th><th>% do total</th></tr></thead><tbody>
-        ${topClientes.map(([cl,v])=>`<tr><td>${cl}</td><td style="font-weight:700">${fmt(v)}</td><td>${totalAberto>0?((v/totalAberto)*100).toFixed(1):'0.0'}%</td></tr>`).join('')}
+        ${topClientes.map(([cl,v])=>`<tr style="cursor:pointer" onclick="finVerGrupoCliente('${cl.replace(/'/g,"\\'")}')" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''"><td>${cl}</td><td style="font-weight:700">${fmt(v)}</td><td>${totalAberto>0?((v/totalAberto)*100).toFixed(1):'0.0'}%</td></tr>`).join('')}
       </tbody></table></div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-sec-title">⚠️ Clientes com Atraso Recorrente (histórico — clique pra ver os lançamentos)</div>
+      <p style="font-size:.72rem;color:var(--ink4);margin:0 0 12px">Quem atrasa com frequência (≥40% das parcelas, com pelo menos 3 parcelas no histórico) — mesmo que a dívida em aberto agora seja pequena, é sinal de risco de cobrança contínuo.</p>
+      ${clientesRecorrentes.length?`<div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Cliente</th><th>Parcelas atrasadas</th><th>Total de parcelas</th><th>Taxa de atraso</th><th>Valor histórico em atraso</th></tr></thead><tbody>
+        ${clientesRecorrentes.map(c=>`<tr style="cursor:pointer" onclick="finVerClienteHistorico('${c.nome.replace(/'/g,"\\'")}')" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''"><td>${c.nome}</td><td>${c.atrasados}</td><td>${c.total}</td><td style="font-weight:700;color:#dc2626">${c.taxa.toFixed(0)}%</td><td style="font-weight:700;color:#dc2626">${fmt(c.valorAtrasado)}</td></tr>`).join('')}
+      </tbody></table></div>`:'<div style="padding:12px 4px;color:#16a34a;font-size:.82rem">✅ Nenhum cliente com atraso recorrente identificado com esses filtros.</div>'}
     </div>
   `;
 
@@ -6428,6 +6693,23 @@ function renderFinFluxo(){
       options:{responsive:true,maintainAspectRatio:false,animation:false,
         plugins:{legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx2=>ctx2.dataset.label+': '+fmt(ctx2.raw)}}},
         scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}
+      }
+    });
+  }
+
+  if(finCharts.saude){try{finCharts.saude.destroy();}catch(e){}}
+  const ctxSaude=document.getElementById('fin-chart-saude');
+  if(ctxSaude&&typeof Chart!=='undefined'&&saudeRows.length){
+    finCharts.saude=new Chart(ctxSaude,{
+      type:'bar',
+      data:{labels:saudeRows.map(r=>r.label),datasets:[
+        {label:'No prazo',data:saudeRows.map(r=>r.noPrazo),backgroundColor:'rgba(22,163,74,.75)',stack:'s'},
+        {label:'Com atraso',data:saudeRows.map(r=>r.comAtraso),backgroundColor:'rgba(220,38,38,.75)',stack:'s'},
+        {label:'Ainda em aberto',data:saudeRows.map(r=>r.emAberto),backgroundColor:'rgba(148,163,184,.6)',stack:'s'}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx2=>ctx2.dataset.label+': '+fmt(ctx2.raw)}}},
+        scales:{y:{stacked:true,ticks:{font:{size:9}}},x:{stacked:true,ticks:{font:{size:9}}}}
       }
     });
   }
