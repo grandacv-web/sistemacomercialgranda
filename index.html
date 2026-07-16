@@ -6195,6 +6195,13 @@ function setPagConf(confKey,data){
   cfg.pagConf[confKey]=data;
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  // Sem isso, getComissaoItemsAll() continuava servindo o array em cache (_comItemsCache,
+  // montado na primeira renderização da tela) mesmo depois de Confirmar/Não recebido/Adiar
+  // — a linha nunca desaparecia da lista filtrada por Status (ex.: "Em atraso") porque o
+  // statusCalc recalculado nunca chegava a ser lido de novo. Achado 2026-07-16 (usuário
+  // reportou que "Não recebido" não sumia da lista com filtro Atrasado, mesmo com o motivo
+  // e a nova data corretamente salvos em cfg.pagConf).
+  if(typeof _invalidateDashCache==='function')_invalidateDashCache();
 }
 
 function _dashShowPinModal(){
@@ -8241,6 +8248,9 @@ async function reabrirPag(confKey){
   if(cfg.pagConf)delete cfg.pagConf[confKey];
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  // Mesmo motivo do setPagConf() acima — reabrirPag() mexe em cfg.pagConf direto (sem
+  // passar por setPagConf), então precisa invalidar o cache na mão também.
+  if(typeof _invalidateDashCache==='function')_invalidateDashCache();
   renderDashComissoes();renderDashCards();
   if(typeof renderFinanceiro==='function')renderFinanceiro();
   toast('Pagamento reaberto','tok');
