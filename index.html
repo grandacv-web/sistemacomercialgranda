@@ -6224,23 +6224,35 @@ function getVendasMes(y,m,vendedor){
 const _CLAB=['GUILHERME CLABONDE','CLABONDE'];
 function isClabonde(v){return _CLAB.some(c=>v.toUpperCase().includes(c));}
 
+// Meses de Jan–Jun/2026 já FECHADOS têm o "bateu meta" TRAVADO manualmente, por pedido
+// explícito do usuário em 2026-07-16 — o cálculo ao vivo (getMetaMes x getVendasMes,
+// que depende de como cada pedido foi salvo/vinculado) não batia com a realidade que ele
+// via na planilha (ex.: abril fechou em R$1.302.000+ e o sistema mostrava "não bateu",
+// pagando metade da comissão errado). Resultado final CONFIRMADO pelo usuário, não mexe
+// mais recalculando sozinho. De julho/2026 em diante fica tudo pela fórmula normal (meta
+// x vendas por mês de emissão) — só esses 6 meses passados usam o valor fixo abaixo.
+const META_BATIDA_HISTORICO_2026={1:true,2:false,3:true,4:true,5:true,6:true};
 function getPctComissao(y,m,vendedor){
   const vend=(vendedor||'').toUpperCase().trim();
   const clabBate=cfg.pctComissaoClabBate??0.70;
   const clabNaoBate=cfg.pctComissaoClabNaoBate??0.40;
   const vendBate=cfg.pctComissaoVendBate??0.30;
   const vendNaoBate=cfg.pctComissaoVendNaoBate??0.15;
+  const historicoTravado=y===2026&&META_BATIDA_HISTORICO_2026[m]!==undefined;
   // Fallback for Clabonde (owner share logic) — % aplicado conforme o mês da VENDA (y,m)
   if(isClabonde(vend)){
+    if(historicoTravado)return META_BATIDA_HISTORICO_2026[m]?clabBate:clabNaoBate;
     const vends=getVendedores().filter(v=>!isClabonde(v));
     const metaEmp=vends.reduce((s,v)=>s+getMetaMes(y,m,v),0);
     const totalEmp=getVendasMes(y,m,null);
     return (metaEmp>0&&totalEmp>=metaEmp)?clabBate:clabNaoBate;
   }
   // Vendedores em geral: % configurável conforme bateu ou não a meta do mês
-  const meta=getMetaMes(y,m,vend);
-  const vendas=getVendasMes(y,m,vend);
-  const bateu=meta>0&&vendas>=meta;
+  const bateu=historicoTravado?META_BATIDA_HISTORICO_2026[m]:(()=>{
+    const meta=getMetaMes(y,m,vend);
+    const vendas=getVendasMes(y,m,vend);
+    return meta>0&&vendas>=meta;
+  })();
   // Override pessoal definido no cadastro do usuário (Vendedor) — também por aproximação de nome
   const pctPessoalCfg=cfg.pctComissaoPessoal||{};
   let pessoal=pctPessoalCfg[vend];
@@ -7866,10 +7878,17 @@ function renderDashComissoes(){
   // alternar meses dentro da mesma lista de pendentes/consolidados.
   itemsI.sort(_cmpMesVenda);
   itemsII.sort(_cmpMesVenda);
-  const pendI=itemsI.filter(i=>i.status!=='confirmado');
-  const consI=itemsI.filter(i=>i.status==='confirmado');
-  const pendII=itemsII.filter(i=>i.status!=='confirmado');
-  const consII=itemsII.filter(i=>i.status==='confirmado');
+  // Item com motivo de não recebimento já registrado em Financeiro → Contas a Receber
+  // (adiado ao menos uma vez, com motivo) some daqui — cards, resumo por vendedor e
+  // tabela de pendentes — porque já está sendo acompanhado lá; só volta a aparecer aqui
+  // quando for de fato confirmado/pago. Pedido do usuário 2026-07-16: "quando eu
+  // postergar/adiar em financeiro já suma dessa lista de pendentes [em Comissões]".
+  const itemsIView=itemsI.filter(i=>i.status==='confirmado'||!i.motivoAtraso);
+  const itemsIIView=itemsII.filter(i=>i.status==='confirmado'||!i.motivoAtraso);
+  const pendI=itemsIView.filter(i=>i.status!=='confirmado');
+  const consI=itemsIView.filter(i=>i.status==='confirmado');
+  const pendII=itemsIIView.filter(i=>i.status!=='confirmado');
+  const consII=itemsIIView.filter(i=>i.status==='confirmado');
 
   el.innerHTML=
     filterBar+
@@ -7877,14 +7896,14 @@ function renderDashComissoes(){
        <div style="font-size:.85rem;font-weight:700;color:#111827">1ª Quinzena · pagar dia 5</div>
      </div>
      ${mkExtras(5)}
-     ${mkCards(itemsI)}${mkVendResume(itemsI,true)}
+     ${mkCards(itemsIView)}${mkVendResume(itemsIView,true)}
      <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendI.length})</div>
      ${mkTable(pendI,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consI)}
      <div style="border-left:4px solid #6366f1;padding-left:12px;margin:24px 0 16px">
        <div style="font-size:.85rem;font-weight:700;color:#6366f1">2ª Quinzena · pagar dia 15</div>
      </div>
      ${mkExtras(15)}
-     ${mkCards(itemsII)}${mkVendResume(itemsII)}
+     ${mkCards(itemsIIView)}${mkVendResume(itemsIIView)}
      <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendII.length})</div>
      ${mkTable(pendII,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consII)}`;
 }
