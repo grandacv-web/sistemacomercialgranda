@@ -1691,8 +1691,11 @@ const TAREFA_TIPOS_SUGERIDOS=['Lançar no GCore'];
 // TAREFA em si (quando o responsável precisa entregar), diferente do prazo de entrega do
 // PEDIDO (p.prazo, outra coisa). Sem prazoTarefa a tarefa nunca conta como atrasada, só
 // fica de fora do Relatório (ver _tarefaAtrasada()/renderRelatorioTarefas()).
-function novaTarefaComercial(tipo,responsavel,prazoTarefa){
-  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||''};
+// criadoPor registra quem lançou a tarefa (não quem é o responsável por executá-la) — só
+// essa pessoa (ou admin) pode excluir a tarefa depois; o responsável só pode concluir/
+// reabrir, nunca excluir (ver _podeExcluirTarefa()/excluirTarefaComercial()).
+function novaTarefaComercial(tipo,responsavel,prazoTarefa,criadoPor){
+  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||'',criadoPor:criadoPor||''};
 }
 // Regras configuráveis em Configurações > Tarefas Automáticas (cfg.regrasTarefasComerciais).
 // Cada regra: {id, tipo:'' (vazio=qualquer, ou uma chave de TC como "Venda"/"Amostra"),
@@ -1716,7 +1719,11 @@ function gerarTarefasAutomaticas(tipo,tipoPedido){
     const bateCategoria=!r.categoria||r.categoria===tipoPedido;
     if(bateTipo&&bateCategoria)(r.tarefas||[]).forEach(t=>{if(t&&t.trim())porNome.set(t.trim(),r.responsavel||'');});
   });
-  return[...porNome.entries()].map(([t,resp])=>novaTarefaComercial(t,resp));
+  // Quem lança a tarefa automática é quem está logado emitindo/lançando o pedido nesse
+  // momento (vendedor emitindo o próprio pedido, ou admin lançando venda manual) — vira
+  // criadoPor, pra essa pessoa poder excluir a tarefa depois se precisar.
+  const _criadoPor=usuarioLogado?.nomeExibicao||'';
+  return[...porNome.entries()].map(([t,resp])=>novaTarefaComercial(t,resp,'',_criadoPor));
 }
 // Todas as tarefas pendentes — tanto as de pedidos (p.tarefasComerciais) quanto as
 // avulsas SEM venda nenhuma (cfg.tarefasGerais, ver adicionarTarefaGeralAvulsa). Já vem
@@ -1788,7 +1795,7 @@ async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTar
   if(!p){toast('Pedido não encontrado','terr');return;}
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!p.tarefasComerciais)p.tarefasComerciais=[];
-  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||''));
+  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||''));
   await savePedidoFS(p);
   renderTarefasComerciais();
   _refreshTarefasBadge();
@@ -1796,17 +1803,53 @@ async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTar
 }
 // Tarefa avulsa SEM venda nenhuma vinculada — guardada em cfg.tarefasGerais (sincronizado
 // igual todo o resto do cfg) em vez de dentro de um pedido, já que não existe pedido pra
-// anexar. Mesmo formato de tarefa (id/tipo/status/responsavel/datas/prazoTarefa), só sem
-// pedidoId/OS.
+// anexar. Mesmo formato de tarefa (id/tipo/status/responsavel/datas/prazoTarefa/criadoPor),
+// só sem pedidoId/OS.
 async function adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa){
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!cfg.tarefasGerais)cfg.tarefasGerais=[];
-  cfg.tarefasGerais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||''));
+  cfg.tarefasGerais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||''));
   if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderTarefasComerciais();
   _refreshTarefasBadge();
   toast('Tarefa adicionada!','tok');
+}
+// Só quem LANÇOU a tarefa (criadoPor) — ou um administrador — pode excluí-la. Quem só
+// RECEBEU (responsavel) não pode excluir, só concluir/reabrir (ver _podeMexerNaTarefa()).
+// Tarefa antiga sem criadoPor registrado (de antes dessa funcionalidade existir) só pode
+// ser excluída por admin, já que não dá pra saber quem lançou.
+function _podeExcluirTarefa(criadoPor){
+  const {isAdm}=_getUserCat();
+  if(isAdm)return true;
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  return !!meuNome&&!!criadoPor&&criadoPor===meuNome;
+}
+async function excluirTarefaComercial(pedidoId,tarefaId){
+  if(!pedidoId)return excluirTarefaGeral(tarefaId);
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p||!p.tarefasComerciais)return;
+  const t=p.tarefasComerciais.find(x=>x.id===tarefaId);
+  if(!t)return;
+  if(!_podeExcluirTarefa(t.criadoPor)){toast('Só quem lançou a tarefa (ou um administrador) pode excluí-la','terr');return;}
+  if(!confirm('Excluir esta tarefa? Essa ação não pode ser desfeita.'))return;
+  p.tarefasComerciais=p.tarefasComerciais.filter(x=>x.id!==tarefaId);
+  await savePedidoFS(p);
+  renderTarefasComerciais();
+  _refreshTarefasBadge();
+  toast('Tarefa excluída','tok');
+}
+async function excluirTarefaGeral(tarefaId){
+  const t=(cfg.tarefasGerais||[]).find(x=>x.id===tarefaId);
+  if(!t)return;
+  if(!_podeExcluirTarefa(t.criadoPor)){toast('Só quem lançou a tarefa (ou um administrador) pode excluí-la','terr');return;}
+  if(!confirm('Excluir esta tarefa? Essa ação não pode ser desfeita.'))return;
+  cfg.tarefasGerais=(cfg.tarefasGerais||[]).filter(x=>x.id!==tarefaId);
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderTarefasComerciais();
+  _refreshTarefasBadge();
+  toast('Tarefa excluída','tok');
 }
 // Compara o prazo da tarefa (prazoTarefa, 'YYYY-MM-DD') com a data de referência: se já foi
 // concluída, usa concluidaEm; se ainda está pendente, usa agora. Sem prazoTarefa nunca é
@@ -7539,11 +7582,16 @@ function renderTarefasComerciais(){
           ${prazoBadge}
         </div>
         <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
-        <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}</div>
+        <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}${t.criadoPor?' · Lançada por '+t.criadoPor:''}</div>
       </div>
-      ${pendente
-        ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">✅ Concluir</button>`
-        :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false)" style="background:#f1f5f9;color:#475569;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">↩️ Reabrir</button>`}
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${pendente
+          ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Concluir</button>`
+          :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false)" style="background:#f1f5f9;color:#475569;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">↩️ Reabrir</button>`}
+        ${_podeExcluirTarefa(t.criadoPor)
+          ?`<button onclick="excluirTarefaComercial('${t.pedidoId||''}','${t.id}')" title="Excluir tarefa — só quem lançou ou um administrador vê este botão" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:7px;padding:7px 10px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🗑️</button>`
+          :''}
+      </div>
     </div>`;
   }).join('');
 }
