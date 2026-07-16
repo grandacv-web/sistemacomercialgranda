@@ -1892,7 +1892,7 @@ function _getEmailPorNome(nome){
   if(entry)return entry[0];
   // Guilherme (dono do sistema) não passa pelo cadastro normal de usuários — mesmo caso
   // especial já tratado em getNomesUsuarios(), que também adiciona esse nome na mão.
-  if(alvo==='GUILHERME CLABONDE')return'gviniciusclabonde@gmail.com';
+  if(alvo==='GUILHERME CLABONDE')return'guilherme.clabonde@granda.ind.br';
   return'';
 }
 // Monta o HTML do e-mail de "nova tarefa atribuída" — visual parecido com o e-mail de
@@ -1968,7 +1968,10 @@ async function _enviarEmailTarefa(t,pedidoInfo){
     emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
     const sid=cfg.s||'service_t99xeta';
     const{html_content,subject}=buildTarefaEmailContent(t,pedidoInfo);
-    await emailjs.send(sid,tid,{html_content,to_email:destEmail,to_name:t.responsavel,subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
+    // reply_to desta notificação (só tarefa) aponta pra grandacv@gmail.com — diferente do
+    // e-mail de emissão de pedido (que usa pedidos@granda.ind.br), a pedido do usuário
+    // 2026-07-16: quem responde a esse e-mail de tarefa não deve cair na caixa de pedidos.
+    await emailjs.send(sid,tid,{html_content,to_email:destEmail,to_name:t.responsavel,subject,name:'Comercial Granda',reply_to:'grandacv@gmail.com'});
     toast(`Responsável notificado por e-mail (${destEmail})`,'tok');
     return{ok:true,erro:''};
   }catch(e){
