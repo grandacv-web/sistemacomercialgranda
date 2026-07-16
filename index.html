@@ -482,7 +482,6 @@ select.fc{cursor:pointer}
     <button class="dash-tab" id="gtab-graficos" onclick="geralTab('graficos',this)">📈 Gráficos</button>
     <button class="dash-tab active" id="gtab-vendas" onclick="geralTab('vendas',this)">📊 Vendas do Mês</button>
     <button class="dash-tab" id="gtab-emissao" onclick="geralTab('emissao',this)">📋 Lista de Emissão</button>
-    <button class="dash-tab" id="gtab-tarefas" onclick="geralTab('tarefas',this)" style="display:none">🧰 Ferramentas Comerciais<span id="gtab-tarefas-badge"></span></button>
   </div>
 
   <!-- SUB-ABA: VENDAS DO MÊS (padrão ao abrir) -->
@@ -716,48 +715,6 @@ select.fc{cursor:pointer}
     </div>
   </div>
 
-  <!-- SUB-ABA: FERRAMENTAS COMERCIAIS — menu de ferramentas do time comercial; hoje só
-       "Tarefas" (pendências operacionais por venda, hoje "Lançar no GCore" — sistema
-       externo — extensível pra outros tipos avulsos), pensado pra crescer com outras
-       ferramentas no mesmo lugar (ver ferramentaTool()). -->
-  <div id="geral-tab-tarefas" style="display:none;padding:16px 20px">
-    <div class="dash-tabs" style="margin-bottom:14px" id="ferr-tools-nav">
-      <button class="dash-tab active" id="ferr-tool-tarefas" onclick="ferramentaTool('tarefas',this)">📌 Tarefas</button>
-    </div>
-
-    <div id="ferramenta-tarefas">
-      <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
-        Pendências operacionais — toda venda emitida ou lançada manualmente já entra aqui com "Lançar no GCore". Dá pra criar qualquer outra tarefa avulsa numa venda específica ou sem venda nenhuma, com prazo opcional. Ao atribuir um responsável, a tarefa fica pendente pra ele até ele mesmo marcar como concluída — quando tem prazo, uma tarefa concluída depois do prazo conta como atrasada no Relatório.
-      </div>
-      <div class="dash-tabs" style="margin-bottom:10px" id="tf-subtabs">
-        <button class="dash-tab active" id="tf-tab-pend" onclick="tarefasTab('pendentes',this)">⏳ Pendentes</button>
-        <button class="dash-tab" id="tf-tab-conc" onclick="tarefasTab('concluidas',this)">✅ Concluídas</button>
-        <button class="dash-tab" id="tf-tab-rel" onclick="tarefasTab('relatorio',this)">📊 Relatório</button>
-      </div>
-      <div id="tf-add-wrap" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
-        <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa</div>
-        <div style="display:grid;grid-template-columns:1.1fr 1fr .85fr .85fr auto;gap:8px">
-          <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-            <option value="">— Tarefa avulsa (sem venda específica) —</option>
-          </select>
-          <input id="tf-novo-tipo" type="text" placeholder="Descreva a tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-          <select id="tf-novo-responsavel" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-            <option value="">Sem responsável</option>
-          </select>
-          <input id="tf-novo-prazo" type="date" title="Prazo (opcional) — usado no Relatório pra medir atraso" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff;color:#475569">
-          <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
-        </div>
-      </div>
-      <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
-        <select id="tf-fil-responsavel" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
-          <option value="">Todos</option>
-        </select>
-      </div>
-      <div id="tarefas-body"></div>
-      <div id="tarefas-relatorio" style="display:none"></div>
-    </div>
-  </div>
 </div>
 
 </div><!-- /sec-geral -->
@@ -782,6 +739,49 @@ select.fc{cursor:pointer}
   </div>
   <!-- Conteúdo da categoria -->
   <div class="cat-content">
+    <!-- FERRAMENTAS COMERCIAIS — item fixo do sidebar (visível pra todo mundo logado, não
+         é uma categoria configurável de usuário como as de baixo). Hoje só a ferramenta
+         "Tarefas" (pendências operacionais por venda, hoje "Lançar no GCore" — sistema
+         externo — extensível pra outros tipos avulsos), pensada pra crescer com outras
+         ferramentas no mesmo lugar (ver ferramentaTool()). -->
+    <div id="sec-cat-FERRAMENTAS" style="display:none">
+      <div class="dash-tabs" style="margin-bottom:14px" id="ferr-tools-nav">
+        <button class="dash-tab active" id="ferr-tool-tarefas" onclick="ferramentaTool('tarefas',this)">📌 Tarefas</button>
+      </div>
+
+      <div id="ferramenta-tarefas">
+        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+          Pendências operacionais — toda venda emitida ou lançada manualmente já entra aqui com "Lançar no GCore". Dá pra criar qualquer outra tarefa avulsa numa venda específica ou sem venda nenhuma, com prazo opcional. Ao atribuir um responsável, a tarefa fica pendente pra ele até ele mesmo marcar como concluída — quando tem prazo, uma tarefa concluída depois do prazo conta como atrasada no Relatório.
+        </div>
+        <div class="dash-tabs" style="margin-bottom:10px" id="tf-subtabs">
+          <button class="dash-tab active" id="tf-tab-pend" onclick="tarefasTab('pendentes',this)">⏳ Pendentes</button>
+          <button class="dash-tab" id="tf-tab-conc" onclick="tarefasTab('concluidas',this)">✅ Concluídas</button>
+          <button class="dash-tab" id="tf-tab-rel" onclick="tarefasTab('relatorio',this)">📊 Relatório</button>
+        </div>
+        <div id="tf-add-wrap" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa</div>
+          <div style="display:grid;grid-template-columns:1.1fr 1fr .85fr .85fr auto;gap:8px">
+            <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+              <option value="">— Tarefa avulsa (sem venda específica) —</option>
+            </select>
+            <input id="tf-novo-tipo" type="text" placeholder="Descreva a tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+            <select id="tf-novo-responsavel" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+              <option value="">Sem responsável</option>
+            </select>
+            <input id="tf-novo-prazo" type="date" title="Prazo (opcional) — usado no Relatório pra medir atraso" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff;color:#475569">
+            <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
+          </div>
+        </div>
+        <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
+          <select id="tf-fil-responsavel" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div id="tarefas-body"></div>
+        <div id="tarefas-relatorio" style="display:none"></div>
+      </div>
+    </div>
     <!-- COMERCIAL: agora só Metas & Comissões (Gráficos foi pra Geral, pra ficar junto
          de Lista de Vendas/Emissão) — continua exigindo administrador + PIN, igual antes. -->
     <div id="sec-cat-COMERCIAL" style="display:none">
@@ -1771,10 +1771,11 @@ async function marcarTarefaComercial(pedidoId,tarefaId,concluida){
   renderAll();
   _refreshTarefasBadge();
 }
-// Contador de pendências no botão "📌 Tarefas Comerciais" (ao lado de Gráficos, em Geral)
-// — admin vê o total de todo mundo, cada outro usuário vê só a contagem das SUAS tarefas.
+// Contador de pendências no ícone "🧰 Ferramentas Comerciais" do sidebar — admin vê o
+// total de todo mundo, cada outro usuário vê só a contagem das SUAS tarefas. (Movido do
+// antigo botão gtab-tarefas, dentro de Geral, pra o item fixo do sidebar em 2026-07-16.)
 function _refreshTarefasBadge(){
-  const badge=document.getElementById('gtab-tarefas-badge');
+  const badge=document.getElementById('ferr-sidebar-badge');
   if(!badge)return;
   const {isAdm}=_getUserCat();
   const pend=getTarefasComerciaisPendentes();
@@ -2107,13 +2108,18 @@ function buildSidebarCats(){
   // pra não quebrar cadastro/permissões já salvos) só aparece pra admin — 2026-07-14: antes
   // o botão aparecia pra todo mundo e só o conteúdo era travado com PIN depois do clique.
   const _isAdmSidebar=_getUserCat().isAdm;
-  const cats=[...(_isAdmSidebar?['COMERCIAL']:[]),...(_isFinanceiroUser()?['FINANCEIRO']:[])];
-  const catIcons={'COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
-  const catLabelsSidebar={'COMERCIAL':'METAS E COMISSÕES'};
+  // FERRAMENTAS COMERCIAIS é fixo pra qualquer usuário logado (não é uma categoria
+  // configurável de cadastro como COMERCIAL/FINANCEIRO) — fica logo depois de Geral, ver
+  // pedido do usuário de 2026-07-16 de tirar isso de dentro da tela Geral e virar item
+  // próprio do sidebar. Sempre primeiro na lista.
+  const cats=['FERRAMENTAS',...(_isAdmSidebar?['COMERCIAL']:[]),...(_isFinanceiroUser()?['FINANCEIRO']:[])];
+  const catIcons={'FERRAMENTAS':'🧰','COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS','COMERCIAL':'METAS E COMISSÕES'};
   container.innerHTML=cats.map(cat=>`
     <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${catLabelsSidebar[cat]||cat}" style="font-size:.7rem">
       <span style="font-size:1rem;flex-shrink:0;width:18px;text-align:center">${catIcons[cat]||'📁'}</span>
       <span class="sb-btn-label">${catLabelsSidebar[cat]||cat}</span>
+      ${cat==='FERRAMENTAS'?'<span id="ferr-sidebar-badge" style="margin-left:auto;background:#e91e63;color:#fff;border-radius:20px;padding:1px 6px;font-size:.62rem;font-weight:700"></span>':''}
     </button>`).join('');
 }
 
@@ -2154,20 +2160,22 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
   if(!isGeral){
     const cat=sec.replace('cat:','');
     const isCom=cat==='COMERCIAL';
+    const isFerr=cat==='FERRAMENTAS';
     // Atualiza header da seção
-    const catIcons={'COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+    const catIcons={'FERRAMENTAS':'🧰','COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
     // Rótulo de exibição: COMERCIAL virou "Metas e Comissões" (2026-07-14) — chave interna
     // continua COMERCIAL (cadastro de usuário, permissões, cores etc. não mudam).
-    const catLabelsHeader={'COMERCIAL':'Metas e Comissões'};
-    const catDescs={'COMERCIAL':'Acompanhamento de metas e comissões da equipe','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Planejamento estratégico','PROJETOS':'Gestão de projetos'};
+    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais','COMERCIAL':'Metas e Comissões'};
+    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','COMERCIAL':'Acompanhamento de metas e comissões da equipe','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Planejamento estratégico','PROJETOS':'Gestão de projetos'};
     const nameEl=document.getElementById('cat-hdr-name');
     const descEl=document.getElementById('cat-hdr-desc');
     if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+(catLabelsHeader[cat]||(cat.charAt(0)+cat.slice(1).toLowerCase()));
     if(descEl)descEl.textContent=catDescs[cat]||'';
     const isFin=cat==='FINANCEIRO';
+    document.getElementById('sec-cat-FERRAMENTAS').style.display=isFerr?'':'none';
     document.getElementById('sec-cat-COMERCIAL').style.display=isCom?'':'none';
     document.getElementById('sec-cat-FINANCEIRO').style.display=isFin?'':'none';
-    document.getElementById('sec-cat-generic').style.display=(isCom||isFin)?'none':'';
+    document.getElementById('sec-cat-generic').style.display=(isCom||isFin||isFerr)?'none':'';
     // Botão só aparece na seção COMERCIAL
     const btnNovo=document.getElementById('btn-novo-pedido');
     if(!isCom){
@@ -2191,6 +2199,10 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
       },120);
     }
     if(isFin&&typeof renderFinanceiro==='function')setTimeout(renderFinanceiro,120);
+    // Ferramentas Comerciais é aberto pra qualquer usuário logado — sempre reabre na
+    // ferramenta padrão (Tarefas) ao entrar na seção, igual comportamento antigo de
+    // geralTab('tarefas') antes de virar item próprio do sidebar (2026-07-16).
+    if(isFerr){try{ferramentaTool('tarefas',document.getElementById('ferr-tool-tarefas'));}catch(e){console.error('Erro ao abrir Ferramentas Comerciais',e);}}
   }
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
   if(isGeral){
@@ -2211,11 +2223,9 @@ function geralTab(tab,btn){
   const elVendas=document.getElementById('geral-tab-vendas');
   const elEmissao=document.getElementById('geral-tab-emissao');
   const elGraficos=document.getElementById('geral-tab-graficos');
-  const elTarefas=document.getElementById('geral-tab-tarefas');
   if(elVendas)elVendas.style.display=tab==='vendas'?'':'none';
   if(elEmissao)elEmissao.style.display=tab==='emissao'?'':'none';
   if(elGraficos)elGraficos.style.display=tab==='graficos'?'':'none';
-  if(elTarefas)elTarefas.style.display=tab==='tarefas'?'':'none';
   const h2=document.getElementById('geral-hdr-h2'),p=document.getElementById('geral-hdr-p');
   if(tab==='vendas'){
     if(h2)h2.textContent='Vendas do Mês';
@@ -2225,14 +2235,6 @@ function geralTab(tab,btn){
     if(h2)h2.textContent='Gráficos';
     if(p)p.textContent='Indicadores comerciais e evolução de vendas';
     try{renderDashGraficos();}catch(e){console.error('Erro ao abrir Gráficos',e);}
-  } else if(tab==='tarefas'){
-    // Aberto pra qualquer usuário logado — cada um vê e conclui só as próprias tarefas
-    // atribuídas; admin continua vendo/gerenciando tudo (ver abrirTarefasComerciais).
-    // "Ferramentas Comerciais" é um menu que pode crescer — hoje só a ferramenta Tarefas
-    // (ver ferramentaTool()), sempre reaberta na ferramenta padrão ao entrar na aba.
-    if(h2)h2.textContent='Ferramentas Comerciais';
-    if(p)p.textContent='Tarefas, prazos e outras ferramentas do time comercial';
-    try{ferramentaTool('tarefas',document.getElementById('ferr-tool-tarefas'));}catch(e){console.error('Erro ao abrir Ferramentas Comerciais',e);}
   } else {
     if(h2)h2.textContent='Lista de Emissão';
     if(p)p.textContent='Todos os pedidos emitidos, de qualquer categoria';
@@ -4386,7 +4388,7 @@ async function submit(){
     chumbador:ed.chumbador||'',os_chumb:ed.os_chumb||'',
     locCidade:(ed.icidade||ed.fcidade||''),locUf:(ed.iuf||ed.fuf||''),
     // Tarefas Comerciais: pendências operacionais ligadas a esta venda (hoje só "Lançar
-    // no GCore", mas pensado pra crescer — ver novaTarefaComercial()/geral-tab-tarefas). Só cria
+    // no GCore", mas pensado pra crescer — ver novaTarefaComercial()/sec-cat-FERRAMENTAS). Só cria
     // a tarefa padrão na emissão original; numa edição, mantém as tarefas que já existiam.
     tarefasComerciais:_pedidoExistente?(_pedidoExistente.tarefasComerciais||[]):gerarTarefasAutomaticas(ed.tipo,ed.tipoPedido||'')};
   const wasEditing=editing;
@@ -7436,14 +7438,15 @@ function _fmtDataHora(iso){
   try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
   catch(e){return'—';}
 }
-// Menu "Ferramentas Comerciais" — hoje só a ferramenta Tarefas, mas escrito pra crescer:
-// cada ferramenta é um <div id="ferramenta-NOME"> dentro de #geral-tab-tarefas, e o botão
-// correspondente fica em #ferr-tools-nav. Adicionar uma ferramenta nova = criar o painel e
-// um botão a mais aqui, sem mexer no resto.
+// Menu "Ferramentas Comerciais" (item fixo do sidebar, ver buildSidebarCats/setSection) —
+// hoje só a ferramenta Tarefas, mas escrito pra crescer: cada ferramenta é um
+// <div id="ferramenta-NOME"> dentro de #sec-cat-FERRAMENTAS, e o botão correspondente fica
+// em #ferr-tools-nav. Adicionar uma ferramenta nova = criar o painel e um botão a mais
+// aqui, sem mexer no resto.
 function ferramentaTool(tool,btn){
   document.querySelectorAll('#ferr-tools-nav .dash-tab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  document.querySelectorAll('#geral-tab-tarefas > [id^="ferramenta-"]').forEach(el=>{el.style.display='none';});
+  document.querySelectorAll('#sec-cat-FERRAMENTAS > [id^="ferramenta-"]').forEach(el=>{el.style.display='none';});
   const el=document.getElementById('ferramenta-'+tool);
   if(el)el.style.display='';
   if(tool==='tarefas'){try{abrirTarefasComerciais();}catch(e){console.error('Erro ao abrir Tarefas',e);}}
@@ -8419,11 +8422,9 @@ function renderDashVendas(){
   const {isAdm}=_getUserCat();
   const btnAddVm=document.getElementById('btn-add-venda-manual');
   if(btnAddVm)btnAddVm.style.display=isAdm?'':'none';
-  // Aba "Tarefas Comerciais" agora aparece pra todo mundo (2026-07-14) — cada um vê e
-  // conclui só as próprias tarefas atribuídas; admin continua vendo/gerenciando tudo
-  // (ver abrirTarefasComerciais/renderTarefasComerciais).
-  const gtabTarefas=document.getElementById('gtab-tarefas');
-  if(gtabTarefas)gtabTarefas.style.display='';
+  // Badge de pendências do ícone "Ferramentas Comerciais" no sidebar — atualiza sempre que
+  // Vendas do Mês re-renderiza, pra nunca mostrar número desatualizado (mesma ideia de
+  // antes, quando isso vivia no botão gtab-tarefas dentro de Geral).
   _refreshTarefasBadge();
   const selV=document.getElementById('vnd-fil-vend');
   const selC=document.getElementById('vnd-fil-cat');
