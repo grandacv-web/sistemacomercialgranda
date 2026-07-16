@@ -479,10 +479,10 @@ select.fc{cursor:pointer}
   </div>
 
   <div class="dash-tabs" style="margin:16px 20px 0">
+    <button class="dash-tab" id="gtab-graficos" onclick="geralTab('graficos',this)">📈 Gráficos</button>
     <button class="dash-tab active" id="gtab-vendas" onclick="geralTab('vendas',this)">📊 Vendas do Mês</button>
     <button class="dash-tab" id="gtab-emissao" onclick="geralTab('emissao',this)">📋 Lista de Emissão</button>
-    <button class="dash-tab" id="gtab-graficos" onclick="geralTab('graficos',this)">📈 Gráficos</button>
-    <button class="dash-tab" id="gtab-tarefas" onclick="geralTab('tarefas',this)" style="display:none">📌 Tarefas Comerciais<span id="gtab-tarefas-badge"></span></button>
+    <button class="dash-tab" id="gtab-tarefas" onclick="geralTab('tarefas',this)" style="display:none">🧰 Ferramentas Comerciais<span id="gtab-tarefas-badge"></span></button>
   </div>
 
   <!-- SUB-ABA: VENDAS DO MÊS (padrão ao abrir) -->
@@ -716,36 +716,47 @@ select.fc{cursor:pointer}
     </div>
   </div>
 
-  <!-- SUB-ABA: TAREFAS COMERCIAIS (admin only) — pendências operacionais por venda,
-       hoje "Lançar no GCore" (sistema externo), extensível pra outros tipos avulsos. -->
+  <!-- SUB-ABA: FERRAMENTAS COMERCIAIS — menu de ferramentas do time comercial; hoje só
+       "Tarefas" (pendências operacionais por venda, hoje "Lançar no GCore" — sistema
+       externo — extensível pra outros tipos avulsos), pensado pra crescer com outras
+       ferramentas no mesmo lugar (ver ferramentaTool()). -->
   <div id="geral-tab-tarefas" style="display:none;padding:16px 20px">
-    <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
-      Pendências operacionais — toda venda emitida ou lançada manualmente já entra aqui com "Lançar no GCore". Dá pra criar qualquer outra tarefa avulsa numa venda específica ou sem venda nenhuma. Ao atribuir um responsável, a tarefa fica pendente pra ele até ele mesmo marcar como concluída.
+    <div class="dash-tabs" style="margin-bottom:14px" id="ferr-tools-nav">
+      <button class="dash-tab active" id="ferr-tool-tarefas" onclick="ferramentaTool('tarefas',this)">📌 Tarefas</button>
     </div>
-    <div class="dash-tabs" style="margin-bottom:10px">
-      <button class="dash-tab active" id="tf-tab-pend" onclick="tarefasTab('pendentes',this)">⏳ Pendentes</button>
-      <button class="dash-tab" id="tf-tab-conc" onclick="tarefasTab('concluidas',this)">✅ Concluídas</button>
-    </div>
-    <div id="tf-add-wrap" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
-      <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa</div>
-      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px">
-        <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-          <option value="">— Tarefa avulsa (sem venda específica) —</option>
-        </select>
-        <input id="tf-novo-tipo" type="text" placeholder="Descreva a tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-        <select id="tf-novo-responsavel" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-          <option value="">Sem responsável</option>
-        </select>
-        <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
+
+    <div id="ferramenta-tarefas">
+      <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+        Pendências operacionais — toda venda emitida ou lançada manualmente já entra aqui com "Lançar no GCore". Dá pra criar qualquer outra tarefa avulsa numa venda específica ou sem venda nenhuma, com prazo opcional. Ao atribuir um responsável, a tarefa fica pendente pra ele até ele mesmo marcar como concluída — quando tem prazo, uma tarefa concluída depois do prazo conta como atrasada no Relatório.
       </div>
+      <div class="dash-tabs" style="margin-bottom:10px" id="tf-subtabs">
+        <button class="dash-tab active" id="tf-tab-pend" onclick="tarefasTab('pendentes',this)">⏳ Pendentes</button>
+        <button class="dash-tab" id="tf-tab-conc" onclick="tarefasTab('concluidas',this)">✅ Concluídas</button>
+        <button class="dash-tab" id="tf-tab-rel" onclick="tarefasTab('relatorio',this)">📊 Relatório</button>
+      </div>
+      <div id="tf-add-wrap" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
+        <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa</div>
+        <div style="display:grid;grid-template-columns:1.1fr 1fr .85fr .85fr auto;gap:8px">
+          <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+            <option value="">— Tarefa avulsa (sem venda específica) —</option>
+          </select>
+          <input id="tf-novo-tipo" type="text" placeholder="Descreva a tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+          <select id="tf-novo-responsavel" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+            <option value="">Sem responsável</option>
+          </select>
+          <input id="tf-novo-prazo" type="date" title="Prazo (opcional) — usado no Relatório pra medir atraso" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff;color:#475569">
+          <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
+        </div>
+      </div>
+      <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
+        <select id="tf-fil-responsavel" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div id="tarefas-body"></div>
+      <div id="tarefas-relatorio" style="display:none"></div>
     </div>
-    <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
-      <select id="tf-fil-responsavel" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
-        <option value="">Todos</option>
-      </select>
-    </div>
-    <div id="tarefas-body"></div>
   </div>
 </div>
 
@@ -1676,8 +1687,12 @@ const fmtD=d=>{if(!d)return'';if(d.includes('/'))return d;try{const[y,m,dd]=d.sp
 // "tipo" de tarefa válido, então dá pra criar "Conferir frete", "Enviar NF" etc. sem
 // mudar código, só usando "+ Nova tarefa" na janela de Tarefas Comerciais.
 const TAREFA_TIPOS_SUGERIDOS=['Lançar no GCore'];
-function novaTarefaComercial(tipo,responsavel){
-  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||''};
+// prazoTarefa é opcional (string 'YYYY-MM-DD', vindo de <input type=date>) — é o prazo da
+// TAREFA em si (quando o responsável precisa entregar), diferente do prazo de entrega do
+// PEDIDO (p.prazo, outra coisa). Sem prazoTarefa a tarefa nunca conta como atrasada, só
+// fica de fora do Relatório (ver _tarefaAtrasada()/renderRelatorioTarefas()).
+function novaTarefaComercial(tipo,responsavel,prazoTarefa){
+  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||''};
 }
 // Regras configuráveis em Configurações > Tarefas Automáticas (cfg.regrasTarefasComerciais).
 // Cada regra: {id, tipo:'' (vazio=qualquer, ou uma chave de TC como "Venda"/"Amostra"),
@@ -1767,12 +1782,12 @@ function _refreshTarefasBadge(){
   const n=isAdm?pend.length:pend.filter(t=>t.responsavel===meuNome).length;
   badge.textContent=n?` (${n})`:'';
 }
-async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel){
+async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa){
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!p){toast('Pedido não encontrado','terr');return;}
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!p.tarefasComerciais)p.tarefasComerciais=[];
-  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim(),responsavel||''));
+  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||''));
   await savePedidoFS(p);
   renderTarefasComerciais();
   _refreshTarefasBadge();
@@ -1780,16 +1795,29 @@ async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel){
 }
 // Tarefa avulsa SEM venda nenhuma vinculada — guardada em cfg.tarefasGerais (sincronizado
 // igual todo o resto do cfg) em vez de dentro de um pedido, já que não existe pedido pra
-// anexar. Mesmo formato de tarefa (id/tipo/status/responsavel/datas), só sem pedidoId/OS.
-async function adicionarTarefaGeralAvulsa(tipo,responsavel){
+// anexar. Mesmo formato de tarefa (id/tipo/status/responsavel/datas/prazoTarefa), só sem
+// pedidoId/OS.
+async function adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa){
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!cfg.tarefasGerais)cfg.tarefasGerais=[];
-  cfg.tarefasGerais.push(novaTarefaComercial(tipo.trim(),responsavel||''));
+  cfg.tarefasGerais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||''));
   if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderTarefasComerciais();
   _refreshTarefasBadge();
   toast('Tarefa adicionada!','tok');
+}
+// Compara o prazo da tarefa (prazoTarefa, 'YYYY-MM-DD') com a data de referência: se já foi
+// concluída, usa concluidaEm; se ainda está pendente, usa agora. Sem prazoTarefa nunca é
+// atrasada (não tem o que comparar) — fica de fora do Relatório em vez de contar a favor ou
+// contra ninguém (ver renderRelatorioTarefas()).
+function _tarefaAtrasada(t){
+  if(!t.prazoTarefa)return false;
+  const prazo=new Date(t.prazoTarefa+'T23:59:59');
+  if(isNaN(prazo))return false;
+  const ref=t.status==='concluida'?(t.concluidaEm?new Date(t.concluidaEm):null):new Date();
+  if(!ref||isNaN(ref))return false;
+  return ref>prazo;
 }
 async function marcarTarefaGeral(tarefaId,concluida){
   const t=(cfg.tarefasGerais||[]).find(x=>x.id===tarefaId);
@@ -2200,9 +2228,11 @@ function geralTab(tab,btn){
   } else if(tab==='tarefas'){
     // Aberto pra qualquer usuário logado — cada um vê e conclui só as próprias tarefas
     // atribuídas; admin continua vendo/gerenciando tudo (ver abrirTarefasComerciais).
-    if(h2)h2.textContent='Tarefas Comerciais';
-    if(p)p.textContent='Pendências operacionais';
-    try{abrirTarefasComerciais();}catch(e){console.error('Erro ao abrir Tarefas Comerciais',e);}
+    // "Ferramentas Comerciais" é um menu que pode crescer — hoje só a ferramenta Tarefas
+    // (ver ferramentaTool()), sempre reaberta na ferramenta padrão ao entrar na aba.
+    if(h2)h2.textContent='Ferramentas Comerciais';
+    if(p)p.textContent='Tarefas, prazos e outras ferramentas do time comercial';
+    try{ferramentaTool('tarefas',document.getElementById('ferr-tool-tarefas'));}catch(e){console.error('Erro ao abrir Ferramentas Comerciais',e);}
   } else {
     if(h2)h2.textContent='Lista de Emissão';
     if(p)p.textContent='Todos os pedidos emitidos, de qualquer categoria';
@@ -7406,18 +7436,32 @@ function _fmtDataHora(iso){
   try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
   catch(e){return'—';}
 }
+// Menu "Ferramentas Comerciais" — hoje só a ferramenta Tarefas, mas escrito pra crescer:
+// cada ferramenta é um <div id="ferramenta-NOME"> dentro de #geral-tab-tarefas, e o botão
+// correspondente fica em #ferr-tools-nav. Adicionar uma ferramenta nova = criar o painel e
+// um botão a mais aqui, sem mexer no resto.
+function ferramentaTool(tool,btn){
+  document.querySelectorAll('#ferr-tools-nav .dash-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('#geral-tab-tarefas > [id^="ferramenta-"]').forEach(el=>{el.style.display='none';});
+  const el=document.getElementById('ferramenta-'+tool);
+  if(el)el.style.display='';
+  if(tool==='tarefas'){try{abrirTarefasComerciais();}catch(e){console.error('Erro ao abrir Tarefas',e);}}
+}
 function abrirTarefasComerciais(){
   // Agora qualquer usuário logado pode abrir — cada um vê só as próprias tarefas
   // atribuídas (e pode concluí-las sozinho); só admin vê tudo, cadastra tarefa nova e
   // filtra por responsável (ver renderTarefasComerciais).
   const {isAdm}=_getUserCat();
   _tarefasTabAtual='pendentes';
+  document.querySelectorAll('#tf-subtabs .dash-tab').forEach(b=>b.classList.remove('active'));
   document.getElementById('tf-tab-pend')?.classList.add('active');
-  document.getElementById('tf-tab-conc')?.classList.remove('active');
   const addWrap=document.getElementById('tf-add-wrap');
   const filWrap=document.getElementById('tf-fil-wrap');
   if(addWrap)addWrap.style.display=isAdm?'':'none';
   if(filWrap)filWrap.style.display=isAdm?'':'none';
+  const relEl=document.getElementById('tarefas-relatorio');if(relEl)relEl.style.display='none';
+  const bodyEl=document.getElementById('tarefas-body');if(bodyEl)bodyEl.style.display='';
   if(isAdm){
     // Select de vendas: mais recentes primeiro, só pedidos que já existem no Firestore
     // (venda vinda só da planilha não tem onde guardar a tarefa). Opção em branco agora
@@ -7439,9 +7483,20 @@ function abrirTarefasComerciais(){
 }
 function tarefasTab(tab,btn){
   _tarefasTabAtual=tab;
-  document.querySelectorAll('#geral-tab-tarefas .dash-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#tf-subtabs .dash-tab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  renderTarefasComerciais();
+  const {isAdm}=_getUserCat();
+  const isRel=tab==='relatorio';
+  const addWrap=document.getElementById('tf-add-wrap');
+  const filWrap=document.getElementById('tf-fil-wrap');
+  const bodyEl=document.getElementById('tarefas-body');
+  const relEl=document.getElementById('tarefas-relatorio');
+  if(addWrap)addWrap.style.display=(isAdm&&!isRel)?'':'none';
+  if(filWrap)filWrap.style.display=(isAdm&&!isRel)?'':'none';
+  if(bodyEl)bodyEl.style.display=isRel?'none':'';
+  if(relEl)relEl.style.display=isRel?'':'none';
+  if(isRel)renderRelatorioTarefas();
+  else renderTarefasComerciais();
 }
 function renderTarefasComerciais(){
   const body=document.getElementById('tarefas-body');if(!body)return;
@@ -7463,30 +7518,137 @@ function renderTarefasComerciais(){
     body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${filResp?'Nenhuma tarefa pra esse responsável.':(pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.')}</div>`;
     return;
   }
-  body.innerHTML=lista.map(t=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border-lt);border-radius:10px;margin-bottom:8px;background:#fff">
+  body.innerHTML=lista.map(t=>{
+    // Badge de prazo/atraso da TAREFA (diferente do prazo de entrega do pedido, mostrado
+    // logo abaixo) — ver _tarefaAtrasada(). Sem prazoTarefa não mostra nada aqui.
+    const atrasada=_tarefaAtrasada(t);
+    let prazoBadge='';
+    if(t.prazoTarefa){
+      if(atrasada)prazoBadge=`<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">⚠️ Prazo ${fmtD(t.prazoTarefa)}${pendente?' (vencido)':' — concluída com atraso'}</span>`;
+      else prazoBadge=`<span style="background:${pendente?'#fef9c3':'#dcfce7'};color:${pendente?'#92400e':'#16a34a'};border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">${pendente?'📅 Prazo '+fmtD(t.prazoTarefa):'✅ No prazo'}</span>`;
+    }
+    return`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid ${atrasada&&pendente?'#fecaca':'var(--border-lt)'};border-radius:10px;margin-bottom:8px;background:#fff">
       <div style="min-width:0">
         <div style="font-weight:700;font-size:.82rem;color:#1e293b;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span>${t.tipo}</span>
           ${t.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">👤 ${t.responsavel}</span>`:`<span style="background:#f1f5f9;color:#94a3b8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:600;white-space:nowrap">Sem responsável</span>`}
+          ${prazoBadge}
         </div>
-        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo: '+fmtD(t.prazo):'')}</div>
+        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
         <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}</div>
       </div>
       ${pendente
         ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">✅ Concluir</button>`
         :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false)" style="background:#f1f5f9;color:#475569;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">↩️ Reabrir</button>`}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function _addTarefaAvulsaFromForm(){
   const pedidoId=document.getElementById('tf-novo-pedido')?.value||'';
   const tipo=document.getElementById('tf-novo-tipo')?.value||'';
   const responsavel=document.getElementById('tf-novo-responsavel')?.value||'';
+  const prazoTarefa=document.getElementById('tf-novo-prazo')?.value||'';
   // Campo em branco agora é "tarefa avulsa, sem venda nenhuma" (não mais um erro de
   // formulário) — vai pra cfg.tarefasGerais em vez de dentro de um pedido.
-  if(pedidoId)adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel);
-  else adicionarTarefaGeralAvulsa(tipo,responsavel);
+  if(pedidoId)adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa);
+  else adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa);
   const tipoInp=document.getElementById('tf-novo-tipo');if(tipoInp)tipoInp.value='';
+  const prazoInp=document.getElementById('tf-novo-prazo');if(prazoInp)prazoInp.value='';
+}
+// ── RELATÓRIO DE APROVEITAMENTO DE TAREFAS (por responsável, por mês) ──────────
+// Mede quem entrega tarefas no prazo x com atraso, mês a mês, pra virar critério de
+// avaliação/penalização. Agrupa pelo mês do PRAZO DA TAREFA (prazoTarefa) — é o mês em
+// que a entrega era esperada, não o mês em que foi criada nem o mês em que foi concluída.
+// Só entram no % de aproveitamento tarefas já RESOLVIDAS (concluídas) dentro do mês —
+// mesmo padrão da "Saúde de Recebimento" do Financeiro (ver renderFinFluxo): pendente,
+// mesmo que já vencida, fica numa contagem separada até ser concluída, pra não travar o
+// número final de ninguém num veredito ainda não definitivo. Tarefa sem prazoTarefa nunca
+// entra aqui (não tem o que medir).
+let _tfRelMes={y:new Date().getFullYear(),m:new Date().getMonth()+1};
+function tfRelMov(dir){
+  _tfRelMes.m+=dir;
+  if(_tfRelMes.m>12){_tfRelMes.m=1;_tfRelMes.y++;}
+  if(_tfRelMes.m<1){_tfRelMes.m=12;_tfRelMes.y--;}
+  renderRelatorioTarefas();
+}
+function _tfRelDadosMes(){
+  const {isAdm}=_getUserCat();
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  const {y,m}=_tfRelMes;
+  let todas=[...getTarefasComerciaisPendentes(),...getTarefasComerciaisConcluidas()];
+  if(!isAdm)todas=todas.filter(t=>t.responsavel===meuNome);
+  const doMes=todas.filter(t=>{
+    if(!t.prazoTarefa)return false;
+    const partes=t.prazoTarefa.split('-');
+    return partes.length===3&&(+partes[0])===y&&(+partes[1])===m;
+  });
+  const porResp={};
+  doMes.forEach(t=>{
+    const resp=t.responsavel||'— Sem responsável —';
+    if(!porResp[resp])porResp[resp]={noPrazo:0,comAtraso:0,pendente:0,pendenteVencida:0};
+    const s=porResp[resp];
+    const atrasada=_tarefaAtrasada(t);
+    if(t.status==='concluida'){
+      if(atrasada)s.comAtraso++;else s.noPrazo++;
+    } else {
+      if(atrasada)s.pendenteVencida++;else s.pendente++;
+    }
+  });
+  const linhas=Object.entries(porResp).map(([resp,s])=>{
+    const resolvido=s.noPrazo+s.comAtraso;
+    return{resp,...s,resolvido,total:resolvido+s.pendente+s.pendenteVencida,pct:resolvido>0?(s.noPrazo/resolvido*100):null};
+  }).sort((a,b)=>(b.pct??-1)-(a.pct??-1));
+  return linhas;
+}
+function renderRelatorioTarefas(){
+  const el=document.getElementById('tarefas-relatorio');if(!el)return;
+  const {isAdm}=_getUserCat();
+  const {y,m}=_tfRelMes;
+  const linhas=_tfRelDadosMes();
+  const totNoPrazo=linhas.reduce((s,l)=>s+l.noPrazo,0);
+  const totComAtraso=linhas.reduce((s,l)=>s+l.comAtraso,0);
+  const totResolvido=totNoPrazo+totComAtraso;
+  const pctGeral=totResolvido>0?(totNoPrazo/totResolvido*100):null;
+  const pctCor=p=>p==null?'#94a3b8':(p>=90?'#16a34a':(p>=70?'#d97706':'#dc2626'));
+  const linhasHtml=linhas.length?linhas.map(l=>`
+    <tr>
+      <td style="font-weight:700">${l.resp}</td>
+      <td style="color:#16a34a;font-weight:700">${l.noPrazo}</td>
+      <td style="color:#dc2626;font-weight:700">${l.comAtraso}</td>
+      <td style="color:#94a3b8">${l.pendente}</td>
+      <td style="color:#d97706;font-weight:700">${l.pendenteVencida}</td>
+      <td style="font-weight:800;color:${pctCor(l.pct)}">${l.pct==null?'—':l.pct.toFixed(1).replace('.',',')+'%'}</td>
+    </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:20px">Nenhuma tarefa com prazo definido nesse mês.</td></tr>';
+  el.innerHTML=`
+    <div class="dash-mes-nav">
+      <button onclick="tfRelMov(-1)">◀</button>
+      <div class="dash-mes-label">${MESES_PT[m]} ${y}</div>
+      <button onclick="tfRelMov(1)">▶</button>
+      ${linhas.length?`<button onclick="exportarRelatorioTarefas()" style="margin-left:auto;background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">⬇️ Exportar CSV</button>`:''}
+    </div>
+    <div class="dash-card" style="margin-bottom:14px">
+      <div class="dash-sec-title">📊 Aproveitamento geral do mês</div>
+      <div style="font-size:1.6rem;font-weight:800;color:${pctCor(pctGeral)}">${pctGeral==null?'—':pctGeral.toFixed(1).replace('.',',')+'%'}</div>
+      <div style="font-size:.78rem;color:#64748b;margin-top:4px">${totNoPrazo} no prazo · ${totComAtraso} com atraso · sobre ${totResolvido} tarefa(s) já concluída(s) com prazo definido nesse mês${isAdm?'':' (só as suas tarefas)'}</div>
+    </div>
+    <div class="dash-card">
+      <div class="dash-sec-title">👤 Por responsável — quem entregou mais no prazo</div>
+      <div style="overflow-x:auto"><table class="dash-table">
+        <thead><tr><th>Responsável</th><th>No prazo</th><th>Com atraso</th><th>Pendente</th><th>Pendente vencida</th><th>Aproveitamento</th></tr></thead>
+        <tbody>${linhasHtml}</tbody>
+      </table></div>
+      <div style="font-size:.7rem;color:#94a3b8;margin-top:10px">Aproveitamento = concluídas no prazo ÷ (concluídas no prazo + concluídas com atraso). Tarefas ainda pendentes (vencidas ou não) só entram no cálculo quando forem concluídas.</div>
+    </div>`;
+}
+function exportarRelatorioTarefas(){
+  const linhas=_tfRelDadosMes();
+  if(!linhas.length){toast('Nada pra exportar nesse mês','terr');return;}
+  const {y,m}=_tfRelMes;
+  const headers=['Responsável','No prazo','Com atraso','Pendente','Pendente vencida','Aproveitamento (%)'];
+  const rows=linhas.map(l=>[l.resp,l.noPrazo,l.comAtraso,l.pendente,l.pendenteVencida,l.pct==null?'':l.pct.toFixed(1).replace('.',',')]);
+  _csvDownload(`relatorio_tarefas_${y}_${String(m).padStart(2,'0')}.csv`,headers,rows);
+  toast('Exportado! Abra o arquivo baixado no Excel.','tok');
 }
 
 async function _getLogoGrandaPDF(){
