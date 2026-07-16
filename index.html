@@ -849,7 +849,7 @@ select.fc{cursor:pointer}
           <button onclick="gerarPDFFinanceiro()" class="dash-btn-conf" style="white-space:nowrap">📄 Gerar PDF</button>
           <button onclick="exportarExcelFinanceiro()" class="dash-btn-conf" style="white-space:nowrap;background:#16a34a">📊 Exportar Excel</button>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div class="dash-tabs" style="margin-bottom:14px">
           <button class="dash-tab active fin-view-tab" onclick="finSetView('lista',this)">📋 Lista de Parcelas</button>
           <button class="dash-tab fin-view-tab" onclick="finSetView('fluxo',this)">📊 Fluxo de Caixa</button>
         </div>
@@ -1291,8 +1291,16 @@ select.fc{cursor:pointer}
   </div>
   <div id="mnr-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px"></div>
   <div class="fg">
-    <label>Motivo <span class="r">*</span></label>
-    <textarea id="mnr-motivo" class="fc" rows="3" placeholder="Ex: cliente pediu prorrogação, boleto não compensou, etc." style="text-transform:none"></textarea>
+    <label>Motivo(s) <span class="r">*</span> <span style="font-weight:400;color:var(--ink4)">— pode marcar mais de um</span></label>
+    <div id="mnr-motivos-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:2px"></div>
+  </div>
+  <div class="fg">
+    <label>Nova data prevista <span class="r">*</span> <span style="font-weight:400;color:var(--ink4)">— sugerida pela quinzena, pode ajustar</span></label>
+    <input type="date" id="mnr-nova-data" class="fc">
+  </div>
+  <div class="fg">
+    <label>Observação (opcional)</label>
+    <textarea id="mnr-obs" class="fc" rows="2" placeholder="Detalhe adicional, se quiser" style="text-transform:none"></textarea>
   </div>
   <button onclick="salvarNaoRecebido()" style="margin-top:10px;width:100%;background:#dc2626;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">Salvar</button>
 </div>
@@ -1364,6 +1372,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
       <button class="cfg-menu-btn admin-only" data-sec="tipospedido" onclick="setCfgSec('tipospedido',this)">🏷️ Categoria de Pedido</button>
       <button class="cfg-menu-btn admin-only" data-sec="gruposcliente" onclick="setCfgSec('gruposcliente',this)">🏢 Grupos de Cliente</button>
+      <button class="cfg-menu-btn admin-only" data-sec="motivosadiamento" onclick="setCfgSec('motivosadiamento',this)">⏭ Motivos de Adiamento</button>
       <button class="cfg-menu-btn admin-only" data-sec="tarefasauto" onclick="setCfgSec('tarefasauto',this)">📌 Tarefas Automáticas</button>
       <button class="cfg-menu-btn admin-only" data-sec="metas" onclick="setCfgSec('metas',this)">🎯 Metas</button>
     </div>
@@ -1438,9 +1447,10 @@ select.fc{cursor:pointer}
       <div class="cfg-sec" id="cfg-sec-email">
         <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:16px">Configurações do EmailJS</div>
         <div class="fg"><label>Service ID</label><input class="fc no-upper" id="cs" placeholder="service_xxxxxxx"></div>
-        <div class="fg"><label>Template ID</label><input class="fc no-upper" id="ct" placeholder="template_xxxxxxx"></div>
+        <div class="fg"><label>Template ID (e-mail de emissão de pedido)</label><input class="fc no-upper" id="ct" placeholder="template_xxxxxxx"></div>
         <div class="fg"><label>Public Key</label><input class="fc no-upper" id="ck" placeholder="xxxxxxxxxxxxxxx"></div>
         <div class="fg"><label>E-mails internos Granda (separados por vírgula)</label><input class="fc no-upper" id="ce" placeholder="nome@empresa.com.br"></div>
+        <div class="fg"><label>Template ID (notificação de tarefa pro responsável)</label><input class="fc no-upper" id="ctt" placeholder="template_xxxxxxx"></div>
       </div>
       <!-- CLOUDINARY -->
       <div class="cfg-sec" id="cfg-sec-cloud" style="display:none">
@@ -1558,6 +1568,18 @@ select.fc{cursor:pointer}
           </div>
           <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink3);margin-bottom:10px"><input type="checkbox" id="cfg-novo-grupo-franq"> Separar franqueado (pedidos com "FRANQUEADO" na Categoria ficam de fora do grupo)</label>
           <button class="btn-next" style="width:100%;padding:9px" onclick="addGrupoCliente()">+ Adicionar Grupo</button>
+        </div>
+      </div>
+      <div class="cfg-sec" id="cfg-sec-motivosadiamento" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Motivos de Adiamento (Financeiro)</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Opções disponíveis ao marcar um pagamento como "Não recebido" na data prevista, em Financeiro → Contas a Receber — dá pra marcar mais de um motivo por adiamento. Alimenta o indicador "📊 Dados de Não Recebimento/Atrasos" do Fluxo de Caixa, pra você ver onde se concentram os problemas de recebimento.</p>
+        <div id="cfg-motivos-adiamento-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+        <div style="background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:10px;padding:14px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink3);margin-bottom:10px">+ Novo Motivo</div>
+          <div style="display:flex;gap:8px">
+            <input class="fc" id="cfg-novo-motivo-adiamento" placeholder="Ex: Problema fiscal" style="flex:1;text-transform:uppercase">
+            <button class="btn-next" style="white-space:nowrap;padding:9px 16px" onclick="addMotivoAdiamento()">+ Adicionar</button>
+          </div>
         </div>
       </div>
       <div class="cfg-sec" id="cfg-sec-tarefasauto" style="display:none">
@@ -1795,11 +1817,15 @@ async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTar
   if(!p){toast('Pedido não encontrado','terr');return;}
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!p.tarefasComerciais)p.tarefasComerciais=[];
-  p.tarefasComerciais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||''));
+  const novaT=novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||'');
+  p.tarefasComerciais.push(novaT);
   await savePedidoFS(p);
   renderTarefasComerciais();
   _refreshTarefasBadge();
   toast('Tarefa adicionada!','tok');
+  // Notifica o responsável por e-mail (só tarefa manual, ver _enviarEmailTarefa()) — não
+  // trava nada se falhar, é só um aviso a mais além do toast de sucesso acima.
+  if(responsavel)_enviarEmailTarefa(novaT,{os:p.os,cliente:p.cliente,job:p.job}).catch(e=>console.error('Erro ao notificar tarefa por e-mail',e));
 }
 // Tarefa avulsa SEM venda nenhuma vinculada — guardada em cfg.tarefasGerais (sincronizado
 // igual todo o resto do cfg) em vez de dentro de um pedido, já que não existe pedido pra
@@ -1808,12 +1834,14 @@ async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTar
 async function adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa){
   if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
   if(!cfg.tarefasGerais)cfg.tarefasGerais=[];
-  cfg.tarefasGerais.push(novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||''));
+  const novaT=novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||'');
+  cfg.tarefasGerais.push(novaT);
   if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderTarefasComerciais();
   _refreshTarefasBadge();
   toast('Tarefa adicionada!','tok');
+  if(responsavel)_enviarEmailTarefa(novaT,null).catch(e=>console.error('Erro ao notificar tarefa por e-mail',e));
 }
 // Só quem LANÇOU a tarefa (criadoPor) — ou um administrador — pode excluí-la. Quem só
 // RECEBEU (responsavel) não pode excluir, só concluir/reabrir (ver _podeMexerNaTarefa()).
@@ -1850,6 +1878,105 @@ async function excluirTarefaGeral(tarefaId){
   renderTarefasComerciais();
   _refreshTarefasBadge();
   toast('Tarefa excluída','tok');
+}
+// ── NOTIFICAÇÃO POR E-MAIL DE TAREFA (2026-07-16) ──────────────────────────────
+// Acha o e-mail de login de um usuário a partir do nome de exibição — cfg.usuarioNomes
+// guarda o mapa email→nome (é assim que o cadastro de usuários funciona: e-mail é a chave),
+// então precisa varrer os valores procurando o nome. Usado só pra descobrir pra quem
+// mandar a notificação de tarefa (ver _enviarEmailTarefa()); não tem nenhum outro efeito.
+function _getEmailPorNome(nome){
+  if(!nome)return'';
+  const alvo=nome.trim();
+  const nomes=cfg.usuarioNomes||{};
+  const entry=Object.entries(nomes).find(([,n])=>(n||'').trim()===alvo);
+  if(entry)return entry[0];
+  // Guilherme (dono do sistema) não passa pelo cadastro normal de usuários — mesmo caso
+  // especial já tratado em getNomesUsuarios(), que também adiciona esse nome na mão.
+  if(alvo==='GUILHERME CLABONDE')return'gviniciusclabonde@gmail.com';
+  return'';
+}
+// Monta o HTML do e-mail de "nova tarefa atribuída" — visual parecido com o e-mail de
+// emissão de pedido (buildEmissaoEmailContent), só bem mais simples: tipo da tarefa, quem
+// lançou, prazo (se tiver) e o pedido vinculado (se for o caso). pedidoInfo é opcional
+// ({os,cliente,job}) — tarefa avulsa geral (sem venda) não tem isso.
+function buildTarefaEmailContent(t,pedidoInfo){
+  const temPedido=!!(pedidoInfo&&pedidoInfo.os);
+  const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:40px 16px">
+<tr><td align="center">
+<table width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+  <!-- HEADER -->
+  <tr><td style="background:#111827;padding:0">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding:32px 40px 24px">
+        <img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="48" alt="Granda Comunicação Visual" style="height:48px;display:block;margin:0 auto">
+      </td></tr>
+      <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
+      <tr><td style="padding:24px 40px 28px;background:#111827">
+        <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">📌 Nova tarefa atribuída a você</p>
+        <p style="margin:0;color:#ffffff;font-size:24px;font-weight:700;line-height:1.3">${t.tipo}</p>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- BODY -->
+  <tr><td style="padding:32px 40px;background:#ffffff">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">Responsável</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${t.responsavel}</td></tr>
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">Lançada por</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${t.criadoPor||'—'}</td></tr>
+      ${t.prazoTarefa?`<tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">Prazo</td><td style="padding:10px 0;color:#e91e63;font-size:13px;font-weight:700">${fmtD(t.prazoTarefa)}</td></tr>`:''}
+      ${temPedido?`<tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">Pedido vinculado</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">OS ${pedidoInfo.os} · ${pedidoInfo.cliente||''}${pedidoInfo.job?' · JOB: '+pedidoInfo.job:''}</td></tr>`:''}
+    </table>
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#111827;padding:20px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:11px;color:#6b7280">Comercial Granda · E-mail automático · Ferramentas Comerciais</td>
+      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+    </tr></table>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body></html>`;
+  const subject=`NOVA TAREFA: ${t.tipo}${temPedido?' · OS '+pedidoInfo.os:''}`;
+  return{html_content,subject};
+}
+// Dispara o e-mail de notificação pro responsável — chamado só na criação manual de tarefa
+// (adicionarTarefaComercialAvulsa/adicionarTarefaGeralAvulsa), nunca nas automáticas de
+// emissão de pedido. Usa um Template ID PRÓPRIO (cfg.tTarefa, configurável em
+// Configurações → E-mail), separado do template de emissão de pedido (cfg.t) — assim não
+// arrisca bagunçar aquele. Nunca lança exceção pra quem chamou: sempre resolve com
+// {ok,erro}, e quem chama só loga o erro no console (a criação da tarefa já foi concluída
+// e salva antes disso, então uma falha de e-mail nunca desfaz nem trava a tarefa).
+async function _enviarEmailTarefa(t,pedidoInfo){
+  const destEmail=_getEmailPorNome(t.responsavel);
+  if(!destEmail){
+    console.warn('Tarefa lançada sem e-mail encontrado pro responsável:',t.responsavel);
+    toast('Tarefa criada, mas não achei e-mail cadastrado pra "'+t.responsavel+'" — notificação não enviada.','twar');
+    return{ok:false,erro:'E-mail do responsável não encontrado'};
+  }
+  const tid=cfg.tTarefa;
+  if(!tid){
+    toast('Tarefa criada, mas o template de notificação ainda não foi configurado em Configurações → E-mail.','twar');
+    return{ok:false,erro:'Template de notificação não configurado'};
+  }
+  try{
+    emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
+    const sid=cfg.s||'service_t99xeta';
+    const{html_content,subject}=buildTarefaEmailContent(t,pedidoInfo);
+    await emailjs.send(sid,tid,{html_content,to_email:destEmail,to_name:t.responsavel,subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
+    toast(`Responsável notificado por e-mail (${destEmail})`,'tok');
+    return{ok:true,erro:''};
+  }catch(e){
+    const msg=(e&&(e.text||e.message))||'Erro desconhecido no envio';
+    console.error('Erro ao enviar e-mail de notificação de tarefa',e);
+    toast('Tarefa criada, mas houve erro ao notificar por e-mail: '+msg,'twar');
+    return{ok:false,erro:String(msg)};
+  }
 }
 // Compara o prazo da tarefa (prazoTarefa, 'YYYY-MM-DD') com a data de referência: se já foi
 // concluída, usa concluidaEm; se ainda está pendente, usa agora. Sem prazoTarefa nunca é
@@ -4465,10 +4592,15 @@ async function submit(){
 function openCfg(){openM('mo-cfg');renderUserList()}
 function closeCfg(){closeM('mo-cfg')}
 function saveCfg(){
-  cfg.s=document.getElementById('cfg-s')?.value||cfg.s;
-  cfg.t=document.getElementById('cfg-t')?.value||cfg.t;
-  cfg.k=document.getElementById('cfg-k')?.value||cfg.k;
+  // (Corrigido 2026-07-16) Os 3 campos abaixo liam de ids 'cfg-s'/'cfg-t'/'cfg-k', que não
+  // existem no HTML (os inputs reais são 'cs'/'ct'/'ck') — o valor digitado nunca era
+  // salvo de verdade, só parecia salvar porque o fallback hardcoded no envio de e-mail
+  // (service_t99xeta/template_8ymz4j4/wtJbXi3uGODPaFIqc) já batia com o valor real em uso.
+  cfg.s=document.getElementById('cs')?.value||cfg.s;
+  cfg.t=document.getElementById('ct')?.value||cfg.t;
+  cfg.k=document.getElementById('ck')?.value||cfg.k;
   cfg.e=document.getElementById('ce')?.value||cfg.e;
+  cfg.tTarefa=document.getElementById('ctt')?.value||cfg.tTarefa;
   cfg.freteOrigem=document.getElementById('cfg-frete-origem')?.value||cfg.freteOrigem;
   cfg.cld_cloud=document.getElementById('cfg-cld')?.value||cfg.cld_cloud;
   cfg.cld_preset=document.getElementById('cfg-pre')?.value||cfg.cld_preset;
@@ -4786,6 +4918,7 @@ function openSettings(){
   document.getElementById('ct').value=c.t||'';
   document.getElementById('ck').value=c.k||'';
   document.getElementById('ce').value=c.e||'';
+  const ctt=document.getElementById('ctt');if(ctt)ctt.value=c.tTarefa||'';
   const cfo=document.getElementById('cfg-frete-origem');if(cfo)cfo.value=c.freteOrigem||'PONTA GROSSA/PR';
   document.getElementById('cc').value=c.cld_cloud||'';
   document.getElementById('cp').value=c.cld_preset||'';
@@ -4843,6 +4976,7 @@ function setCfgSec(sec,btn){
   if(sec==='permissoes')renderCfgPermissoes();
   if(sec==='tipospedido')renderTiposPedido();
   if(sec==='gruposcliente')renderGruposCliente();
+  if(sec==='motivosadiamento')renderMotivosAdiamento();
   if(sec==='tarefasauto')renderRegrasTarefasAuto();
   if(sec==='metas')initPagamentosExtrasForm();
 }
@@ -5176,6 +5310,51 @@ function removeGrupoCliente(i){
   renderGruposCliente();
   toast('Grupo removido','tok');
   if(typeof finView!=='undefined'&&finView==='fluxo'&&typeof renderFinFluxo==='function')renderFinFluxo();
+}
+
+// Motivos de Adiamento (Financeiro) — opções pra marcar (pode ser mais de uma) quando um
+// pagamento não chega na data prevista (ver abrirMotivoNaoRecebido()/salvarNaoRecebido()).
+// Semeado com os 4 motivos pedidos pelo usuário na primeira vez que a tela é aberta —
+// depois é 100% editável aqui, sem precisar mexer em código nenhum. Alimenta também o
+// indicador "📊 Dados de Não Recebimento/Atrasos" do Fluxo de Caixa (ver cfg.logAdiamentos).
+function getMotivosAdiamento(){
+  return(cfg.motivosAdiamento&&cfg.motivosAdiamento.length)?cfg.motivosAdiamento:[
+    'PROCESSO DO CLIENTE','ESQUECIMENTO','PROBLEMA NA ENTREGA (GRANDA)','OBRA ADIADA/ATRASADA PELO CLIENTE'
+  ];
+}
+function renderMotivosAdiamento(){
+  const el=document.getElementById('cfg-motivos-adiamento-list');if(!el)return;
+  // Primeira vez que alguém abre essa tela: materializa a lista padrão em cfg pra virar
+  // editável, em vez de ficar só como fallback invisível dentro de getMotivosAdiamento().
+  if(!cfg.motivosAdiamento||!cfg.motivosAdiamento.length)cfg.motivosAdiamento=getMotivosAdiamento().slice();
+  const motivos=cfg.motivosAdiamento;
+  if(!motivos.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhum motivo cadastrado.</p>';return;}
+  el.innerHTML=motivos.map((m,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:8px">
+      <span style="font-size:.8rem;font-weight:600;color:#1e293b">${m}</span>
+      <button onclick="removeMotivoAdiamento(${i})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.9rem" title="Remover">🗑</button>
+    </div>`).join('');
+}
+function addMotivoAdiamento(){
+  const inp=document.getElementById('cfg-novo-motivo-adiamento');
+  const v=(inp?.value||'').trim().toUpperCase();
+  if(!v){toast('Descreva o motivo','terr');return;}
+  if(!cfg.motivosAdiamento||!cfg.motivosAdiamento.length)cfg.motivosAdiamento=getMotivosAdiamento().slice();
+  if(cfg.motivosAdiamento.includes(v)){toast('Esse motivo já existe','terr');return;}
+  cfg.motivosAdiamento.push(v);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  if(inp)inp.value='';
+  renderMotivosAdiamento();
+  toast('Motivo adicionado!','tok');
+}
+function removeMotivoAdiamento(i){
+  if(!confirm('Remover este motivo? Adiamentos já registrados com ele continuam mostrando o texto normalmente, só não vai mais aparecer como opção pra marcar de novo.'))return;
+  cfg.motivosAdiamento.splice(i,1);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderMotivosAdiamento();
+  toast('Motivo removido','tok');
 }
 
 // Nomes de todos os usuários cadastrados (qualquer categoria — Comercial, Financeiro,
@@ -6377,23 +6556,61 @@ function getContasReceber(){
     return {...i,diasAtraso,statusCalc};
   });
 }
-let _mnrConfKey=null,_mnrDataStr=null;
+let _mnrConfKey=null,_mnrDataStr=null,_mnrCliente=null,_mnrValor=0;
+// Sugestão automática de "próxima quinzena", reaproveitando a mesma regra de arredondamento
+// do adiarPag() (dia<=5→dia15 mesmo mês; dia<=15→dia5 mês seguinte; senão→dia15 mês seguinte).
+// Só é um chute inicial pro campo de data — o usuário pode ajustar livremente antes de salvar.
+function _sugereQuinzena(dataStr){
+  const d=parseDataBR(dataStr);if(!d)return'';
+  const dia=d.getDate();
+  let nova;
+  if(dia<=5){nova=new Date(d.getFullYear(),d.getMonth(),15);}
+  else if(dia<=15){nova=new Date(d.getFullYear(),d.getMonth()+1,5);}
+  else{nova=new Date(d.getFullYear(),d.getMonth()+1,15);}
+  const pad=n=>String(n).padStart(2,'0');
+  return nova.getFullYear()+'-'+pad(nova.getMonth()+1)+'-'+pad(nova.getDate());
+}
 function abrirMotivoNaoRecebido(confKey,dataStr,cliente,valor){
   if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem registrar isso','terr');return;}
-  _mnrConfKey=confKey;_mnrDataStr=dataStr;
+  _mnrConfKey=confKey;_mnrDataStr=dataStr;_mnrCliente=cliente;_mnrValor=valor;
   const info=document.getElementById('mnr-info');
   if(info)info.innerHTML=`<strong>${cliente||'—'}</strong> · ${fmtR(valor||0)} · previsto para ${dataStr||'—'}`;
-  const ta=document.getElementById('mnr-motivo');if(ta)ta.value='';
+  const list=document.getElementById('mnr-motivos-list');
+  if(list){
+    const motivos=getMotivosAdiamento();
+    list.innerHTML=motivos.map(m=>`
+      <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:500;color:#1e293b;cursor:pointer;background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:8px;padding:8px 12px">
+        <input type="checkbox" class="mnr-motivo-chk" value="${m.replace(/"/g,'&quot;')}" style="width:16px;height:16px;flex-shrink:0;accent-color:#dc2626">
+        ${m}
+      </label>`).join('');
+  }
+  const dt=document.getElementById('mnr-nova-data');if(dt)dt.value=_sugereQuinzena(dataStr);
+  const obs=document.getElementById('mnr-obs');if(obs)obs.value='';
   openM('mo-motivo-nr');
-  setTimeout(()=>ta?.focus(),80);
 }
 function salvarNaoRecebido(){
-  const motivo=(document.getElementById('mnr-motivo')?.value||'').trim();
-  if(!motivo){toast('Informe o motivo — é obrigatório','terr');return;}
+  const chks=[...document.querySelectorAll('.mnr-motivo-chk:checked')].map(c=>c.value);
+  if(!chks.length){toast('Marque ao menos um motivo — é obrigatório','terr');return;}
+  const novaDataISO=(document.getElementById('mnr-nova-data')?.value||'').trim();
+  if(!novaDataISO){toast('Informe a nova data prevista — é obrigatório','terr');return;}
+  const obs=(document.getElementById('mnr-obs')?.value||'').trim();
   if(!_mnrConfKey)return;
-  setPagConf(_mnrConfKey,{status:'pendente',novaData:_mnrDataStr,motivoAtraso:motivo,motivoAtrasoEm:new Date().toISOString()});
+  const[y,m,d]=novaDataISO.split('-');
+  const novaDataBR=d+'/'+m+'/'+y;
+  const motivoTxt=chks.join(', ')+(obs?(' — '+obs):'');
+  // Log histórico separado (append-only, cfg.pagConf só guarda o estado ATUAL e seria
+  // sobrescrito no próximo adiamento) — é essa lista que alimenta o indicador
+  // "📊 Dados de Não Recebimento/Atrasos" do Fluxo de Caixa, com motivo/mês/ano.
+  if(!cfg.logAdiamentos)cfg.logAdiamentos=[];
+  cfg.logAdiamentos.push({
+    confKey:_mnrConfKey,cliente:_mnrCliente||'',valor:_mnrValor||0,
+    dataPrevistaAnterior:_mnrDataStr||'',novaData:novaDataBR,
+    motivos:chks,observacao:obs,em:new Date().toISOString()
+  });
+  setPagConf(_mnrConfKey,{status:'pendente',novaData:novaDataBR,motivoAtraso:motivoTxt,motivoAtrasoEm:new Date().toISOString()});
   closeM('mo-motivo-nr');
-  toast('Marcado como não recebido — motivo registrado','tok');
+  toast('Marcado como não recebido — adiado para '+novaDataBR,'tok');
+  const row=document.querySelector(`tr[data-ck="${CSS.escape(_mnrConfKey)}"]`);if(row)row.remove();
   renderFinanceiro();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
 }
@@ -6444,6 +6661,7 @@ function salvarConfirmarRecebimento(){
   setPagConf(_cfrConfKey,{status:'confirmado',novaData:_cfrDataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:'',valorBrutoConfirmado:valorBrutoFinal});
   closeM('mo-confirmar-receb');
   toast(_cfrNegociado?`Recebimento confirmado com valor negociado (${fmtR(valorBrutoFinal)})! Comissão ajustada e liberada. ✅`:'Recebimento confirmado! Comissão liberada na quinzena. ✅','tok');
+  const row=document.querySelector(`tr[data-ck="${CSS.escape(_cfrConfKey)}"]`);if(row)row.remove();
   renderFinanceiro();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
@@ -6597,9 +6815,10 @@ function renderFinanceiro(){
     const ck=i.confKey.replace(/'/g,"\\'");
     const da=(i.dataAtiva||'').replace(/'/g,"\\'");
     const cl=(i.cliente||'').replace(/'/g,"\\'");
-    const acoes=i.statusCalc==='confirmado'?'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>'
+    const acoes=i.statusCalc==='confirmado'
+      ?(isFinAdm?`<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span> <button onclick="if(confirm('Reabrir este recebimento? Ele volta a aparecer como pendente e a comissão correspondente deixa de estar liberada.'))reabrirPag('${ck}')" style="background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 8px;font-size:.68rem;color:#64748b;cursor:pointer;margin-left:6px" title="Reabrir">↩ Reabrir</button>`:'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>')
       :(isFinAdm?`<button class="dash-btn-conf" onclick="abrirConfirmarRecebimento('${ck}','${da}','${cl}',${i.valorBruto})">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valorBruto})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
-    return`<tr style="${i.statusCalc==='confirmado'?'background:#f0fdf4;':i.statusCalc==='nao_recebido'||i.statusCalc==='atrasado'?'background:#fef2f2;':''}">
+    return`<tr data-ck="${ck}" style="${i.statusCalc==='confirmado'?'background:#f0fdf4;':i.statusCalc==='nao_recebido'||i.statusCalc==='atrasado'?'background:#fef2f2;':''}">
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
       <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
@@ -6913,7 +7132,17 @@ function renderFinFluxo(){
         ${clientesRecorrentes.map(c=>`<tr style="cursor:pointer" onclick="finVerClienteHistorico('${c.nome.replace(/'/g,"\\'")}')" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background=''"><td>${c.nome}</td><td>${c.atrasados}</td><td>${c.total}</td><td style="font-weight:700;color:#dc2626">${c.taxa.toFixed(0)}%</td><td style="font-weight:700;color:#dc2626">${fmt(c.valorAtrasado)}</td></tr>`).join('')}
       </tbody></table></div>`:'<div style="padding:12px 4px;color:#16a34a;font-size:.82rem">✅ Nenhum cliente com atraso recorrente identificado com esses filtros.</div>'}
     </div>
+    <div class="dash-card" id="fin-naorecebido-card" style="margin-top:16px">
+      <div class="dash-sec-title">📊 Dados de Não Recebimento/Atrasos</div>
+      <p style="font-size:.72rem;color:var(--ink4);margin:0 0 12px">Toda vez que uma parcela é marcada "❌ Não recebido" em Financeiro, o(s) motivo(s) marcado(s) entram aqui — mostra onde está concentrado o problema de recebimento (processo do cliente, esquecimento interno, entrega, etc.), pra agir na causa. Filtre por mês/ano pra acompanhar quinzena a quinzena.</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <select id="fnr-fil-ano" class="fc" style="width:auto" onchange="renderFinNaoRecebimento()"></select>
+        <select id="fnr-fil-mes" class="fc" style="width:auto" onchange="renderFinNaoRecebimento()"></select>
+      </div>
+      <div id="fnr-body"></div>
+    </div>
   `;
+  renderFinNaoRecebimento();
 
   if(finCharts.proj){try{finCharts.proj.destroy();}catch(e){}}
   const ctx=document.getElementById('fin-chart-proj');
@@ -6944,6 +7173,94 @@ function renderFinFluxo(){
       options:{responsive:true,maintainAspectRatio:false,animation:false,
         plugins:{legend:{labels:{font:{size:10},color:'#888'}},tooltip:{callbacks:{label:ctx2=>ctx2.dataset.label+': '+fmt(ctx2.raw)}}},
         scales:{y:{stacked:true,ticks:{font:{size:9}}},x:{stacked:true,ticks:{font:{size:9}}}}
+      }
+    });
+  }
+}
+
+// Dados de Não Recebimento/Atrasos (2026-07-16) — pedido do usuário depois de descobrir,
+// na revisão quinzenal, que um pagamento (Burger King Colombo) não caiu na data prevista
+// e precisou adiar a comissão. cfg.logAdiamentos é um histórico APPEND-ONLY (nunca
+// sobrescrito, diferente de cfg.pagConf que só guarda o estado atual de cada parcela) —
+// cada registro é criado em salvarNaoRecebido() com o(s) motivo(s) marcado(s), cliente,
+// valor, data prevista anterior/nova e quando foi registrado. Esse painel existe pra
+// responder "onde está concentrado nosso problema de recebimento", com filtro de
+// mês/ano pra acompanhar a evolução quinzena a quinzena.
+function _fnrPopulaFiltros(){
+  const log=cfg.logAdiamentos||[];
+  const anos=[...new Set(log.map(l=>{const d=new Date(l.em);return isNaN(d)?null:d.getFullYear();}).filter(Boolean))].sort((a,b)=>b-a);
+  const selAno=document.getElementById('fnr-fil-ano');
+  if(selAno&&selAno.dataset.built!=='1'){
+    selAno.innerHTML='<option value="">Todos os anos</option>'+anos.map(a=>`<option>${a}</option>`).join('');
+    selAno.dataset.built='1';
+  }
+  const selMes=document.getElementById('fnr-fil-mes');
+  if(selMes&&selMes.dataset.built!=='1'){
+    selMes.innerHTML='<option value="">Todos os meses</option>'+MESES_PT.slice(1).map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+    selMes.dataset.built='1';
+  }
+}
+function renderFinNaoRecebimento(){
+  const body=document.getElementById('fnr-body');if(!body)return;
+  _fnrPopulaFiltros();
+  const fmt=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const ano=document.getElementById('fnr-fil-ano')?.value||'';
+  const mes=document.getElementById('fnr-fil-mes')?.value||'';
+  let log=(cfg.logAdiamentos||[]).filter(l=>l.em&&!isNaN(new Date(l.em)));
+  if(ano)log=log.filter(l=>new Date(l.em).getFullYear()===+ano);
+  if(mes)log=log.filter(l=>new Date(l.em).getMonth()+1===+mes);
+  if(finCharts.motivos){try{finCharts.motivos.destroy();}catch(e){}}
+  if(!log.length){
+    body.innerHTML='<div style="padding:16px 4px;color:#94a3b8;font-size:.82rem">Nenhum adiamento registrado ainda com esses filtros. Assim que uma parcela for marcada "❌ Não recebido" em Financeiro, ela aparece aqui.</div>';
+    return;
+  }
+  // Contagem por motivo — um adiamento pode ter mais de um motivo marcado, então não é
+  // mutuamente exclusivo (a soma das ocorrências por motivo pode passar do total de
+  // adiamentos, de propósito).
+  const porMotivo={};
+  log.forEach(l=>{
+    (l.motivos&&l.motivos.length?l.motivos:['(sem motivo registrado)']).forEach(m=>{
+      if(!porMotivo[m])porMotivo[m]={qtd:0,valor:0};
+      porMotivo[m].qtd++;
+      porMotivo[m].valor+=l.valor||0;
+    });
+  });
+  const ranking=Object.entries(porMotivo).sort((a,b)=>b[1].qtd-a[1].qtd);
+  const totalOcorrencias=log.length;
+  const totalValor=log.reduce((s,l)=>s+(l.valor||0),0);
+  const top=ranking[0];
+  body.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#f1f5f9;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#475569">Adiamentos no período</div><div style="font-size:1.05rem;font-weight:800;color:#475569">${totalOcorrencias}</div></div>
+      <div style="background:#fee2e2;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Valor total envolvido</div><div style="font-size:1.05rem;font-weight:800;color:#b91c1c">${fmt(totalValor)}</div></div>
+      <div style="background:#fef3c7;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#92400e">Maior concentração</div><div style="font-size:.85rem;font-weight:800;color:#92400e">${top?top[0]:'—'}</div><div style="font-size:.62rem;color:#92400e;opacity:.8">${top?top[1].qtd+' ocorrência(s) · '+fmt(top[1].valor):''}</div></div>
+    </div>
+    <div style="height:${Math.max(160,ranking.length*38)}px;margin-bottom:14px"><canvas id="fin-chart-motivos"></canvas></div>
+    <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Motivo</th><th>Ocorrências</th><th>% do total</th><th>Valor envolvido</th></tr></thead><tbody>
+      ${ranking.map(([m,d])=>`<tr><td>${m}</td><td style="font-weight:700">${d.qtd}</td><td>${((d.qtd/totalOcorrencias)*100).toFixed(1)}%</td><td style="font-weight:700;color:#dc2626">${fmt(d.valor)}</td></tr>`).join('')}
+    </tbody></table></div>
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;padding:6px 0">Ver os ${log.length} adiamento(s) individualmente</summary>
+      <div style="overflow-x:auto;margin-top:8px"><table class="dash-table"><thead><tr><th>Cliente</th><th>Valor</th><th>Data prevista anterior</th><th>Nova data</th><th>Motivo(s)</th><th>Registrado em</th></tr></thead><tbody>
+        ${log.slice().sort((a,b)=>new Date(b.em)-new Date(a.em)).map(l=>`<tr>
+          <td style="font-weight:600">${l.cliente||'—'}</td>
+          <td style="font-weight:700">${fmt(l.valor||0)}</td>
+          <td style="font-size:.72rem">${l.dataPrevistaAnterior||'—'}</td>
+          <td style="font-size:.72rem;font-weight:700;color:#b45309">${l.novaData||'—'}</td>
+          <td style="font-size:.7rem;color:#7c3aed">${(l.motivos||[]).join(', ')||'—'}${l.observacao?' — '+l.observacao:''}</td>
+          <td style="font-size:.68rem;color:#94a3b8;white-space:nowrap">${new Date(l.em).toLocaleDateString('pt-BR')}</td>
+        </tr>`).join('')}
+      </tbody></table></div>
+    </details>
+  `;
+  const ctxM=document.getElementById('fin-chart-motivos');
+  if(ctxM&&typeof Chart!=='undefined'){
+    finCharts.motivos=new Chart(ctxM,{
+      type:'bar',
+      data:{labels:ranking.map(([m])=>m),datasets:[{label:'Ocorrências',data:ranking.map(([,d])=>d.qtd),backgroundColor:'rgba(124,58,237,.75)',borderRadius:4}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx2=>ctx2.raw+' ocorrência(s)'}}},
+        scales:{x:{ticks:{font:{size:9}},beginAtZero:true},y:{ticks:{font:{size:9}}}}
       }
     });
   }
@@ -7214,7 +7531,11 @@ function renderDashComissoes(){
         const sb=i.status==='confirmado'?(i.historicoAutoConfirmado?'<span class="dash-badge ok" title="Parcela de Julho I/2026 ou anterior — considerada já recebida e com comissão já paga antes deste sistema existir (marcado automaticamente, sem confirmação manual). Confira na planilha antiga se sobrar dúvida.">✅ Confirmado (histórico)</span>':'<span class="dash-badge ok">✅ Confirmado</span>'):i.status==='adiado'?'<span class="dash-badge pend">⏭ Adiado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
         const ck=i.confKey.replace(/'/g,"\\'");
         const da=i.dataAtiva.replace(/'/g,"\\'");
-        const ac=i.status==='confirmado'?`<span style="font-size:.72rem;color:#16a34a">Pago ✓</span>`:`<button class="dash-btn-conf" onclick="confPag('${ck}','${da}')">✅ Confirmar</button><button class="dash-btn-adiar" onclick="adiarPag('${ck}','${da}')">⏭ Adiar</button>`;
+        // Confirmar/Adiar/Não recebido agora só existem em Financeiro → Contas a Receber
+        // (2026-07-16) — aqui em Metas & Comissões fica só leitura, pra não ter duas telas
+        // com regras diferentes (Financeiro exige motivo/nova data no adiamento, aqui não
+        // exigia nada). Ver [[project_pagamento_extra_clabonde_quinzena]] pro fluxo de pagConf.
+        const ac=i.status==='confirmado'?`<span style="font-size:.72rem;color:#16a34a">Pago ✓</span>`:i.status==='adiado'?`<span style="font-size:.72rem;color:#b45309" title="Adiado — veja o motivo em Financeiro → Contas a Receber">⏭ Adiado</span>`:`<span style="font-size:.68rem;color:#94a3b8" title="Confirmar ou marcar como não recebido agora é só em Financeiro → Contas a Receber">Ver em Financeiro</span>`;
         return`<tr style="${i.status==='confirmado'?'background:#f0fdf4;':''}">
           <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
           <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
@@ -7252,7 +7573,7 @@ function renderDashComissoes(){
         <td style="font-weight:700;color:#7c3aed">${fmtR(com)}</td>
         <td style="font-size:.7rem;color:#16a34a;white-space:nowrap">${dataConf}</td>
         <td>${mkDetalhesCell(i)}</td>
-        <td><button class="dash-btn-adiar" onclick="reabrirPag('${ck}')">↩ Reabrir</button></td>
+        <td><span style="font-size:.68rem;color:#94a3b8" title="Reabrir agora é só em Financeiro → Contas a Receber">Ver em Financeiro</span></td>
       </tr>`;
     }).join('');
     return`<details style="margin:6px 0 16px">
