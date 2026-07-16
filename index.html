@@ -6503,6 +6503,23 @@ function _antesOuIgualJulhoI(dataStr){
   if(m>7)return false;
   return dia<=7;
 }
+// Regra 2026-07-16 (pedido do usuário): nenhuma comissão pode ser paga dentro do MESMO
+// mês em que a venda aconteceu — só depois que o mês da venda fecha de vez é que dá pra
+// saber com certeza se bateu meta (comissão cheia) ou não (metade). Ex.: venda de julho
+// com entrada paga antes do dia 15/07 caía direto na quinzena de 15/07 (mês ainda aberto,
+// % incerta); agora essa quinzena é empurrada automaticamente pro dia 5 do mês seguinte
+// (05/08), primeiro ponto em que o mês da venda já fechou e a % é definitiva. Só entra em
+// ação quando a quinzena calculada bate no mesmo mês da venda — quinzenas que já caem num
+// mês posterior (parcelas futuras de pedidos parcelados) não são mexidas.
+function _empurraQuinzenaMesFechado(qi,emY,emM){
+  if(!qi)return qi;
+  if(qi.y===emY&&qi.m===emM){
+    let ny=emY,nm=emM+1;
+    if(nm>12){nm=1;ny++;}
+    return {y:ny,m:nm,half:'I'};
+  }
+  return qi;
+}
 function getComissaoItemsAll(){
   if(_comItemsCache)return _comItemsCache;
   const all=[];
@@ -6518,7 +6535,7 @@ function getComissaoItemsAll(){
     getParcelas(p).forEach(parc=>{
       const conf=getPagConf(parc.confKey);
       const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
-      const qi=getComissaoQuinzena(p,dataAtiva);
+      let qi=getComissaoQuinzena(p,dataAtiva);
       if(!qi)return;
       // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
       const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
@@ -6535,6 +6552,7 @@ function getComissaoItemsAll(){
       else if(xlsxRef){emY=2026;emM=xlsxRef.m;}
       else if(p.emissaoEm){emY=parseInt(p.emissaoEm.slice(0,4))||qi.y;emM=parseInt(p.emissaoEm.slice(5,7))||qi.m;}
       else{emY=qi.y;emM=qi.m;}
+      qi=_empurraQuinzenaMesFechado(qi,emY,emM);
       // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento.
       // Vendedor sempre normalizado a partir da planilha (fonte única) quando existir OS
       // correspondente — evita qualquer nome divergente/desatualizado salvo no pedido.
@@ -6568,9 +6586,10 @@ function getComissaoItemsAll(){
       const confKey=`xlsxv::${x.p}::${idx}`;
       const conf=getPagConf(confKey);
       const dataAtiva=conf&&conf.novaData?conf.novaData:parc.dataStr;
-      const qi=getComissaoQuinzena(synP,dataAtiva);
+      let qi=getComissaoQuinzena(synP,dataAtiva);
       if(!qi)return;
       const emM=x.m,emY=2026;
+      qi=_empurraQuinzenaMesFechado(qi,emY,emM);
       // x.v é o nome curto da planilha (ex: "JULIO") — precisa mapear pro nome completo
       // cadastrado (ex: "JULIO CESAR DO NASCIMENTO"), que é a chave usada em cfg.metasMes.
       // Sem isso, getMetaMes não acha a meta (nome não bate) e sempre cai em "não bateu".
@@ -6602,8 +6621,9 @@ function getComissaoItemsAll(){
   (cfg.saldosDevedores||[]).forEach(sd=>{
     const conf=getPagConf(sd.confKey);
     const dataAtiva=conf&&conf.novaData?conf.novaData:sd.dataStr;
-    const qi=getQuinzenaInfo(dataAtiva);
+    let qi=getQuinzenaInfo(dataAtiva);
     if(!qi)return;
+    qi=_empurraQuinzenaMesFechado(qi,sd.emY,sd.emM);
     const pct=getPctComissao(sd.emY,sd.emM,sd.nomeVend);
     const pctClab=getPctComissao(sd.emY,sd.emM,'CLABONDE');
     const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(sd,conf);
