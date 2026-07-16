@@ -3206,7 +3206,7 @@ function openEmissao(eid2){
     const p=pedidos.find(x=>x.id===eid2);
     const v=p.valores||{},pg=p.pagamento||{},inst=p.instalacao||{},fr=p.frete||{},proj=p.projetos||{};
     ed={tipo:p.tipo,resp:p.responsavel,cli:p.cliente,emails:[...(p.emails||[])],email_comprador:p.email_comprador||(p.emails||[])[0]||'',email_engenheiro:p.email_engenheiro||(p.emails||[])[1]||'',email_financeiro:p.email_financeiro||'',job:p.job,prazo:p.prazo,os:p.os,obs:p.obs,
-      etapa:p.etapa,tipoPedido:p.tipoPedido||'',vtotal:(v['Valor Total']||'').replace('R$ ','').replace(/\./g,'').replace(',','.'),vmed:'',vart:'',
+      etapa:p.etapa,tipoPedido:p.tipoPedido||'',vtotal:(v['Valor Total']||'').replace('R$ ','').replace(/\./g,'').replace(',','.'),vmed:'',vart:'',vlaudo:'',
       i_tipo:v['Instalação']||'Não tem instalação',vinst:'',vmob:'',vrem:'',remocao:'',
       f_tipo:v['Frete']||'Por nossa conta',fmod:v['Modalidade Logística']||'',vfrete:'',
       elevacoes:v['Elevações']||'Não',elevs:[...(p.elevacoes||[])],velev:'',elevBloqVia:p.elevBloqVia||'',
@@ -3222,7 +3222,7 @@ function openEmissao(eid2){
       // usuário: reenvio saindo sem o PDF do pedido pra baixar).
       arq_os_url:p.arq_os_url||'',
       art:proj.art||'',cnpj_art:proj.cnpj_art||'',cnpj_art_url:proj.cnpj_art_url||'',
-      arq_prod:proj.arq_prod||'',layout_inst:proj.layout_inst||'',fotos_orig:proj.fotos_orig||'',pasta_arquivos:proj.pasta_arquivos||'',
+      arq_prod:proj.arq_prod||'',layout_inst:proj.layout_inst||'',fotos_orig:proj.fotos_orig||'',pasta_arquivos:proj.pasta_arquivos||'',laudo:proj.laudo||'',
       iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
       iend:inst['Endereço de Instalação']||'',ihor:inst['Horário']||'Comercial',
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
@@ -3234,10 +3234,10 @@ function openEmissao(eid2){
       facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
     ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],email_comprador:'',email_engenheiro:'',email_financeiro:'',job:'',prazo:'',os:'',obs:'',
-      vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',vart:'',
+      vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',vart:'',vlaudo:'',
       elevacoes:'',elevs:[],velev:'',elevBloqVia:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
-      nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',pasta_arquivos:'',
+      nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',pasta_arquivos:'',laudo:'',
       iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',
       minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:''};
   }
@@ -3293,6 +3293,8 @@ function validarAba(id){
   }
   if(id==='projetos'){
     if(!ed.pasta_arquivos||!ed.pasta_arquivos.trim())erros.push('Informe o caminho da pasta de arquivos para projetos');
+    if(!ed.laudo)erros.push('Informe se o pedido tem Laudo Técnico (TEM LAUDO TÉCNICO?)');
+    if(ed.laudo==='Sim'&&!ed.vlaudo)erros.push('Valor do Laudo Técnico não informado');
     if(ed.art==='Sim'&&!ed.cnpj_art)erros.push('Anexe o Cartão CNPJ da Obra');
     if(!ed.arq_prod)erros.push('Selecione os arquivos de produção');
     if(!ed.layout_inst)erros.push('Selecione o layout de instalação');
@@ -3435,6 +3437,8 @@ function saveSt(){
     const gRad=n=>document.querySelector(`input[name="${n}"]:checked`)?.value||ed[n]||'';
     ed.arq_prod=gRad('arq_prod');ed.layout_inst=gRad('layout_inst');ed.fotos_orig=gRad('fotos_orig');
     ed.pasta_arquivos=gv('em-pasta-arquivos');
+    ed.laudo=gon('tg_laudo');
+    if(ed.laudo==='Sim'){const vl=gv('em-vlaudo');if(vl)ed.vlaudo=vl;}
   }else if(id==='instalacao'){
     ed.iacomp=gv('em-ia');ed.itel=gv('em-it');
     ed.icep=gv('em-icep');ed.ilog=gv('em-ilog');ed.inum_e=gv('em-inum');ed.icomp=gv('em-icomp');
@@ -3502,7 +3506,8 @@ function calcLiq(){
   const e=readInput('em-velv',ed.velev);
   const me=readInput('em-vmed',ed.vmed);
   const a=readInput('em-vart',ed.vart);
-  return t-i-m-r-f-e-me-a;
+  const l=readInput('em-vlaudo',ed.vlaudo);
+  return t-i-m-r-f-e-me-a-l;
 }
 function updPagCheck(){
   const box=document.getElementById('pag-check');if(!box)return;
@@ -3626,7 +3631,7 @@ function selRC(el,cls){
 function rTG(cls,val,label,cur,yes){const on=cur===val;
   return`<button class="tgb${yes?' yes':' no'}${on?' on':''} ${cls}" data-val="${val}" onclick="togBtn(this,'${cls}')">${label}</button>`}
 function togBtn(el,cls){
-  const map={tg_oc:'tem_oc',tg_art:'art',tg_elv:'elevacoes',tg_med:'medicao',tg_itg:'iinteg',tg_seg:'iseg',tg_rem:'remocao',tg_chumb:'chumbador',tg_bloqenergia:'ibloqenergia',tg_bloqvia:'elevBloqVia'};
+  const map={tg_oc:'tem_oc',tg_art:'art',tg_elv:'elevacoes',tg_med:'medicao',tg_itg:'iinteg',tg_seg:'iseg',tg_rem:'remocao',tg_chumb:'chumbador',tg_bloqenergia:'ibloqenergia',tg_bloqvia:'elevBloqVia',tg_laudo:'laudo'};
   el.closest('.tg-grp').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');if(map[cls])ed[map[cls]]=el.dataset.val;
   if(cls==='tg_elv'||cls==='tg_med'){saveSt();renderEM();}else updCond();
@@ -3643,6 +3648,7 @@ function updCond(){
   const cnpjArt=document.getElementById('fg-cnpj-art');if(cnpjArt)cnpjArt.style.display=ed.art==='Sim'?'block':'none';
   const vmedR=document.getElementById('vmed-row');if(vmedR)vmedR.style.display=ed.medicao==='Sim'?'':'none';
   const vartR=document.getElementById('vart-row');if(vartR)vartR.style.display=ed.art==='Sim'?'':'none';
+  const vlaudoR=document.getElementById('vlaudo-row');if(vlaudoR)vlaudoR.style.display=ed.laudo==='Sim'?'':'none';
   const velevR=document.getElementById('velev-row');if(velevR)velevR.style.display=ed.elevacoes==='Sim'?'':'none';
   const es=document.getElementById('elev-s');if(es)es.style.display=ed.elevacoes==='Sim'?'':'none';
   const hent=document.querySelector('.rc-ent.sel')?.dataset?.val==='Tem entrada';
@@ -3856,6 +3862,13 @@ function renderStep(id){
         <label>Caminho da pasta de arquivos para projetos <span class="r">*</span></label>
         <input class="fc no-upper" id="em-pasta-arquivos" value="${(ed.pasta_arquivos||'').replace(/"/g,'&quot;')}" placeholder="Ex: \\\\SERVIDOR\\Projetos\\2026\\OS 12345 - Cliente" oninput="ed.pasta_arquivos=this.value">
         <div style="font-size:.72rem;color:var(--ink4);margin-top:4px">Caminho, dentro do nosso servidor, de onde os arquivos deste pedido foram salvos para acesso do setor de projetos.</div>
+      </div>
+      <div class="fg" style="margin-top:14px"><label>TEM LAUDO TÉCNICO? <span class="r">*</span></label>
+        <div class="tg-grp">${rTG('tg_laudo','Sim','Sim',ed.laudo,true)}${rTG('tg_laudo','Não','Não',ed.laudo,false)}</div>
+      </div>
+      <div id="vlaudo-row" style="display:${ed.laudo==='Sim'?'':'none'}">
+        <div class="fg"><label>Valor do Laudo Técnico <span class="r">*</span></label><input class="fc" id="em-vlaudo" value="${ed.vlaudo||''}" placeholder="R$ 0,00" oninput="fmtMoney(this);updLiq()"></div>
+        <div style="font-size:.72rem;color:var(--ink4);margin:-6px 0 10px">Contabilizado como despesa operacional e descontado do Valor Bruto para gerar o Valor Líquido do pedido.</div>
       </div>
       ${ed.art==='Sim'?`<div class="fg" style="margin-bottom:10px"><label style="color:#6b7280;font-size:.78rem">Este pedido tem Emissão de ART (informado na aba Valores). Anexe o Cartão CNPJ da Obra abaixo.</label></div>`:''}
       <div class="fg" id="fg-cnpj-art" style="display:${ed.art==='Sim'?'block':'none'};margin-top:10px">
@@ -4495,6 +4508,8 @@ async function submit(){
   // Aba projetos
   const idxProj=idx('projetos');
   if(!ed.pasta_arquivos||!ed.pasta_arquivos.trim())erros.push({msg:'Informe o caminho da pasta de arquivos para projetos',aba:idxProj,label:'Projetos'});
+  if(!ed.laudo)erros.push({msg:'Informe se o pedido tem Laudo Técnico (TEM LAUDO TÉCNICO?)',aba:idxProj,label:'Projetos'});
+  if(ed.laudo==='Sim'&&!ed.vlaudo)erros.push({msg:'Valor do Laudo Técnico não informado',aba:idxProj,label:'Projetos'});
   if(ed.art==='Sim'&&!ed.cnpj_art)erros.push({msg:'Anexe o Cartão CNPJ da Obra para emissão de ART',aba:idxProj,label:'Projetos'});
   if(!ed.arq_prod)erros.push({msg:'Selecione os arquivos de produção',aba:idxProj,label:'Projetos'});
   if(!ed.layout_inst)erros.push({msg:'Selecione o layout de instalação',aba:idxProj,label:'Projetos'});
@@ -4577,8 +4592,9 @@ async function submit(){
   if(ed.ftel)fr['Telefone da Descarga']=ed.ftel;
   if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
-  const proj={art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig,pasta_arquivos:ed.pasta_arquivos||''};
+  const proj={art:ed.art,cnpj_art:ed.cnpj_art,cnpj_art_url:ed.cnpj_art_url,arq_prod:ed.arq_prod,layout_inst:ed.layout_inst,fotos_orig:ed.fotos_orig,pasta_arquivos:ed.pasta_arquivos||'',laudo:ed.laudo||''};
   if(ed.art==='Sim'&&ed.vart)proj['Valor da ART']=fmtV(moneyToNum(ed.vart));
+  if(ed.laudo==='Sim'&&ed.vlaudo)proj['Valor do Laudo Técnico']=fmtV(moneyToNum(ed.vlaudo));
   const _pedidoExistente=editing?pedidos.find(x=>x.id===editing):null;
   const _emissaoExistente=_pedidoExistente?_pedidoExistente.emissaoEm:null;
   // OS sempre obrigatória (já bloqueada acima em "erros" se vazia) — removido o fallback
@@ -7031,7 +7047,7 @@ function renderFinanceiro(){
       <td style="font-size:.72rem;white-space:nowrap">${i.dataAtiva}</td>
       <td style="font-weight:700;color:${i.diasAtraso>0?'#dc2626':'#94a3b8'}">${i.diasAtraso>0?i.diasAtraso+' dia'+(i.diasAtraso>1?'s':''):'—'}</td>
       <td>${statusPill(i)}</td>
-      <td style="font-size:.7rem;color:#7c3aed;max-width:180px;white-space:normal;word-break:break-word">${i.motivoAtraso||'—'}</td>
+      <td style="max-width:230px">${i.motivoAtraso?`<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.74rem;line-height:1.4;color:#7c3aed;cursor:help" title="${i.motivoAtraso.replace(/"/g,'&quot;')}">${i.motivoAtraso}</span>`:'<span style="color:#94a3b8">—</span>'}</td>
       <td style="white-space:nowrap">${acoes}</td>
     </tr>`;
   }).join('');
@@ -7449,7 +7465,7 @@ function renderFinNaoRecebimento(){
           <td style="font-weight:700">${fmt(l.valor||0)}</td>
           <td style="font-size:.72rem">${l.dataPrevistaAnterior||'—'}</td>
           <td style="font-size:.72rem;font-weight:700;color:#b45309">${l.novaData||'—'}</td>
-          <td style="font-size:.7rem;color:#7c3aed">${(l.motivos||[]).join(', ')||'—'}${l.observacao?' — '+l.observacao:''}</td>
+          <td style="max-width:230px">${(()=>{const txt=((l.motivos||[]).join(', ')||'—')+(l.observacao?' — '+l.observacao:'');return txt==='—'?'<span style="color:#94a3b8">—</span>':`<span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.74rem;line-height:1.4;color:#7c3aed;cursor:help" title="${txt.replace(/"/g,'&quot;')}">${txt}</span>`;})()}</td>
           <td style="font-size:.68rem;color:#94a3b8;white-space:nowrap">${new Date(l.em).toLocaleDateString('pt-BR')}</td>
         </tr>`).join('')}
       </tbody></table></div>
@@ -8782,10 +8798,13 @@ function pedidoToVendaRow(p){
   // divergindo da planilha colada agora. (corrigido 2026-07-10 — antes só valia pra
   // p.importadoPlanilha===true, deixando pedidos emitidos com valores errados)
   const xlsxRow=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
-  let br,ft,vi,mo,el,art,rem,med,op,lq;
+  let br,ft,vi,mo,el,art,rem,med,laudo,op,lq;
   if(xlsxRow){
     br=xlsxRow.br||0;ft=xlsxRow.ft||0;vi=xlsxRow.vi||0;el=xlsxRow.el||0;mo=xlsxRow.mo||0;
     art=xlsxRow.art||0;rem=xlsxRow.rem||0;med=xlsxRow.med||0;
+    // Laudo Técnico é uma despesa NOVA (2026-07-16), só existe pra pedido emitido a partir
+    // de agora — planilha reconciliada (dados anteriores) nunca tem esse campo, por pedido
+    // explícito do usuário ("as vendas anteriores... deixa como está").
     op=ft+vi+el+mo+art+rem+med;
     lq=xlsxRow.lq!=null?xlsxRow.lq:(br-op);
   } else {
@@ -8797,7 +8816,8 @@ function pedidoToVendaRow(p){
     art=moneyToNum(proj['Valor da ART']||'0');
     rem=moneyToNum(inst['Valor da Remoção']||'0');
     med=moneyToNum(inst['Valor da Medição']||'0');
-    op=ft+vi+el+mo+art+rem+med;
+    laudo=moneyToNum(proj['Valor do Laudo Técnico']||'0');
+    op=ft+vi+el+mo+art+rem+med+laudo;
     // Usa o líquido salvo (mesma fonte usada pelo cálculo de comissão), com fallback ao cálculo direto
     lq=v['Valor Líquido do Pedido']!=null?moneyToNum(v['Valor Líquido do Pedido']):(br-op);
   }
