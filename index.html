@@ -4275,6 +4275,22 @@ function buildEmissaoEmailContent(p){
   // "Elevações"/"Valor das Elevações" já têm seção própria (ELEVAÇÕES, mais abaixo) —
   // tirado daqui pra não duplicar a mesma informação em Valores e em Elevações.
   const valSemElev=Object.fromEntries(Object.entries(val).filter(([k])=>k!=='Elevações'&&k!=='Valor das Elevações'));
+  // Total de Despesas Operacionais (2026-07-16, pedido do usuário): soma de tudo que foi
+  // descontado do Bruto (frete, mobilização, elevações, ART, remoção, medição, laudo
+  // técnico etc.) — calculado como Bruto menos Líquido pra não precisar somar cada
+  // dedução individual aqui de novo. Inserido só na cópia usada pelo e-mail (valEmail),
+  // entre Bruto e Líquido — não mexe no objeto "val" original (usado em Ver Detalhes/PDF).
+  const brutoNum=moneyToNum(val['Valor Bruto']||val['Valor Total']||'0');
+  const liqNum=moneyToNum(val['Valor Líquido do Pedido']||'0');
+  const opNum=brutoNum-liqNum;
+  const valEmail={};
+  Object.entries(valSemElev).forEach(([k,v])=>{
+    valEmail[k]=v;
+    if(k==='Valor Bruto'&&opNum>0.005)valEmail['Total de Despesas Operacionais']=fmtR(opNum);
+  });
+  // Parcelas/Entrada em "(Líquido)" são um dado interno (base de cálculo da comissão do
+  // vendedor) — não relevante pro cliente/equipe que recebe este e-mail de emissão.
+  const pagSemLiquido=Object.fromEntries(Object.entries(pag).filter(([k])=>!/\(Líquido\)$/.test(k)));
   const fmtSec=(titulo,obj)=>{
     if(!Object.keys(obj).length)return'';
     const rows=Object.entries(obj).map(([k,v],i)=>`
@@ -4338,8 +4354,8 @@ function buildEmissaoEmailContent(p){
         ...(p.email_engenheiro?{"E-mail do Engenheiro da Obra":p.email_engenheiro}:{}),
         ...(p.email_financeiro?{"E-mail Financeiro (envio de NF's)":p.email_financeiro}:{})
       })}
-      ${fmtSec('Valores',valSemElev)}
-      ${fmtSec('Pagamento',pag)}
+      ${fmtSec('Valores',valEmail)}
+      ${fmtSec('Pagamento',pagSemLiquido)}
       ${p.arq_os_url?`
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Ordem de Serviço</td>
         <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(p.arq_os_url)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">ORDEM DE SERVIÇO GRANDA ↗</a></td>
