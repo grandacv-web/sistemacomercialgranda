@@ -760,17 +760,22 @@ select.fc{cursor:pointer}
         </div>
         <div id="tf-add-wrap" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;margin-bottom:12px">
           <div style="font-size:.66rem;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">+ Nova tarefa</div>
-          <div style="display:grid;grid-template-columns:1.1fr 1fr .85fr .85fr auto;gap:8px">
-            <select id="tf-novo-pedido" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
-              <option value="">— Tarefa avulsa (sem venda específica) —</option>
-            </select>
-            <input id="tf-novo-tipo" type="text" placeholder="Descreva a tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+          <div style="display:grid;grid-template-columns:1.1fr 1fr .85fr .85fr auto;gap:8px;margin-bottom:8px">
+            <div style="position:relative">
+              <input type="hidden" id="tf-novo-pedido-id" value="">
+              <input id="tf-novo-pedido-busca" type="text" class="no-upper" autocomplete="off" placeholder="🔍 Buscar por OS ou cliente (ex: MOGI)..."
+                oninput="_tfPedidoBuscaInput(this.value)" onfocus="_tfPedidoBuscaInput(this.value)" onblur="_tfPedidoBuscaBlur()"
+                style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
+              <div id="tf-novo-pedido-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1.5px solid #bfdbfe;border-radius:8px;margin-top:3px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.14)"></div>
+            </div>
+            <input id="tf-novo-tipo" type="text" placeholder="Título da tarefa..." class="no-upper" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
             <select id="tf-novo-responsavel" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff">
               <option value="">Sem responsável</option>
             </select>
             <input id="tf-novo-prazo" type="date" title="Prazo (opcional) — usado no Relatório pra medir atraso" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff;color:#475569">
             <button onclick="_addTarefaAvulsaFromForm()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:8px 16px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap">Adicionar</button>
           </div>
+          <textarea id="tf-novo-desc" class="no-upper" placeholder="Descrição da tarefa (opcional) — detalhe o que precisa ser feito..." rows="2" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff;resize:vertical"></textarea>
         </div>
         <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
@@ -839,7 +844,6 @@ select.fc{cursor:pointer}
             <option value="">Todos os status</option>
             <option value="pendente" selected>⏳ Pendente</option>
             <option value="atrasado">⚠️ Em atraso</option>
-            <option value="nao_recebido">❌ Não recebido (com motivo)</option>
             <option value="confirmado">✅ Recebido</option>
           </select>
           <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Pagamento de</span>
@@ -1281,6 +1285,16 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+<!-- DETALHE DA TAREFA MODAL -->
+<div class="mov" id="mo-tarefa-detalhe" onclick="cio(event,'mo-tarefa-detalhe')">
+<div class="mvmod" style="width:560px;max-width:96vw;max-height:86vh;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <h3 style="margin-bottom:0">📋 Detalhe da Tarefa</h3>
+    <button onclick="closeM('mo-tarefa-detalhe')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div id="td-body" style="overflow-y:auto;flex:1"></div>
+</div>
+</div>
 
 <!-- MOTIVO NÃO RECEBIDO MODAL -->
 <div class="mov" id="mo-motivo-nr" onclick="cio(event,'mo-motivo-nr')">
@@ -1328,7 +1342,15 @@ select.fc{cursor:pointer}
   <div id="cfr-valor-wrap" style="display:none;margin-top:10px">
     <div class="fg">
       <label>Valor realmente pago <span class="r">*</span></label>
-      <input class="fc" id="cfr-valor-neg" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="fmtMoney(this)">
+      <input class="fc" id="cfr-valor-neg" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="fmtMoney(this);_cfrAtualizaSaldo()">
+    </div>
+    <div id="cfr-saldo-wrap" style="display:none;margin-top:4px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:12px 14px">
+      <div style="font-size:.78rem;color:#9a3412;margin-bottom:10px">💰 Saldo devedor: <strong id="cfr-saldo-valor">R$ 0,00</strong> — pra quando o cliente vai pagar o restante?</div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Nova data prevista do saldo <span class="r">*</span></label>
+        <input type="date" class="fc" id="cfr-saldo-data">
+      </div>
+      <p style="font-size:.68rem;color:#9a3412;opacity:.85;margin:8px 0 0">Essa parcela fecha com o valor pago acima; o restante entra de novo em Contas a Receber com essa nova data.</p>
     </div>
   </div>
   <button onclick="salvarConfirmarRecebimento()" style="margin-top:14px;width:100%;background:#16a34a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">Confirmar Recebimento</button>
@@ -1436,6 +1458,17 @@ select.fc{cursor:pointer}
             </div>
             <div class="fg"><label>Valor (R$)</label><input class="fc no-upper" type="text" inputmode="numeric" id="pe-valor" oninput="fmtMoney(this)" placeholder="250,00"></div>
             <div class="fg"><label>Motivo</label><input class="fc no-upper" type="text" id="pe-motivo" placeholder="Ex: Bônus meta geral batida"></div>
+          </div>
+          <div class="fg" style="margin-top:10px">
+            <label>Quinzena de pagamento (data em que ISSO deve sair no relatório)</label>
+            <div style="display:flex;gap:6px">
+              <select class="fc no-upper" id="pe-pag-dia" style="width:130px">
+                <option value="5">1ª · dia 5</option>
+                <option value="15">2ª · dia 15</option>
+              </select>
+              <select class="fc no-upper" id="pe-pag-mes" style="flex:1"></select>
+              <input class="fc no-upper" type="number" id="pe-pag-ano" style="width:90px" placeholder="2026">
+            </div>
           </div>
           <div id="pe-pag-info" style="font-size:.72rem;color:#7c3aed;font-weight:600;margin:8px 0 2px"></div>
           <button class="btn-next" style="margin-top:6px" onclick="addPagamentoExtra()">+ Adicionar Pagamento</button>
@@ -1716,8 +1749,12 @@ const TAREFA_TIPOS_SUGERIDOS=['Lançar no GCore'];
 // criadoPor registra quem lançou a tarefa (não quem é o responsável por executá-la) — só
 // essa pessoa (ou admin) pode excluir a tarefa depois; o responsável só pode concluir/
 // reabrir, nunca excluir (ver _podeExcluirTarefa()/excluirTarefaComercial()).
-function novaTarefaComercial(tipo,responsavel,prazoTarefa,criadoPor){
-  return{id:uid(),tipo,status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||'',criadoPor:criadoPor||''};
+// tipo = TÍTULO da tarefa (nome curto, obrigatório — mesmo campo de sempre, só renomeado
+// na interface). descricao é NOVA (2026-07-16): texto livre opcional com mais detalhe, que
+// só aparece completo ao abrir a tarefa (ver abrirDetalheTarefa()) — na lista aparece só um
+// resumo, separado visualmente do título.
+function novaTarefaComercial(tipo,responsavel,prazoTarefa,criadoPor,descricao){
+  return{id:uid(),tipo,descricao:descricao||'',status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||'',criadoPor:criadoPor||''};
 }
 // Regras configuráveis em Configurações > Tarefas Automáticas (cfg.regrasTarefasComerciais).
 // Cada regra: {id, tipo:'' (vazio=qualquer, ou uma chave de TC como "Venda"/"Amostra"),
@@ -1812,12 +1849,12 @@ function _refreshTarefasBadge(){
   const n=isAdm?pend.length:pend.filter(t=>t.responsavel===meuNome).length;
   badge.textContent=n?` (${n})`:'';
 }
-async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa){
+async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa,descricao){
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!p){toast('Pedido não encontrado','terr');return;}
-  if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
+  if(!tipo||!tipo.trim()){toast('Dê um título pra tarefa','terr');return;}
   if(!p.tarefasComerciais)p.tarefasComerciais=[];
-  const novaT=novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||'');
+  const novaT=novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||'',(descricao||'').trim());
   p.tarefasComerciais.push(novaT);
   await savePedidoFS(p);
   renderTarefasComerciais();
@@ -1831,10 +1868,10 @@ async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTar
 // igual todo o resto do cfg) em vez de dentro de um pedido, já que não existe pedido pra
 // anexar. Mesmo formato de tarefa (id/tipo/status/responsavel/datas/prazoTarefa/criadoPor),
 // só sem pedidoId/OS.
-async function adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa){
-  if(!tipo||!tipo.trim()){toast('Descreva a tarefa','terr');return;}
+async function adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa,descricao){
+  if(!tipo||!tipo.trim()){toast('Dê um título pra tarefa','terr');return;}
   if(!cfg.tarefasGerais)cfg.tarefasGerais=[];
-  const novaT=novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||'');
+  const novaT=novaTarefaComercial(tipo.trim(),responsavel||'',prazoTarefa||'',usuarioLogado?.nomeExibicao||'',(descricao||'').trim());
   cfg.tarefasGerais.push(novaT);
   if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
@@ -1923,6 +1960,7 @@ function buildTarefaEmailContent(t,pedidoInfo){
 
   <!-- BODY -->
   <tr><td style="padding:32px 40px;background:#ffffff">
+    ${t.descricao?`<p style="margin:0 0 20px;padding:14px 16px;background:#fafafa;border-left:3px solid #e91e63;border-radius:4px;color:#374151;font-size:13px;line-height:1.6;white-space:pre-wrap">${t.descricao}</p>`:''}
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">Responsável</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${t.responsavel}</td></tr>
       <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">Lançada por</td><td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600">${t.criadoPor||'—'}</td></tr>
@@ -2086,6 +2124,12 @@ function setupRealtimeSync(){
   if(!window._fbWatchPedidos)return;
   window._fbWatchPedidos(function(snapshot){
     pedidos=snapshot.docs.map(d=>d.data());
+    // Sem isso, getComissaoItemsAll() continuava servindo o array em cache (_comItemsCache)
+    // montado ANTES dessa atualização de pedidos — editar OS/valores/vendedor num pedido
+    // (Editar Valores, Venda Manual etc.) atualizava o Firestore corretamente, mas Financeiro/
+    // Comissões continuavam mostrando os dados antigos até um F5. Achado 2026-07-16 (usuário
+    // trocou a OS de um pedido de 86 pra 94 e o Financeiro continuou mostrando 86).
+    if(typeof _invalidateDashCache==='function')_invalidateDashCache();
     renderAll();
     // Pedidos chegam do Firestore de forma assíncrona — se o usuário já estiver numa
     // tela que depende deles (Gráficos é a tela padrão ao abrir o sistema, então quase
@@ -5816,19 +5860,36 @@ function initPagamentosExtrasForm(){
   const anoEl=document.getElementById('pe-ano');
   if(anoEl&&!anoEl.value)anoEl.value=dashMesAtual.y;
   if(selM&&!selM.value)selM.value=String(dashMesAtual.m);
+  const selPagM=document.getElementById('pe-pag-mes');
+  if(selPagM&&!selPagM.dataset.filled){
+    selPagM.innerHTML=MESES_PT.map((nome,i)=>i>0?`<option value="${i}">${nome}</option>`:'').join('');
+    selPagM.dataset.filled='1';
+  }
+  // Sugestão inicial (editável): baseada em quando está sendo lançado hoje, mas o
+  // usuário pode mudar pra QUALQUER quinzena — 2026-07-16, a pedido do usuário, o
+  // sistema pergunta explicitamente em vez de travar no cálculo automático.
+  const hoje=new Date();
+  const q=calcQuinzenaLancamento(hoje);
+  const selPagDia=document.getElementById('pe-pag-dia');
+  if(selPagDia&&!selPagDia.dataset.filled){selPagDia.value=String(q.dia);selPagDia.dataset.filled='1';}
+  if(selPagM&&!selPagM.dataset.valSet){selPagM.value=String(q.m);selPagM.dataset.valSet='1';}
+  const pagAnoEl=document.getElementById('pe-pag-ano');
+  if(pagAnoEl&&!pagAnoEl.value)pagAnoEl.value=q.y;
   const info=document.getElementById('pe-pag-info');
   if(info){
-    const hoje=new Date();
-    const q=calcQuinzenaLancamento(hoje);
-    info.textContent='Lançando hoje ('+hoje.toLocaleDateString('pt-BR')+') → pagamento previsto: '+q.label;
+    info.textContent='Sugestão (pode alterar acima): lançando hoje ('+hoje.toLocaleDateString('pt-BR')+') → pagamento previsto '+q.label;
   }
   renderPagamentosExtrasList();
 }
 
 function getPagamentosExtras(){return cfg.pagamentosExtras||[];}
 
-function getPagamentosExtrasMes(y,m){
-  return getPagamentosExtras().filter(p=>p.y===y&&p.m===m);
+// dia opcional (5 ou 15): quando informado, escopa pra SÓ os extras cuja quinzena de
+// pagamento (pagDia/pagM/pagY, escolhida explicitamente no lançamento) bate com a quinzena
+// pedida — pra um bônus já pago/confirmado numa quinzena não voltar a aparecer "pra pagar"
+// no relatório/PDF de outra quinzena do mesmo mês de referência (bug relatado 2026-07-16).
+function getPagamentosExtrasMes(y,m,dia){
+  return getPagamentosExtras().filter(p=>p.y===y&&p.m===m&&(dia==null||(p.pagDia===dia&&p.pagM===m&&p.pagY===y)));
 }
 
 function getPagamentosExtrasVendedor(y,m,vendedor){
@@ -5848,14 +5909,21 @@ async function addPagamentoExtra(){
   const y=parseInt(document.getElementById('pe-ano')?.value,10);
   const valor=parseFloat((document.getElementById('pe-valor')?.value||'').replace(/[R$\s.]/g,'').replace(',','.'))||0;
   const motivo=document.getElementById('pe-motivo')?.value?.trim();
+  // 2026-07-16: data de pagamento agora é PERGUNTADA explicitamente (não mais calculada
+  // sozinha a partir do momento do lançamento) — pedido do usuário, pra evitar bônus já
+  // pago reaparecendo "pra pagar de novo" num relatório de outra quinzena do mesmo mês.
+  const pagDia=parseInt(document.getElementById('pe-pag-dia')?.value,10);
+  const pagM=parseInt(document.getElementById('pe-pag-mes')?.value,10);
+  const pagY=parseInt(document.getElementById('pe-pag-ano')?.value,10);
   if(!vendedor){toast('Selecione o vendedor!','terr');return;}
-  if(!y||!m){toast('Selecione o mês/ano!','terr');return;}
+  if(!y||!m){toast('Selecione o mês/ano de referência!','terr');return;}
   if(valor<=0){toast('Digite um valor maior que zero!','terr');return;}
   if(!motivo){toast('Descreva o motivo do pagamento!','terr');return;}
+  if(!pagDia||!pagM||!pagY){toast('Selecione a quinzena de pagamento (dia/mês/ano)!','terr');return;}
   if(!cfg.pagamentosExtras)cfg.pagamentosExtras=[];
   const agora=new Date();
-  const q=calcQuinzenaLancamento(agora);
-  cfg.pagamentosExtras.push({id:'pe_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),vendedor,y,m,valor,motivo,status:'pendente',criadoEm:agora.toISOString(),pagY:q.y,pagM:q.m,pagDia:q.dia,pagLabel:q.label});
+  const pagLabel=(pagDia===5?'1ª Quinzena (pagar dia 5) · ':'2ª Quinzena (pagar dia 15) · ')+MESES_PT[pagM]+' '+pagY;
+  cfg.pagamentosExtras.push({id:'pe_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),vendedor,y,m,valor,motivo,status:'pendente',criadoEm:agora.toISOString(),pagY,pagM,pagDia,pagLabel});
   if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   document.getElementById('pe-valor').value='';
@@ -5863,7 +5931,7 @@ async function addPagamentoExtra(){
   renderPagamentosExtrasList();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashMetas==='function')renderDashMetas();
-  toast('✅ Pagamento de '+fmtR(valor)+' lançado para '+vendedor+' · previsão de pagamento: '+q.label,'tok');
+  toast('✅ Pagamento de '+fmtR(valor)+' lançado para '+vendedor+' · previsão de pagamento: '+pagLabel,'tok');
 }
 
 function renderPagamentosExtrasList(){
@@ -6454,8 +6522,19 @@ function getComissaoItemsAll(){
       if(!qi)return;
       // Usa XLSX_VENDAS como fonte autoritativa do mês de venda (evita mês errado salvo no Firestore)
       const xlsxRef=(XLSX_VENDAS||[]).find(x=>String(x.p)===String(p.os));
-      const emY=xlsxRef?2026:(p.emissaoEm?parseInt(p.emissaoEm.slice(0,4)):qi.y);
-      const emM=xlsxRef?xlsxRef.m:(p.emissaoEm?parseInt(p.emissaoEm.slice(5,7)):qi.m);
+      // Mês da venda pra cálculo de comissão (bateu-meta): mesma prioridade já usada em
+      // pedidoToVendaRow() pra Lista de Vendas/Metas — override manual (campo "Mês da Venda"
+      // em Editar Valores) sempre vence, senão a planilha reconciliada, senão a emissão.
+      // BUG GRAVE corrigido 2026-07-16: esta função só olhava xlsxRef/emissaoEm, IGNORANDO
+      // mesVendaOverride — uma venda corrigida manualmente pra contar em outro mês (ex.:
+      // vendida em junho, só emitida/ajustada depois) aparecia certa na Lista de Vendas, mas
+      // a comissão continuava calculando bateu/não-bateu meta do mês ERRADO, pagando metade
+      // da comissão (15% em vez de 30%) mesmo o vendedor tendo batido a meta do mês certo.
+      let emY,emM;
+      if(p.mesVendaOverride){emY=2026;emM=parseInt(p.mesVendaOverride,10)||0;}
+      else if(xlsxRef){emY=2026;emM=xlsxRef.m;}
+      else if(p.emissaoEm){emY=parseInt(p.emissaoEm.slice(0,4))||qi.y;emM=parseInt(p.emissaoEm.slice(5,7))||qi.m;}
+      else{emY=qi.y;emM=qi.m;}
       // % aplicado conforme a meta do mês da VENDA (emissão), não do mês de pagamento.
       // Vendedor sempre normalizado a partir da planilha (fonte única) quando existir OS
       // correspondente — evita qualquer nome divergente/desatualizado salvo no pedido.
@@ -6469,7 +6548,7 @@ function getComissaoItemsAll(){
       const vendForPct=xlsxRef?mapVendedorName(xlsxRef.v):mapVendedorName(p.responsavel||'');
       const pct=getPctComissao(emY,emM,vendForPct);
       const pctClab=getPctComissao(emY,emM,'CLABONDE');
-      const emMes=xlsxRef?(MESES_PT[emM]+' '+emY):(p.emissaoEm?(MESES_PT[emM]||'—')+' '+p.emissaoEm.slice(0,4):'—');
+      const emMes=MESES_PT[emM]?MESES_PT[emM]+' '+emY:'—';
       const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(parc,conf);
       // Regra Julho I (ver _antesOuIgualJulhoI acima) — só se aplica a pedido que também
       // existe na planilha reconciliada (xlsxRef), que é o universo "pré-julho" de vendas
@@ -6511,6 +6590,25 @@ function getComissaoItemsAll(){
       const item={pedidoId:confKey,pedido:synP,label:`Parcela ${idx+1}`,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,dataStr:parc.dataStr,confKey,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendNorm||x.v||'—',cliente:x.cl||'—',categoria:x.cat||'',mesPedido:emMes,emY,emM,pedidoOs:String(x.p),job:'',cidade:'',_pid:'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
+  });
+  // Saldo devedor (2026-07-16) — quando o Financeiro confirma um pagamento PARCIAL em
+  // Contas a Receber (cliente pagou menos que o previsto), o restante é lançado aqui como
+  // um item novo e independente, com sua própria confKey ('saldo::...') e data prevista —
+  // assim continua aparecendo em Contas a Receber/Fluxo de Caixa até ser recebido, em vez
+  // de simplesmente desaparecer junto com a parcela original (que já fechou confirmada só
+  // pelo valor efetivamente pago). Ver salvarConfirmarRecebimento(). Segue o mesmo fluxo de
+  // status normal (pendente/atrasado/não recebido/confirmado) via cfg.pagConf, então
+  // Confirmar/Não recebido/Reabrir funcionam nele exatamente como em qualquer parcela.
+  (cfg.saldosDevedores||[]).forEach(sd=>{
+    const conf=getPagConf(sd.confKey);
+    const dataAtiva=conf&&conf.novaData?conf.novaData:sd.dataStr;
+    const qi=getQuinzenaInfo(dataAtiva);
+    if(!qi)return;
+    const pct=getPctComissao(sd.emY,sd.emM,sd.nomeVend);
+    const pctClab=getPctComissao(sd.emY,sd.emM,'CLABONDE');
+    const {valor:valorAjustado,valorBruto:valorBrutoAjustado}=_aplicaValorConfirmado(sd,conf);
+    const item={confKey:sd.confKey,label:`💰 Saldo · ${sd.origemLabel||'Parcela'}`,dataStr:sd.dataStr,valor:valorAjustado,valorBruto:valorBrutoAjustado,liqEstimado:false,status:conf?conf.status:'pendente',historicoAutoConfirmado:false,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:sd.nomeVend||'—',cliente:sd.cliente||'—',categoria:sd.categoria||'',mesPedido:sd.mesPedido||'—',emY:sd.emY,emM:sd.emM,pedidoOs:sd.pedidoOs||'—',job:sd.job||'',cidade:'',_pid:sd.pedidoId||'',pedidoPdfUrl:'',ocUrl:'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+    all.push(item);
   });
   _comItemsCache=all;
   return all;
@@ -6560,8 +6658,16 @@ function getContasReceber(){
   return getComissaoItemsAll().map(i=>{
     const diasAtraso=i.status!=='confirmado'?_diasAtraso(i.dataAtiva):0;
     let statusCalc=i.status;
+    // "Não recebido" deixou de ser um status À PARTE (2026-07-16, a pedido do usuário) —
+    // ter um motivo registrado não trava mais o item numa categoria separada pra sempre.
+    // Um adiamento só é um evento pontual (ver salvarNaoRecebido()/cfg.logAdiamentos, que
+    // já alimenta o indicador "📊 Dados de Não Recebimento/Atrasos" do Fluxo de Caixa); o
+    // status ATUAL da parcela volta a ser calculado só pela data (nova ou original): se a
+    // nova data já passou sem confirmar, some pra "Atrasado" de novo, igual qualquer outra
+    // parcela — o motivo continua visível na coluna "Motivo" da tabela, só não vira mais um
+    // status/filtro à parte.
     if(statusCalc!=='confirmado'){
-      statusCalc=i.motivoAtraso?'nao_recebido':(diasAtraso>0?'atrasado':'pendente');
+      statusCalc=diasAtraso>0?'atrasado':'pendente';
     }
     return {...i,diasAtraso,statusCalc};
   });
@@ -6639,16 +6745,24 @@ function confirmarRecebimento(confKey,dataStr){
 // valor cheio (bruto, igual mostrado na tela) ou um valor diferente negociado; se for
 // diferente, o líquido usado na comissão é recalculado proporcionalmente — ver
 // _aplicaValorConfirmado() em getComissaoItemsAll().
-let _cfrConfKey=null,_cfrDataStr=null,_cfrValorBruto=0,_cfrNegociado=false;
+let _cfrConfKey=null,_cfrDataStr=null,_cfrValorBruto=0,_cfrNegociado=false,_cfrItemFull=null;
 function abrirConfirmarRecebimento(confKey,dataStr,cliente,valorBruto){
   if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem confirmar recebimento','terr');return;}
   _cfrConfKey=confKey;_cfrDataStr=dataStr;_cfrValorBruto=valorBruto||0;
+  // Item completo (nomeVend/job/categoria/mesPedido/emY/emM/valor líquido etc.) — vem da
+  // última renderização da Lista (_finItemsAtuais), pra usar se o pagamento for parcial e
+  // precisar lançar o saldo devedor com os mesmos dados da venda original (ver
+  // salvarConfirmarRecebimento()). Sem isso não teria como montar o saldo sem repetir uma
+  // dezena de parâmetros no onclick de cada linha da tabela.
+  _cfrItemFull=_finItemsAtuais.find(x=>x.confKey===confKey)||null;
   const info=document.getElementById('cfr-info');
   if(info)info.innerHTML=`<strong>${cliente||'—'}</strong> · previsto <strong>${fmtR(valorBruto||0)}</strong> · ${dataStr||'—'}`;
   const cheioLbl=document.getElementById('cfr-opt-cheio-lbl');
   if(cheioLbl)cheioLbl.textContent=`✅ Pagou o valor cheio (${fmtR(valorBruto||0)})`;
   const inp=document.getElementById('cfr-valor-neg');
   if(inp){inp.value='';inp.dataset.raw='0';}
+  const saldoData=document.getElementById('cfr-saldo-data');if(saldoData)saldoData.value='';
+  const saldoWrap=document.getElementById('cfr-saldo-wrap');if(saldoWrap)saldoWrap.style.display='none';
   _cfrSetNegociado(false);
   openM('mo-confirmar-receb');
 }
@@ -6658,19 +6772,61 @@ function _cfrSetNegociado(negociado){
   document.getElementById('cfr-opt-neg')?.classList.toggle('sel',negociado);
   const wrap=document.getElementById('cfr-valor-wrap');
   if(wrap)wrap.style.display=negociado?'':'none';
+  if(!negociado){const sw=document.getElementById('cfr-saldo-wrap');if(sw)sw.style.display='none';}
   if(negociado)setTimeout(()=>document.getElementById('cfr-valor-neg')?.focus(),50);
+}
+// Mostra/esconde o bloco de saldo devedor conforme o valor negociado digitado — só aparece
+// quando o valor pago é MENOR que o previsto (sobrou saldo pra cobrar depois). Se digitar
+// um valor igual ou maior (ex.: pagou com juros), some — não faz sentido saldo negativo.
+function _cfrAtualizaSaldo(){
+  const wrap=document.getElementById('cfr-saldo-wrap');if(!wrap)return;
+  const v=moneyToNum(document.getElementById('cfr-valor-neg')?.value||'');
+  const saldo=_cfrValorBruto-v;
+  if(v>0&&saldo>0.005){
+    wrap.style.display='';
+    const sv=document.getElementById('cfr-saldo-valor');if(sv)sv.textContent=fmtR(saldo);
+  }else{
+    wrap.style.display='none';
+  }
 }
 function salvarConfirmarRecebimento(){
   if(!_cfrConfKey)return;
   let valorBrutoFinal=_cfrValorBruto;
+  let saldoDevedor=0,saldoDataBR='';
   if(_cfrNegociado){
     const v=moneyToNum(document.getElementById('cfr-valor-neg')?.value||'');
     if(!v||v<=0){toast('Informe o valor que foi realmente pago','terr');return;}
     valorBrutoFinal=v;
+    saldoDevedor=_cfrValorBruto-v;
+    if(saldoDevedor>0.005){
+      const saldoDataISO=(document.getElementById('cfr-saldo-data')?.value||'').trim();
+      if(!saldoDataISO){toast('Informe a nova data prevista pro saldo devedor — é obrigatório','terr');return;}
+      const[sy,sm,sd]=saldoDataISO.split('-');
+      saldoDataBR=sd+'/'+sm+'/'+sy;
+    }
+  }
+  // Lançamento do saldo devedor ANTES do setPagConf() da parcela original — assim os dois
+  // entram salvos numa única gravação no Firestore (setPagConf já chama _fbSaveCfg/
+  // _invalidateDashCache no final). O restante vira um item NOVO e independente em Contas a
+  // Receber/Fluxo de Caixa (ver merge em getComissaoItemsAll()), com sua própria confKey —
+  // a parcela original fecha só com o valor efetivamente pago.
+  if(saldoDevedor>0.005&&saldoDataBR){
+    const o=_cfrItemFull;
+    if(!o)console.warn('Saldo devedor lançado sem o item original completo (nomeVend/emY/emM ficam em branco) — confKey:',_cfrConfKey);
+    const ratio=(o&&o.valorBruto>0)?(o.valor/o.valorBruto):1;
+    if(!cfg.saldosDevedores)cfg.saldosDevedores=[];
+    cfg.saldosDevedores.push({
+      id:uid(),confKey:'saldo::'+uid(),origemConfKey:_cfrConfKey,
+      pedidoId:o?._pid||'',pedidoOs:o?.pedidoOs||'',cliente:o?.cliente||'',
+      nomeVend:o?.nomeVend||'',job:o?.job||'',categoria:o?.categoria||'',
+      mesPedido:o?.mesPedido||'',emY:o?.emY,emM:o?.emM,origemLabel:o?.label||'',
+      valorBruto:saldoDevedor,valor:saldoDevedor*ratio,dataStr:saldoDataBR,
+      criadoEm:new Date().toISOString()
+    });
   }
   setPagConf(_cfrConfKey,{status:'confirmado',novaData:_cfrDataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:'',valorBrutoConfirmado:valorBrutoFinal});
   closeM('mo-confirmar-receb');
-  toast(_cfrNegociado?`Recebimento confirmado com valor negociado (${fmtR(valorBrutoFinal)})! Comissão ajustada e liberada. ✅`:'Recebimento confirmado! Comissão liberada na quinzena. ✅','tok');
+  toast(saldoDevedor>0.005?`Recebimento parcial confirmado (${fmtR(valorBrutoFinal)}) — saldo de ${fmtR(saldoDevedor)} lançado pra ${saldoDataBR} ✅`:(_cfrNegociado?`Recebimento confirmado com valor negociado (${fmtR(valorBrutoFinal)})! Comissão ajustada e liberada. ✅`:'Recebimento confirmado! Comissão liberada na quinzena. ✅'),'tok');
   const row=document.querySelector(`tr[data-ck="${CSS.escape(_cfrConfKey)}"]`);if(row)row.remove();
   renderFinanceiro();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
@@ -6755,13 +6911,18 @@ function _finFoiAtrasada(i){
     dv.setHours(0,0,0,0);dc.setHours(0,0,0,0);
     return dc>dv;
   }
-  return i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido';
+  return i.statusCalc==='atrasado';
 }
 // Alterna entre a tabela item-a-item (Lista) e os painéis de Fluxo de Caixa/Aging/
 // Concentração (Fluxo) dentro do Financeiro. Os filtros no topo (busca/mês/vendedor/
 // período) são compartilhados pelas duas views — só o Status é ignorado pela Fluxo
 // (ver _finItemsEmAberto()).
 let finView='lista';
+// Guarda a última lista renderizada (com todos os campos já mesclados: nomeVend, job,
+// categoria, mesPedido, emY/emM, valor líquido etc.) — abrirConfirmarRecebimento() usa isso
+// pra montar o lançamento de saldo devedor sem precisar re-buscar tudo de novo nem passar
+// uma dezena de parâmetros pelo onclick da linha (ver salvarConfirmarRecebimento()).
+let _finItemsAtuais=[];
 function finSetView(v,btn){
   finView=v;
   document.querySelectorAll('.fin-view-tab').forEach(b=>b.classList.remove('active'));
@@ -6791,6 +6952,7 @@ function renderFinanceiro(){
   }
 
   let items=_finFilteredItems();
+  _finItemsAtuais=items;
 
   // Cards resumo — SEMPRE ignoram o filtro de Status (usam _finItemsTodosStatus(), só com
   // busca/mês/vendedor/período), senão viravam um espelho furado do próprio filtro: com
@@ -6803,9 +6965,9 @@ function renderFinanceiro(){
   if(cardsEl){
     const itemsCards=_finItemsTodosStatus();
     const totPend=itemsCards.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
-    const totAtraso=itemsCards.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valorBruto,0);
+    const totAtraso=itemsCards.filter(i=>i.statusCalc==='atrasado').reduce((s,i)=>s+i.valorBruto,0);
     const totConf=itemsCards.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
-    const qtdAtraso=itemsCards.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').length;
+    const qtdAtraso=itemsCards.filter(i=>i.statusCalc==='atrasado').length;
     cardsEl.innerHTML=`
       <div style="background:#dbeafe;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#1e40af">A receber</div><div style="font-size:1.1rem;font-weight:800;color:#1e40af">${fmtR(totPend)}</div></div>
       <div style="background:#fee2e2;border-radius:8px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#b91c1c">Em atraso (${qtdAtraso})</div><div style="font-size:1.1rem;font-weight:800;color:#b91c1c">${fmtR(totAtraso)}</div></div>
@@ -6817,7 +6979,6 @@ function renderFinanceiro(){
 
   const statusPill=i=>{
     if(i.statusCalc==='confirmado')return i.historicoAutoConfirmado?'<span class="dash-badge ok" title="Parcela de Julho I/2026 ou anterior — considerada já recebida antes deste sistema existir (marcado automaticamente, sem confirmação manual).">✅ Recebido (histórico)</span>':'<span class="dash-badge ok">✅ Recebido</span>';
-    if(i.statusCalc==='nao_recebido')return'<span class="dash-badge no">❌ Não recebido</span>';
     if(i.statusCalc==='atrasado')return'<span class="dash-badge no">⚠️ Atrasado</span>';
     return'<span class="dash-badge pend">⏳ Pendente</span>';
   };
@@ -6828,7 +6989,7 @@ function renderFinanceiro(){
     const acoes=i.statusCalc==='confirmado'
       ?(isFinAdm?`<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span> <button onclick="if(confirm('Reabrir este recebimento? Ele volta a aparecer como pendente e a comissão correspondente deixa de estar liberada.'))reabrirPag('${ck}')" style="background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 8px;font-size:.68rem;color:#64748b;cursor:pointer;margin-left:6px" title="Reabrir">↩ Reabrir</button>`:'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>')
       :(isFinAdm?`<button class="dash-btn-conf" onclick="abrirConfirmarRecebimento('${ck}','${da}','${cl}',${i.valorBruto})">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valorBruto})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
-    return`<tr data-ck="${ck}" style="${i.statusCalc==='confirmado'?'background:#f0fdf4;':i.statusCalc==='nao_recebido'||i.statusCalc==='atrasado'?'background:#fef2f2;':''}">
+    return`<tr data-ck="${ck}" style="${i.statusCalc==='confirmado'?'background:#f0fdf4;':i.statusCalc==='atrasado'?'background:#fef2f2;':''}">
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${i.mesPedido||'—'}</td>
       <td style="font-size:.72rem;color:#64748b;white-space:nowrap">${pedidoDisplay(i.pedidoOs)||'—'}</td>
       <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${i.cliente}</td>
@@ -6875,7 +7036,6 @@ let _finClientesHistItens={};
 // faixa dos KPIs do Fluxo de Caixa — abre ao clicar em qualquer um dos 5 cards.
 function _finStatusPill(i){
   if(i.statusCalc==='confirmado')return i.historicoAutoConfirmado?'<span class="dash-badge ok" title="Parcela de Julho I/2026 ou anterior — considerada já recebida antes deste sistema existir (marcado automaticamente, sem confirmação manual).">✅ Recebido (histórico)</span>':'<span class="dash-badge ok">✅ Recebido</span>';
-  if(i.statusCalc==='nao_recebido')return'<span class="dash-badge no">❌ Não recebido</span>';
   if(i.statusCalc==='atrasado')return'<span class="dash-badge no">⚠️ Atrasado</span>';
   return'<span class="dash-badge pend">⏳ Pendente</span>';
 }
@@ -7287,7 +7447,7 @@ function exportarExcelFinanceiro(){
   if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem exportar','terr');return;}
   const items=_finFilteredItems();
   if(!items.length){toast('Nenhuma conta encontrada com esses filtros para exportar','terr');return;}
-  const statusLbl=s=>({confirmado:'Recebido',nao_recebido:'Não recebido',atrasado:'Atrasado',pendente:'Pendente'}[s]||s);
+  const statusLbl=s=>({confirmado:'Recebido',atrasado:'Atrasado',pendente:'Pendente'}[s]||s);
   const headers=['Mês Venda','Pedido','Cliente','Vendedor','Parcela','Valor Bruto (R$)','Data Prevista','Dias em Atraso','Status','Motivo'];
   const rows=items.map(i=>[
     i.mesPedido||'',String(i.pedidoOs||''),i.cliente||'',i.nomeVend||'',i.label||'',
@@ -7319,10 +7479,10 @@ async function gerarPDFFinanceiro(){
 
   if(!items.length){toast('Nenhuma conta encontrada com esses filtros para gerar o PDF.','terr');return;}
 
-  const statusLbl=s=>({confirmado:'Recebido',nao_recebido:'Não recebido',atrasado:'Atrasado',pendente:'Pendente'}[s]||s);
+  const statusLbl=s=>({confirmado:'Recebido',atrasado:'Atrasado',pendente:'Pendente'}[s]||s);
 
   const totPend=items.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
-  const totAtraso=items.filter(i=>i.statusCalc==='atrasado'||i.statusCalc==='nao_recebido').reduce((s,i)=>s+i.valorBruto,0);
+  const totAtraso=items.filter(i=>i.statusCalc==='atrasado').reduce((s,i)=>s+i.valorBruto,0);
   const totConf=items.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
 
   const filtrosAtivos=[];
@@ -7428,7 +7588,7 @@ async function gerarPDFFinanceiro(){
     didParseCell:(data)=>{
       if(data.section==='body'){
         const st=items[data.row.index]?.statusCalc;
-        if(st==='nao_recebido'||st==='atrasado')data.cell.styles.fillColor=[254,242,242];
+        if(st==='atrasado')data.cell.styles.fillColor=[254,242,242];
         else if(st==='confirmado')data.cell.styles.fillColor=[240,253,244];
       }
     },
@@ -7654,8 +7814,10 @@ function renderDashComissoes(){
     </details>`;
   }
 
-  function mkExtras(){
-    let extras=getPagamentosExtrasMes(y,m);
+  // dia: 5 ou 15 — escopa a caixa de extras pra SÓ a quinzena em questão (evita que um
+  // bônus já pago na 1ª quinzena reapareça "pra pagar" na caixa da 2ª quinzena do mesmo mês).
+  function mkExtras(dia){
+    let extras=getPagamentosExtrasMes(y,m,dia);
     if(filV)extras=extras.filter(p=>vendedorMatch(p.vendedor,filV));
     if(!extras.length)return'';
     const total=extras.reduce((s,p)=>s+p.valor,0);
@@ -7670,8 +7832,9 @@ function renderDashComissoes(){
         <td><button class="dash-btn-conf" onclick="togglePagamentoExtraStatus('${p.id}');renderDashComissoes()">${paga?'↩ Reabrir':'✅ Confirmar'}</button></td>
       </tr>`;
     }).join('');
+    const quinzTxt=dia===5?'1ª Quinzena (dia 5)':dia===15?'2ª Quinzena (dia 15)':'';
     return`<div style="border:1.5px solid #fde68a;background:#fffdf5;border-radius:12px;padding:14px 16px;margin-bottom:18px">
-      <div style="font-size:.8rem;font-weight:700;color:#92400e;margin-bottom:8px">🎁 Pagamentos Extras de ${MESES_PT[m]} ${y} — Total: ${fmtR(total)}${pend>0?' · Pendente: '+fmtR(pend):''}</div>
+      <div style="font-size:.8rem;font-weight:700;color:#92400e;margin-bottom:8px">🎁 Pagamentos Extras — ${quinzTxt} de ${MESES_PT[m]} ${y} — Total: ${fmtR(total)}${pend>0?' · Pendente: '+fmtR(pend):''}</div>
       <div style="overflow-x:auto"><table class="dash-table">
         <thead><tr><th>Vendedor</th><th>Motivo</th><th>Valor</th><th>Status</th><th>Ação</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -7690,16 +7853,17 @@ function renderDashComissoes(){
 
   el.innerHTML=
     filterBar+
-    mkExtras()+
     `<div style="border-left:4px solid #111827;padding-left:12px;margin-bottom:16px;margin-top:4px">
        <div style="font-size:.85rem;font-weight:700;color:#111827">1ª Quinzena · pagar dia 5</div>
      </div>
+     ${mkExtras(5)}
      ${mkCards(itemsI)}${mkVendResume(itemsI,true)}
      <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendI.length})</div>
      ${mkTable(pendI,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consI)}
      <div style="border-left:4px solid #6366f1;padding-left:12px;margin:24px 0 16px">
        <div style="font-size:.85rem;font-weight:700;color:#6366f1">2ª Quinzena · pagar dia 15</div>
      </div>
+     ${mkExtras(15)}
      ${mkCards(itemsII)}${mkVendResume(itemsII)}
      <div style="font-size:.72rem;font-weight:700;color:#be185d;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">⏳ Pendentes de Revisão (${pendII.length})</div>
      ${mkTable(pendII,'Nenhum lançamento pendente nesta quinzena.')}${mkConsolidado(consII)}`;
@@ -7840,16 +8004,9 @@ function abrirTarefasComerciais(){
   const relEl=document.getElementById('tarefas-relatorio');if(relEl)relEl.style.display='none';
   const bodyEl=document.getElementById('tarefas-body');if(bodyEl)bodyEl.style.display='';
   if(isAdm){
-    // Select de vendas: mais recentes primeiro, só pedidos que já existem no Firestore
-    // (venda vinda só da planilha não tem onde guardar a tarefa). Opção em branco agora
-    // significa "tarefa avulsa, sem venda nenhuma" (ver adicionarTarefaGeralAvulsa) — antes
-    // era só um placeholder de "selecione".
-    const sel=document.getElementById('tf-novo-pedido');
-    if(sel){
-      const ordenados=[...pedidos].sort((a,b)=>(b.emissaoEm||'').localeCompare(a.emissaoEm||''));
-      sel.innerHTML='<option value="">— Tarefa avulsa (sem venda específica) —</option>'
-        +ordenados.map(p=>`<option value="${p.id}">OS ${p.os||'—'} · ${(p.cliente||'').replace(/</g,'')}</option>`).join('');
-    }
+    // Campo de pedido virou busca (ver _tfPedidoBuscaInput()) em vez de <select> com
+    // centenas de opções — não precisa mais popular nada aqui de antemão, a lista é
+    // montada na hora, filtrada pelo que a pessoa digita.
     const nomes=getNomesUsuarios();
     const selResp=document.getElementById('tf-novo-responsavel');
     if(selResp)selResp.innerHTML='<option value="">Sem responsável</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
@@ -7895,6 +8052,9 @@ function renderTarefasComerciais(){
     body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${filResp?'Nenhuma tarefa pra esse responsável.':(pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.')}</div>`;
     return;
   }
+  // Guarda a lista renderizada (já com os dados de venda mesclados) pra abrirDetalheTarefa()
+  // achar a tarefa pelo id sem precisar re-buscar em pedidos/cfg.tarefasGerais.
+  _tarefasListaAtual=lista;
   body.innerHTML=lista.map(t=>{
     // Badge de prazo/atraso da TAREFA (diferente do prazo de entrega do pedido, mostrado
     // logo abaixo) — ver _tarefaAtrasada(). Sem prazoTarefa não mostra nada aqui.
@@ -7904,18 +8064,22 @@ function renderTarefasComerciais(){
       if(atrasada)prazoBadge=`<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">⚠️ Prazo ${fmtD(t.prazoTarefa)}${pendente?' (vencido)':' — concluída com atraso'}</span>`;
       else prazoBadge=`<span style="background:${pendente?'#fef9c3':'#dcfce7'};color:${pendente?'#92400e':'#16a34a'};border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">${pendente?'📅 Prazo '+fmtD(t.prazoTarefa):'✅ No prazo'}</span>`;
     }
+    // Resumo da descrição na lista (até 2 linhas) — visualmente separado do título, em
+    // cinza mais claro; o texto completo só aparece ao clicar no card (abrirDetalheTarefa).
+    const descResumo=t.descricao?`<div style="font-size:.74rem;color:#64748b;margin-top:3px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${t.descricao}</div>`:'';
     return`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid ${atrasada&&pendente?'#fecaca':'var(--border-lt)'};border-radius:10px;margin-bottom:8px;background:#fff">
+    <div onclick="abrirDetalheTarefa('${t.id}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid ${atrasada&&pendente?'#fecaca':'var(--border-lt)'};border-radius:10px;margin-bottom:8px;background:#fff;cursor:pointer" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">
       <div style="min-width:0">
         <div style="font-weight:700;font-size:.82rem;color:#1e293b;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span>${t.tipo}</span>
           ${t.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">👤 ${t.responsavel}</span>`:`<span style="background:#f1f5f9;color:#94a3b8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:600;white-space:nowrap">Sem responsável</span>`}
           ${prazoBadge}
         </div>
-        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
+        ${descResumo}
+        <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
         <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}${t.criadoPor?' · Lançada por '+t.criadoPor:''}</div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
+      <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
         ${pendente
           ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Concluir</button>`
           :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false)" style="background:#f1f5f9;color:#475569;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">↩️ Reabrir</button>`}
@@ -7926,17 +8090,96 @@ function renderTarefasComerciais(){
     </div>`;
   }).join('');
 }
+// ── DETALHE DA TAREFA (clique no card, 2026-07-16) ──────────────────────────────
+let _tarefasListaAtual=[];
+function abrirDetalheTarefa(tarefaId){
+  const t=_tarefasListaAtual.find(x=>x.id===tarefaId);
+  if(!t){toast('Tarefa não encontrada (a lista pode ter mudado) — atualize e tente de novo','terr');return;}
+  const pendente=t.status!=='concluida';
+  const atrasada=_tarefaAtrasada(t);
+  let prazoBadge='';
+  if(t.prazoTarefa){
+    if(atrasada)prazoBadge=`<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">⚠️ Prazo ${fmtD(t.prazoTarefa)}${pendente?' (vencido)':' — concluída com atraso'}</span>`;
+    else prazoBadge=`<span style="background:${pendente?'#fef9c3':'#dcfce7'};color:${pendente?'#92400e':'#16a34a'};border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">${pendente?'📅 Prazo '+fmtD(t.prazoTarefa):'✅ No prazo'}</span>`;
+  }
+  const body=document.getElementById('td-body');if(!body)return;
+  body.innerHTML=`
+    <div style="font-size:1.1rem;font-weight:800;color:#1a1f36;line-height:1.35;margin-bottom:10px">${t.tipo}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+      <span style="background:${pendente?'#dbeafe':'#dcfce7'};color:${pendente?'#1d4ed8':'#16a34a'};border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">${pendente?'⏳ Pendente':'✅ Concluída'}</span>
+      ${t.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">👤 ${t.responsavel}</span>`:`<span style="background:#f1f5f9;color:#94a3b8;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:600;white-space:nowrap">Sem responsável</span>`}
+      ${prazoBadge}
+    </div>
+    <div style="font-size:.68rem;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Descrição</div>
+    ${t.descricao?`<div style="background:#f8fafc;border-left:3px solid #1d4ed8;border-radius:6px;padding:12px 14px;font-size:.85rem;color:#374151;line-height:1.6;white-space:pre-wrap;margin-bottom:16px">${t.descricao}</div>`:'<div style="font-size:.8rem;color:#94a3b8;font-style:italic;margin-bottom:16px">Sem descrição detalhada.</div>'}
+    <div style="border-top:1px solid var(--border-lt);padding-top:12px;font-size:.8rem;color:#475569;display:flex;flex-direction:column;gap:6px">
+      <div>${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'<strong>Pedido:</strong> OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
+      <div style="font-size:.76rem;color:#94a3b8">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}${t.criadoPor?' · Lançada por '+t.criadoPor:''}</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px">
+      ${pendente
+        ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true);closeM('mo-tarefa-detalhe')" style="flex:1;background:#16a34a;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">✅ Concluir</button>`
+        :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false);closeM('mo-tarefa-detalhe')" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">↩️ Reabrir</button>`}
+      ${_podeExcluirTarefa(t.criadoPor)
+        ?`<button onclick="closeM('mo-tarefa-detalhe');excluirTarefaComercial('${t.pedidoId||''}','${t.id}')" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:9px;padding:11px 16px;font-size:.85rem;font-weight:700;cursor:pointer">🗑️ Excluir</button>`
+        :''}
+    </div>
+  `;
+  openM('mo-tarefa-detalhe');
+}
+// Busca de pedido tipo autocomplete (2026-07-16) — substituiu o <select> antigo, que tinha
+// centenas de opções ("OS 275 · FILIAL BK DRIVE T-63"...) e era praticamente impossível de
+// usar rolando a lista. Agora é só digitar um pedaço da OS ou do nome do cliente (ex:
+// "MOGI") que a lista já filtra. tf-novo-pedido-id (hidden) guarda o id do pedido
+// selecionado; o texto visível é só pra busca/exibição.
+function _tfPedidoOptions(){
+  return[...pedidos].sort((a,b)=>(b.emissaoEm||'').localeCompare(a.emissaoEm||''));
+}
+function _tfPedidoBuscaInput(v){
+  // Qualquer edição no texto invalida a seleção anterior — sem isso, dava pra digitar
+  // outra coisa depois de já ter escolhido um pedido e a tarefa ainda ia pro pedido
+  // antigo escondido no campo hidden, sem a pessoa perceber.
+  const hid=document.getElementById('tf-novo-pedido-id');if(hid)hid.value='';
+  const dd=document.getElementById('tf-novo-pedido-dropdown');if(!dd)return;
+  const q=norm(v||'');
+  const opts=_tfPedidoOptions();
+  const matches=q?opts.filter(p=>norm(String(p.os||'')).includes(q)||norm(p.cliente||'').includes(q)):opts.slice(0,30);
+  if(!matches.length){
+    dd.innerHTML='<div style="padding:10px 12px;font-size:.78rem;color:#94a3b8">Nenhum pedido encontrado.</div>';
+  }else{
+    dd.innerHTML=matches.slice(0,50).map(p=>{
+      const label=`OS ${p.os||'—'} · ${(p.cliente||'—').replace(/</g,'')}`;
+      return`<div onmousedown="event.preventDefault();_tfSelecionarPedido('${p.id}','${label.replace(/'/g,"\\'")}')" style="padding:8px 12px;font-size:.8rem;cursor:pointer;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background=''">${label}</div>`;
+    }).join('');
+  }
+  dd.style.display='block';
+}
+function _tfSelecionarPedido(pedidoId,label){
+  const hid=document.getElementById('tf-novo-pedido-id');if(hid)hid.value=pedidoId;
+  const inp=document.getElementById('tf-novo-pedido-busca');if(inp)inp.value=label;
+  const dd=document.getElementById('tf-novo-pedido-dropdown');if(dd)dd.style.display='none';
+}
+// onmousedown com preventDefault (acima) já garante que o clique na sugestão registra
+// antes do blur — esse timeout aqui é só rede de segurança (ex: usuário clica fora sem
+// escolher nada, ou dá Tab pra sair do campo).
+function _tfPedidoBuscaBlur(){
+  setTimeout(()=>{const dd=document.getElementById('tf-novo-pedido-dropdown');if(dd)dd.style.display='none';},150);
+}
 function _addTarefaAvulsaFromForm(){
-  const pedidoId=document.getElementById('tf-novo-pedido')?.value||'';
+  const pedidoId=document.getElementById('tf-novo-pedido-id')?.value||'';
   const tipo=document.getElementById('tf-novo-tipo')?.value||'';
   const responsavel=document.getElementById('tf-novo-responsavel')?.value||'';
   const prazoTarefa=document.getElementById('tf-novo-prazo')?.value||'';
+  const descricao=document.getElementById('tf-novo-desc')?.value||'';
   // Campo em branco agora é "tarefa avulsa, sem venda nenhuma" (não mais um erro de
   // formulário) — vai pra cfg.tarefasGerais em vez de dentro de um pedido.
-  if(pedidoId)adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa);
-  else adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa);
+  if(pedidoId)adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa,descricao);
+  else adicionarTarefaGeralAvulsa(tipo,responsavel,prazoTarefa,descricao);
   const tipoInp=document.getElementById('tf-novo-tipo');if(tipoInp)tipoInp.value='';
   const prazoInp=document.getElementById('tf-novo-prazo');if(prazoInp)prazoInp.value='';
+  const descInp=document.getElementById('tf-novo-desc');if(descInp)descInp.value='';
+  const buscaInp=document.getElementById('tf-novo-pedido-busca');if(buscaInp)buscaInp.value='';
+  const hidInp=document.getElementById('tf-novo-pedido-id');if(hidInp)hidInp.value='';
 }
 // ── RELATÓRIO DE APROVEITAMENTO DE TAREFAS (por responsável, por mês) ──────────
 // Mede quem entrega tarefas no prazo x com atraso, mês a mês, pra virar critério de
@@ -8079,7 +8322,11 @@ async function gerarPDFComissao(vend,quinzena){
     groupByVend=true;
     title='Comissão — Todos os vendedores';
   }
-  const extrasParaPdf=getPagamentosExtrasMes(y,m).filter(p=>p.status==='confirmado'&&(vend==='__CLABONDE__'?isClabonde((p.vendedor||'').toUpperCase()):vend?vendedorMatch(p.vendedor,vend):true));
+  // Escopa os extras pela QUINZENA pedida (dia 5 ou dia 15) — não só pelo mês de referência.
+  // Corrige bug relatado 2026-07-16: bônus já confirmado/pago na 1ª quinzena reaparecia
+  // "pra pagar" quando o relatório era gerado pra 2ª quinzena do mesmo mês.
+  const _diaExtra=quinzena==='I'?5:quinzena==='II'?15:null;
+  const extrasParaPdf=getPagamentosExtrasMes(y,m,_diaExtra).filter(p=>p.status==='confirmado'&&(vend==='__CLABONDE__'?isClabonde((p.vendedor||'').toUpperCase()):vend?vendedorMatch(p.vendedor,vend):true));
   if(!items.length&&!extrasParaPdf.length){toast('Nenhum lançamento confirmado (pago) para gerar o relatório.','terr');return;}
 
   const showQCol=!quinzena;
