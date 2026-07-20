@@ -279,6 +279,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .fc.no-upper,.et-inp,.fc[type=email],.fc[type=date],.fc[type=password],#l-pass,#nu-pass{text-transform:none}
 .fc:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(0,186,199,.12)}
 .fc:hover:not(:focus){border-color:#cbd5e1}
+.fc[readonly]{background:#f3f4f6;color:#6b7280;cursor:not-allowed}
+.fc[readonly]:hover{border-color:var(--border)}
 textarea.fc{min-height:80px;resize:vertical;text-transform:uppercase;line-height:1.5}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
@@ -3228,8 +3230,8 @@ function openEmissao(eid2){
       inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
       ibloqenergia:inst['Necessita de Bloqueio de Energia']||'',
-      icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',
-      minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',
+      icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',icep_ok:false,
+      minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',fcep_ok:false,
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:p.chumbador||'',arq_chumb:p.arq_chumb_url?'Arquivo já enviado':'',arq_chumb_url:p.arq_chumb_url||'',os_chumb:p.os_chumb||'',
       facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
@@ -3238,8 +3240,8 @@ function openEmissao(eid2){
       elevacoes:'',elevs:[],velev:'',elevBloqVia:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
       nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',pasta_arquivos:'',laudo:'',
-      iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',
-      minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:''};
+      iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',icep_ok:false,
+      minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:'',fcep_ok:false};
   }
   step=0;renderEM();openM('mo-em');
 }
@@ -3301,6 +3303,13 @@ function validarAba(id){
     if(!ed.fotos_orig)erros.push('Selecione as fotos originais');
   }
   if(id==='instalacao'){
+    const icepDigits=(ed.icep||'').replace(/\D/g,'');
+    if(icepDigits.length!==8)erros.push('CEP da obra (instalação) é obrigatório');
+    else{
+      if(!ed.ilog||!ed.ilog.trim())erros.push('Logradouro da obra não informado');
+      if(!ed.icidade||!ed.icidade.trim())erros.push('Cidade da obra não informada');
+      if(!ed.iuf||!ed.iuf.trim())erros.push('UF da obra não informada');
+    }
     if(ed.itel&&!validaTel(ed.itel))erros.push('Telefone da instalação inválido');
     if(!ed.iinteg)erros.push('Informe se necessita integração na empresa');
     if(!ed.iseg)erros.push('Informe se precisa de seguro para esta obra');
@@ -3899,17 +3908,18 @@ function renderStep(id){
         <div class="fg"><label>Telefone</label><input class="fc no-upper" id="em-it" value="${ed.itel||''}" placeholder="(00) 00000-0000" oninput="fmtTel(this)" maxlength="15"></div>
       </div>
       <div class="g2">
-        <div class="fg"><label>CEP</label><input class="fc no-upper" id="em-icep" value="${ed.icep||''}" placeholder="00000-000" maxlength="9" oninput="fmtCep(this);buscaCep(this.value,'em-i')"></div>
-        <div class="fg"><label>Logradouro</label><input class="fc" id="em-ilog" value="${ed.ilog||''}" placeholder="Rua, Av., Alameda..."></div>
+        <div class="fg"><label>CEP <span class="r">*</span></label><input class="fc no-upper" id="em-icep" value="${ed.icep||''}" placeholder="00000-000" maxlength="9" oninput="fmtCep(this);cepChanged(this,'em-i')"></div>
+        <div class="fg"><label>Logradouro</label><input class="fc" id="em-ilog" value="${ed.ilog||''}" placeholder="Rua, Av., Alameda..." ${ed.icep_ok&&ed.ilog?'readonly':''}></div>
       </div>
+      <div id="em-icep-warn" style="display:${ed.icep_ok===false&&ed.icep?'':'none'};font-size:.72rem;color:#d97706;margin:-6px 0 12px;padding-left:2px">&#9888;&#65039; CEP não localizado nos Correios — preencha o endereço manualmente e confira com atenção antes de emitir a ART.</div>
       <div class="g3">
         <div class="fg"><label>Número</label><input class="fc no-upper" id="em-inum" value="${ed.inum_e||''}" placeholder="Nº"></div>
         <div class="fg"><label>Complemento</label><input class="fc" id="em-icomp" value="${ed.icomp||''}" placeholder="APTO, SALA, BLOCO..."></div>
-        <div class="fg"><label>Bairro</label><input class="fc" id="em-ibairro" value="${ed.ibairro||''}" placeholder="Bairro"></div>
+        <div class="fg"><label>Bairro</label><input class="fc" id="em-ibairro" value="${ed.ibairro||''}" placeholder="Bairro" ${ed.icep_ok&&ed.ibairro?'readonly':''}></div>
       </div>
       <div class="g2">
-        <div class="fg"><label>Cidade</label><input class="fc" id="em-icidade" value="${ed.icidade||''}" placeholder="Cidade"></div>
-        <div class="fg"><label>UF</label><input class="fc" id="em-iuf" value="${ed.iuf||''}" placeholder="PR" maxlength="2"></div>
+        <div class="fg"><label>Cidade</label><input class="fc" id="em-icidade" value="${ed.icidade||''}" placeholder="Cidade" ${ed.icep_ok&&ed.icidade?'readonly':''}></div>
+        <div class="fg"><label>UF</label><input class="fc" id="em-iuf" value="${ed.iuf||''}" placeholder="PR" maxlength="2" ${ed.icep_ok&&ed.iuf?'readonly':''}></div>
       </div>
       <div class="g2">
         <div class="fg"><label>Horário</label>
@@ -4008,17 +4018,18 @@ function renderStep(id){
       <div class="fsec-t">&#128666; FRETE / ENDEREÇO DE ENTREGA</div>
       ${ed.i_tipo==='Por nossa conta'?`<button type="button" onclick="copiarInstalacaoParaFrete()" style="margin-bottom:14px;padding:9px 16px;border:1.5px solid var(--brand);border-radius:10px;background:var(--brand-lt);color:var(--brand-d);cursor:pointer;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:7px;font-family:inherit">📋 Usar as mesmas informações de instalação</button>`:''}
       <div class="g2">
-        <div class="fg"><label>CEP</label><input class="fc no-upper" id="em-fcep" value="${ed.fcep||''}" placeholder="00000-000" maxlength="9" oninput="fmtCep(this);buscaCep(this.value,'em-f')"></div>
-        <div class="fg"><label>Logradouro</label><input class="fc" id="em-flog" value="${ed.flog||''}" placeholder="Rua, Av., Alameda..."></div>
+        <div class="fg"><label>CEP</label><input class="fc no-upper" id="em-fcep" value="${ed.fcep||''}" placeholder="00000-000" maxlength="9" oninput="fmtCep(this);cepChanged(this,'em-f')"></div>
+        <div class="fg"><label>Logradouro</label><input class="fc" id="em-flog" value="${ed.flog||''}" placeholder="Rua, Av., Alameda..." ${ed.fcep_ok&&ed.flog?'readonly':''}></div>
       </div>
+      <div id="em-fcep-warn" style="display:${ed.fcep_ok===false&&ed.fcep?'':'none'};font-size:.72rem;color:#d97706;margin:-6px 0 12px;padding-left:2px">&#9888;&#65039; CEP não localizado nos Correios — preencha o endereço manualmente e confira com atenção.</div>
       <div class="g3">
         <div class="fg"><label>Número</label><input class="fc no-upper" id="em-fnum" value="${ed.fnum_e||''}" placeholder="Nº"></div>
         <div class="fg"><label>Complemento</label><input class="fc" id="em-fcomp" value="${ed.fcomp||''}" placeholder="APTO, GALPÃO, BLOCO..."></div>
-        <div class="fg"><label>Bairro</label><input class="fc" id="em-fbairro" value="${ed.fbairro||''}" placeholder="Bairro"></div>
+        <div class="fg"><label>Bairro</label><input class="fc" id="em-fbairro" value="${ed.fbairro||''}" placeholder="Bairro" ${ed.fcep_ok&&ed.fbairro?'readonly':''}></div>
       </div>
       <div class="g2">
-        <div class="fg"><label>Cidade</label><input class="fc" id="em-fcidade" value="${ed.fcidade||''}" placeholder="Cidade" oninput="calcDistancia(this.value,document.getElementById('em-fuf')?.value)"></div>
-        <div class="fg"><label>UF</label><input class="fc" id="em-fuf" value="${ed.fuf||''}" placeholder="PR" maxlength="2"></div>
+        <div class="fg"><label>Cidade</label><input class="fc" id="em-fcidade" value="${ed.fcidade||''}" placeholder="Cidade" oninput="calcDistancia(this.value,document.getElementById('em-fuf')?.value)" ${ed.fcep_ok&&ed.fcidade?'readonly':''}></div>
+        <div class="fg"><label>UF</label><input class="fc" id="em-fuf" value="${ed.fuf||''}" placeholder="PR" maxlength="2" ${ed.fcep_ok&&ed.fuf?'readonly':''}></div>
       </div>
       <div class="fg"><label>Inscrição Estadual do Destinatário</label><input class="fc" id="em-fi" value="${ed.fie||''}" placeholder="IE"></div>
       <div class="g2">
@@ -4102,18 +4113,57 @@ function fmtCep(el){
   else el.value=v;
 }
 
+function cepOkKey(prefix){return prefix==='em-i'?'icep_ok':'fcep_ok';}
+
+function lockEndereco(prefix){
+  ['log','bairro','cidade','uf'].forEach(suf=>{
+    const el=document.getElementById(prefix+suf);
+    if(el&&el.value)el.readOnly=true;
+  });
+}
+function unlockEndereco(prefix){
+  ['log','bairro','cidade','uf'].forEach(suf=>{
+    const el=document.getElementById(prefix+suf);
+    if(el)el.readOnly=false;
+  });
+}
+function setCepWarn(prefix,show){
+  const w=document.getElementById(prefix+'cep-warn');
+  if(w)w.style.display=show?'':'none';
+}
+
+// Chamado a cada digitação no campo de CEP. Enquanto o CEP não bater com um
+// CEP válido nos Correios, o endereço (logradouro/bairro/cidade/UF) fica
+// destravado para edição manual — mas some a validação até uma nova busca ok.
+function cepChanged(el,prefix){
+  const okKey=cepOkKey(prefix);
+  if(ed[okKey]){ed[okKey]=false;unlockEndereco(prefix);}
+  setCepWarn(prefix,false);
+  buscaCep(el.value,prefix);
+}
+
 async function buscaCep(cep,prefix){
   const digits=cep.replace(/\D/g,'');
-  if(digits.length!==8)return;
+  const okKey=cepOkKey(prefix);
+  if(digits.length!==8){ed[okKey]=false;return;}
   try{
     const r=await fetch(`https://viacep.com.br/ws/${digits}/json/`);
     const d=await r.json();
-    if(d.erro){toast('CEP não encontrado','terr');return;}
+    if(d.erro){
+      ed[okKey]=false;
+      unlockEndereco(prefix);
+      setCepWarn(prefix,true);
+      toast('CEP não encontrado nos Correios — preencha o endereço manualmente e confira com atenção (necessário p/ ART)','terr');
+      return;
+    }
+    setCepWarn(prefix,false);
     const sv=(id,v)=>{const el=document.getElementById(id);if(el){el.value=v;el.dispatchEvent(new Event('input'));}};
     sv(prefix+'log',d.logradouro||'');
     sv(prefix+'bairro',d.bairro||'');
     sv(prefix+'cidade',d.localidade||'');
     sv(prefix+'uf',d.uf||'');
+    ed[okKey]=true;
+    lockEndereco(prefix);
     // Calcular distância automaticamente se for frete
     if(prefix==='em-f')calcDistancia(d.localidade,d.uf);
     // Foco no número
@@ -4132,6 +4182,10 @@ function copiarInstalacaoParaFrete(){
   sv('em-fcep',ed.icep);sv('em-flog',ed.ilog);sv('em-fnum',ed.inum_e);
   sv('em-fcomp',ed.icomp);sv('em-fbairro',ed.ibairro);sv('em-fcidade',ed.icidade);sv('em-fuf',ed.iuf);
   sv('em-fc',ed.iacomp);sv('em-ft2',ed.itel);
+  // Herda o mesmo status de validação de CEP da instalação (trava/destrava igual)
+  ed.fcep_ok=ed.icep_ok;
+  if(ed.icep_ok){lockEndereco('em-f');setCepWarn('em-f',false);}
+  else{unlockEndereco('em-f');setCepWarn('em-f',!!ed.icep);}
   if(ed.icidade&&ed.iuf)calcDistancia(ed.icidade,ed.iuf);
   toast('Informações de instalação copiadas!','tinf');
 }
