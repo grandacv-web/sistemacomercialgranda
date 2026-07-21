@@ -786,6 +786,30 @@ select.fc{cursor:pointer}
             <option value="">Todos</option>
           </select>
         </div>
+        <!-- Exportação em PDF — independe da aba Pendentes/Concluídas em tela: monta a lista
+             na hora combinando pendentes+concluídas e aplicando os filtros abaixo (ver
+             exportarTarefasPDF()). Admin exporta de qualquer responsável (reaproveita
+             tf-fil-responsavel); usuário comum só exporta as próprias tarefas, igual à
+             listagem normal (ver _podeMexerNaTarefa()/renderTarefasComerciais()). -->
+        <div id="tf-pdf-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+          <label style="font-size:.72rem;font-weight:700;color:var(--ink3);white-space:nowrap">📄 Exportar PDF</label>
+          <select id="tf-pdf-escopo" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
+            <option value="todas">Todas as tarefas</option>
+            <option value="pendentes">Só pendentes</option>
+            <option value="concluidas">Só concluídas</option>
+            <option value="atrasadas">Só atrasadas (vencidas, ainda pendentes)</option>
+          </select>
+          <select id="tf-pdf-database" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)" title="Qual data usar pra filtrar o período De/Até abaixo">
+            <option value="lancamento">Por data de lançamento</option>
+            <option value="prazo">Por prazo da tarefa</option>
+            <option value="conclusao">Por data de conclusão</option>
+          </select>
+          <span style="font-size:.72rem;color:#94a3b8;font-weight:600">De</span>
+          <input id="tf-pdf-data-ini" type="date" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem">
+          <span style="font-size:.72rem;color:#94a3b8;font-weight:600">Até</span>
+          <input id="tf-pdf-data-fim" type="date" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem">
+          <button onclick="exportarTarefasPDF()" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:auto">📄 Gerar PDF</button>
+        </div>
         <div id="tarefas-body"></div>
         <div id="tarefas-relatorio" style="display:none"></div>
       </div>
@@ -8125,8 +8149,10 @@ function abrirTarefasComerciais(){
   document.getElementById('tf-tab-pend')?.classList.add('active');
   const addWrap=document.getElementById('tf-add-wrap');
   const filWrap=document.getElementById('tf-fil-wrap');
+  const pdfWrap=document.getElementById('tf-pdf-wrap');
   if(addWrap)addWrap.style.display=isAdm?'':'none';
   if(filWrap)filWrap.style.display=isAdm?'':'none';
+  if(pdfWrap)pdfWrap.style.display='';
   const relEl=document.getElementById('tarefas-relatorio');if(relEl)relEl.style.display='none';
   const bodyEl=document.getElementById('tarefas-body');if(bodyEl)bodyEl.style.display='';
   if(isAdm){
@@ -8149,10 +8175,12 @@ function tarefasTab(tab,btn){
   const isRel=tab==='relatorio';
   const addWrap=document.getElementById('tf-add-wrap');
   const filWrap=document.getElementById('tf-fil-wrap');
+  const pdfWrap=document.getElementById('tf-pdf-wrap');
   const bodyEl=document.getElementById('tarefas-body');
   const relEl=document.getElementById('tarefas-relatorio');
   if(addWrap)addWrap.style.display=(isAdm&&!isRel)?'':'none';
   if(filWrap)filWrap.style.display=(isAdm&&!isRel)?'':'none';
+  if(pdfWrap)pdfWrap.style.display=isRel?'none':'';
   if(bodyEl)bodyEl.style.display=isRel?'none':'';
   if(relEl)relEl.style.display=isRel?'':'none';
   if(isRel)renderRelatorioTarefas();
@@ -8400,6 +8428,162 @@ function exportarRelatorioTarefas(){
   const rows=linhas.map(l=>[l.resp,l.noPrazo,l.comAtraso,l.pendente,l.pendenteVencida,l.pct==null?'':l.pct.toFixed(1).replace('.',',')]);
   _csvDownload(`relatorio_tarefas_${y}_${String(m).padStart(2,'0')}.csv`,headers,rows);
   toast('Exportado! Abra o arquivo baixado no Excel.','tok');
+}
+// ── EXPORTAR TAREFAS EM PDF (com filtros) ───────────────────────────────────
+// Independe da aba Pendentes/Concluídas em tela: sempre monta a lista combinando
+// pendentes+concluídas (ver getTarefasComerciaisPendentes()/getTarefasComerciaisConcluidas())
+// e aplica os filtros do bloco "tf-pdf-wrap" (ver HTML): escopo (todas/pendentes/concluídas/
+// atrasadas), período por lançamento, prazo ou conclusão, e responsável (reaproveita
+// tf-fil-responsavel pro admin — usuário comum já fica travado nas próprias tarefas, igual
+// à listagem normal, ver _podeMexerNaTarefa()).
+function _tfPdfCampoData(t,baseData){
+  if(baseData==='prazo')return t.prazoTarefa||'';
+  if(baseData==='conclusao')return t.concluidaEm?t.concluidaEm.slice(0,10):'';
+  return t.criadaEm?t.criadaEm.slice(0,10):'';
+}
+async function exportarTarefasPDF(){
+  if(!window.jspdf){toast('Biblioteca PDF não carregada. Verifique sua conexão.','terr');return;}
+  const {jsPDF}=window.jspdf;
+  const {isAdm}=_getUserCat();
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+
+  const escopo=document.getElementById('tf-pdf-escopo')?.value||'todas';
+  const baseData=document.getElementById('tf-pdf-database')?.value||'lancamento';
+  const di=document.getElementById('tf-pdf-data-ini')?.value||'';
+  const df=document.getElementById('tf-pdf-data-fim')?.value||'';
+  const filResp=isAdm?((document.getElementById('tf-fil-responsavel')||{}).value||''):'';
+
+  let lista=[...getTarefasComerciaisPendentes(),...getTarefasComerciaisConcluidas()];
+  if(!isAdm)lista=lista.filter(t=>t.responsavel===meuNome);
+  else if(filResp)lista=lista.filter(t=>t.responsavel===filResp);
+
+  if(escopo==='pendentes')lista=lista.filter(t=>t.status!=='concluida');
+  else if(escopo==='concluidas')lista=lista.filter(t=>t.status==='concluida');
+  else if(escopo==='atrasadas')lista=lista.filter(t=>t.status!=='concluida'&&_tarefaAtrasada(t));
+
+  if(di)lista=lista.filter(t=>{const d=_tfPdfCampoData(t,baseData);return d&&d>=di;});
+  if(df)lista=lista.filter(t=>{const d=_tfPdfCampoData(t,baseData);return d&&d<=df;});
+
+  lista.sort((a,b)=>_tfPdfCampoData(a,baseData).localeCompare(_tfPdfCampoData(b,baseData)));
+
+  if(!lista.length){toast('Nenhuma tarefa encontrada com esses filtros.','terr');return;}
+
+  const escopoLbl={todas:'Todas as tarefas',pendentes:'Somente pendentes',concluidas:'Somente concluídas',atrasadas:'Somente atrasadas (vencidas)'}[escopo];
+  const baseLbl={lancamento:'lançamento',prazo:'prazo da tarefa',conclusao:'conclusão'}[baseData];
+  const filtrosAtivos=[escopoLbl];
+  if(!isAdm)filtrosAtivos.push('Responsável: '+(meuNome||'—'));
+  else if(filResp)filtrosAtivos.push('Responsável: '+filResp);
+  if(di||df)filtrosAtivos.push('Período ('+baseLbl+'): '+(di?fmtD(di):'início')+' até '+(df?fmtD(df):'hoje'));
+  const filtrosLbl=filtrosAtivos.join('  ·  ');
+
+  const doc=new jsPDF();
+  const NAVY=[26,43,94], PINK=[233,30,99], LIGHT=[241,245,249], GRAY=[100,116,139];
+  const pageW=doc.internal.pageSize.getWidth();
+  const pageH=doc.internal.pageSize.getHeight();
+  const logo=await _getLogoGrandaPDF();
+  const drawnFooterPages=new Set();
+
+  function drawHeader(){
+    if(logo){try{doc.addImage(logo,'PNG',14,9,36,12.9);}catch(e){}}
+    doc.setTextColor(...NAVY);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(15);
+    doc.text('RELATÓRIO DE TAREFAS',pageW-14,15,{align:'right'});
+    doc.setTextColor(...PINK);
+    doc.setFontSize(10);
+    doc.text('Ferramentas Comerciais',pageW-14,21,{align:'right'});
+    doc.setTextColor(...GRAY);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    const lines=doc.splitTextToSize('Filtros: '+filtrosLbl,pageW-28);
+    doc.text(lines,pageW-14,26.5,{align:'right'});
+    const lineY=27.5+(lines.length-1)*3.2;
+    doc.setDrawColor(...PINK);
+    doc.setLineWidth(0.7);
+    doc.line(14,lineY,pageW-14,lineY);
+    doc.setFont('helvetica','normal');
+    return lineY+6;
+  }
+  function drawFooter(pageNum){
+    if(drawnFooterPages.has(pageNum))return;
+    drawnFooterPages.add(pageNum);
+    doc.setPage(pageNum);
+    doc.setDrawColor(220,224,230);
+    doc.setLineWidth(0.3);
+    doc.line(14,pageH-14,pageW-14,pageH-14);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('GRANDA Comunicação Visual · Sistema Comercial Granda',14,pageH-9);
+    doc.text('Gerado em '+new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),pageW/2,pageH-9,{align:'center'});
+    doc.text('Página '+pageNum,pageW-14,pageH-9,{align:'right'});
+  }
+
+  let curY=drawHeader();
+
+  const totPend=lista.filter(t=>t.status!=='concluida').length;
+  const totAtrasada=lista.filter(t=>t.status!=='concluida'&&_tarefaAtrasada(t)).length;
+  const totConc=lista.filter(t=>t.status==='concluida').length;
+  const boxes=[
+    {label:'Total',val:lista.length,color:LIGHT,text:[71,85,105]},
+    {label:'Pendentes',val:totPend,color:[254,249,195],text:[146,64,14]},
+    {label:'Atrasadas',val:totAtrasada,color:[254,226,226],text:[185,28,28]},
+    {label:'Concluídas',val:totConc,color:[220,252,231],text:[22,163,74]}
+  ];
+  const boxW=(pageW-28-3*4)/4;
+  boxes.forEach((b,idx)=>{
+    const x=14+idx*(boxW+4);
+    doc.setFillColor(...b.color);
+    doc.roundedRect(x,curY,boxW,14,1.5,1.5,'F');
+    doc.setTextColor(...b.text);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(7);
+    doc.text(b.label.toUpperCase(),x+4,curY+5.5);
+    doc.setFontSize(11);
+    doc.text(String(b.val),x+4,curY+11);
+  });
+  curY+=20;
+  doc.setTextColor(0,0,0);
+  doc.setFont('helvetica','normal');
+
+  const statusLbl=t=>t.status==='concluida'?(_tarefaAtrasada(t)?'✅ Concluída c/ atraso':'✅ Concluída'):(_tarefaAtrasada(t)?'⚠️ Atrasada':'⏳ Pendente');
+  const head=['Tarefa','Vinculada a','Responsável','Lançada em','Prazo','Concluída em','Status'];
+  const body=lista.map(t=>[
+    t.tipo||'—',
+    t.avulsaGeral?'(avulsa, sem venda)':('OS '+(t.os||'—')+' · '+(t.cliente||'—')),
+    t.responsavel||'—',
+    t.criadaEm?fmtD(t.criadaEm.slice(0,10)):'—',
+    t.prazoTarefa?fmtD(t.prazoTarefa):'—',
+    t.concluidaEm?fmtD(t.concluidaEm.slice(0,10)):'—',
+    statusLbl(t)
+  ]);
+
+  doc.autoTable({
+    startY:curY,head:[head],body,
+    theme:'grid',
+    styles:{fontSize:7,textColor:[51,65,85],lineColor:[226,232,240],lineWidth:.1,cellPadding:1.8},
+    headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold',fontSize:7.5},
+    alternateRowStyles:{fillColor:LIGHT},
+    margin:{top:32,left:14,right:14,bottom:20},
+    didParseCell:(data)=>{
+      if(data.section==='body'){
+        const t=lista[data.row.index];
+        if(t.status!=='concluida'&&_tarefaAtrasada(t))data.cell.styles.fillColor=[254,242,242];
+        else if(t.status==='concluida'&&!_tarefaAtrasada(t))data.cell.styles.fillColor=[240,253,244];
+      }
+    },
+    didDrawPage:(data)=>{
+      if(data.pageNumber>1)drawHeader();
+      drawFooter(data.pageNumber);
+    }
+  });
+
+  for(let p=1;p<=doc.internal.getNumberOfPages();p++)drawFooter(p);
+
+  const hoje=new Date();
+  const stamp=hoje.getFullYear()+String(hoje.getMonth()+1).padStart(2,'0')+String(hoje.getDate()).padStart(2,'0');
+  doc.save(`tarefas_${escopo}_${stamp}.pdf`);
+  toast('PDF gerado! 📄','tok');
 }
 
 async function _getLogoGrandaPDF(){
