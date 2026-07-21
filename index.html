@@ -547,12 +547,17 @@ select.fc{cursor:pointer}
       <button onclick="gerarPDFEmissao()" style="border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.8rem;background:#fff;color:#e91e63;font-weight:700;cursor:pointer">📄 Gerar PDF</button>
     </div>
 
+    <!-- Alerta de e-mails de emissão que falharam — só aparece pra admin quando existe pelo
+         menos 1 pedido com emailStatus==='erro'. Antes disso o único jeito de descobrir uma
+         falha de envio era abrir pedido por pedido; ver _renderAlertaEmailFalhou(). -->
+    <div id="lv-alerta-email" style="display:none;margin:0 0 12px"></div>
+
     <div class="lv" id="lv">
       <table class="lt">
         <thead><tr>
           <th onclick="srt('os')">OS</th><th onclick="srt('cliente')">Cliente</th>
           <th onclick="srt('job')">JOB</th>
-          <th>Categoria</th><th onclick="srt('emissaoEm')">Emissão</th><th onclick="srt('prazo')">Prazo</th><th>Resp.</th><th>Ação</th>
+          <th>Categoria</th><th onclick="srt('emissaoEm')">Emissão</th><th onclick="srt('prazo')">Prazo</th><th>Resp.</th><th>E-mail</th><th>Ação</th>
         </tr></thead>
         <tbody id="ltb"></tbody>
       </table>
@@ -2354,12 +2359,39 @@ function renderStats(){
   const tot=document.getElementById('s-tot');if(tot)tot.textContent=filt().length;
 }
 
+// Badge compacto de status do e-mail de emissão pra Lista de Emissão. Pedidos antigos
+// (de antes do rastreamento de emailStatus existir) ou importados da planilha não têm
+// esse campo — mostramos "—" neutro em vez de parecer um erro. title carrega o motivo
+// completo do erro sem quebrar o layout da coluna (ver [[feedback_cuidar_design_texto_cortado]]).
+function _emailBadgeLista(p){
+  if(p.importadoPlanilha)return'<span style="color:#cbd5e1">—</span>';
+  if(p.emailStatus==='enviado')return'<span style="color:#16a34a;font-weight:700;white-space:nowrap" title="Enviado em '+(p.emailEnviadoEm||'')+'">✅ Enviado</span>';
+  if(p.emailStatus==='erro')return'<span style="color:#dc2626;font-weight:700;white-space:nowrap;cursor:help" title="'+String(p.emailErro||'Erro desconhecido').replace(/"/g,'&quot;')+'">⚠️ Falhou</span>';
+  return'<span style="color:#cbd5e1">—</span>';
+}
+// Banner acima da tabela: conta TODOS os pedidos com falha de e-mail (não só os que
+// passam pelo filtro atual), pra admin nunca deixar de ver um sem entrar em "todos os
+// meses". Some por completo se não houver nenhum (não é decoração fixa).
+function _renderAlertaEmailFalhou(){
+  const el=document.getElementById('lv-alerta-email');if(!el)return;
+  const {isAdm}=_getUserCat();
+  if(!isAdm){el.style.display='none';return;}
+  const falhados=pedidosKanban().filter(p=>p.emailStatus==='erro');
+  if(!falhados.length){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:10px 14px">
+    <span style="font-size:.85rem;font-weight:700;color:#b91c1c">⚠️ ${falhados.length} e-mail(s) de emissão não foram enviados</span>
+    <span style="font-size:.78rem;color:#7f1d1d">${falhados.slice(0,3).map(p=>'OS '+(p.os||'—')).join(', ')}${falhados.length>3?' e mais '+(falhados.length-3)+'...':''}</span>
+    <button onclick="limparFiltrosLista()" style="margin-left:auto;background:#dc2626;color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:.75rem;font-weight:700;cursor:pointer">Ver todos os pedidos</button>
+  </div>`;
+}
 function renderList(){
   const sorted=[...filt()].sort((a,b)=>{let va=a[sf]||'',vb=b[sf]||'';if(sf==='os'){va=+va;vb=+vb;}return va<vb?(sa?-1:1):va>vb?(sa?1:-1):0;});
+  _renderAlertaEmailFalhou();
   if(!sorted.length){
     const totalGeral=pedidosKanban().length;
     const fm=vEl('f-mes');
-    document.getElementById('ltb').innerHTML=`<tr><td colspan="8" style="text-align:center;padding:32px 16px;color:var(--ink4)">
+    document.getElementById('ltb').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:32px 16px;color:var(--ink4)">
       <div style="font-size:.9rem;margin-bottom:6px">Nenhum pedido encontrado com os filtros atuais${fm?` (mês selecionado)`:''}.</div>
       ${totalGeral>0?`<div style="font-size:.8rem">Existem ${totalGeral} pedido${totalGeral>1?'s':''} emitido${totalGeral>1?'s':''} no total — <a href="javascript:void(0)" onclick="limparFiltrosLista()" style="color:#e91e63;font-weight:700;text-decoration:underline">limpar filtros</a> para ver todos.</div>`:''}
     </td></tr>`;
@@ -2371,6 +2403,7 @@ function renderList(){
     <td><span class="kc-tipo ${TC[p.tipo]||'tv'}" style="padding:3px 8px;border-radius:8px;font-size:.65rem">${p.tipo}</span></td>
     <td>${p.emissaoEm?fmtD(p.emissaoEm):'—'}</td>
     <td>${p.prazo?fmtD(p.prazo):'—'}</td><td>${p.responsavel||'—'}</td>
+    <td>${_emailBadgeLista(p)}</td>
     <td style="white-space:nowrap"><button style="padding:5px 12px;border:1.5px solid #e8eaf0;border-radius:7px;background:#fff;cursor:pointer;font-size:.75rem;font-weight:600;margin-right:4px" onclick="viewP('${p.id}')">Ver</button>${_isAdmLista?`<button style="padding:5px 12px;border:1.5px solid #dbeafe;border-radius:7px;background:#dbeafe;color:#1a2b5e;cursor:pointer;font-size:.75rem;font-weight:600" onclick="reenviarEmailPedido('${p.id}')">🔁 Reenviar Email</button>`:''}</td>
   </tr>`).join('');
 }
@@ -3589,7 +3622,7 @@ function saveSt(){
   if(id==='dados'){
     ed.resp=gv('em-rsp');ed.cli=gv('em-cli');ed.job=gv('em-job');ed.prazo=gv('em-prazo');ed.obs=gv('em-obs');
     ed.email_comprador=gv('em-email-comprador').trim();ed.email_engenheiro=gv('em-email-engenheiro').trim();ed.email_financeiro=gv('em-email-financeiro').trim();
-    ed.os=gv('em-os');
+    ed.os=gv('em-os').trim();
     const osF=document.getElementById('em-pdf');if(osF&&osF.files[0])ed.arq_os=osF.files[0].name;
   }else if(id==='valores'){
     const gmv=id=>{const el=document.getElementById(id);return el?el.value:''};
