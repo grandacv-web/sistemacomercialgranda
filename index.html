@@ -3921,10 +3921,11 @@ function renderStep(id){
               <div class="uz-title">Clique para selecionar ou arraste aqui</div>
               <div class="uz-sub">PDF · Máx. 10MB</div>
               <div class="uz-file" id="uz-os-name" style="display:none"></div>
-              <input type="file" accept=".pdf" id="em-pdf" style="display:none" onchange="setUpload('uz-os','uz-os-name',this,'arq_os')">
+              <input type="file" accept=".pdf" id="em-pdf" style="display:none" onchange="emOsPdfSelecionado(this)">
             </div>
           </div>
         </div>
+        <div id="os-check-result"></div>
       </div>
       <div class="fg"><label>8. Tipo de Pedido <span class="r">*</span></label>
         <select class="fc" id="em-tped" onchange="ed.tipoPedido=this.value">
@@ -4742,6 +4743,137 @@ async function reenviarEmailPedido(pedidoId){
   if(_vvCurrentPedidoId===pedidoId)verVendaDetalhe(String(p.os),pedidoId);
 }
 
+// ===================== VERIFICADOR DA OS (heurístico, sem IA) =====================
+// Lê o PDF da Ordem de Serviço (mesmo arquivo enviado no campo "PDF da OS" da aba Dados
+// Gerais) com pdf.js — já carregado pra Contas a Pagar — e roda um checklist de regras
+// pra ajudar o vendedor a pegar esquecimentos comuns ANTES de emitir: falta de cor/tinta,
+// descritivo vazio ou sem verbo de ação, palavra duplicada (erro de digitação comum), e
+// inconsistência entre o que foi marcado na Emissão (instalação/frete/elevação/medição/ART
+// com valor) e o que o texto da OS realmente descreve. É heurística — pode ter falso
+// positivo/negativo — por isso nunca bloqueia a emissão, só avisa.
+async function _extrairTextoPDF(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let texto='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    texto+=content.items.map(it=>it.str).join(' ')+'\n';
+  }
+  return texto;
+}
+function _checarOsPdf(texto,edState){
+  const itens=[];
+  const t=(texto||'').trim();
+  const tLow=t.toLowerCase();
+  const palavras=t.split(/\s+/).filter(Boolean);
+  if(palavras.length<15){
+    itens.push({nivel:'erro',msg:'O PDF da OS tem pouco ou nenhum texto legível ('+palavras.length+' palavra(s)) — pode ser um arquivo escaneado sem OCR, ou o descritivo está vazio.'});
+    return itens; // sem texto suficiente, não dá pra checar o resto com confiança
+  }
+  if(!/\b(cor|tinta|pintura|ral)\b/i.test(t)){
+    itens.push({nivel:'aviso',msg:'Nenhuma menção a cor/tinta encontrada no texto da OS — confirme se este item precisa de especificação de cor.'});
+  }
+  const verbosAcao=['instal','fornec','execut','mont','aplic','pint','fabric','entreg','confeccion','produz','revis','substitu','constru','revest'];
+  if(!verbosAcao.some(v=>tLow.includes(v))){
+    itens.push({nivel:'aviso',msg:'O descritivo não parece indicar claramente o que precisa ser feito (nenhum verbo de ação como "instalar", "fornecer", "montar" foi encontrado) — revise o texto.'});
+  }
+  const dupMatches=[...t.matchAll(/\b(\p{L}+)\s+\1\b/giu)].map(m=>m[1]);
+  if(dupMatches.length){
+    const uniq=[...new Set(dupMatches.map(w=>w.toLowerCase()))];
+    itens.push({nivel:'aviso',msg:'Possível erro de digitação — palavra repetida seguida: "'+uniq.slice(0,3).join('", "')+'".'});
+  }
+  const temValorPerto=re=>{const idx=t.search(re);if(idx<0)return false;return /r\$\s?[\d.,]+/i.test(t.slice(Math.max(0,idx-60),idx+120));};
+  if(edState){
+    const mn=v=>moneyToNum(v||0);
+    if(edState.i_tipo==='Por nossa conta'&&(mn(edState.vinst)>0||mn(edState.vmob)>0)){
+      if(!/instala/i.test(t))itens.push({nivel:'erro',msg:'A Emissão indica instalação por conta da Granda com valor, mas o texto da OS não menciona instalação em nenhum momento.'});
+      else if(!temValorPerto(/instala/i))itens.push({nivel:'aviso',msg:'A OS menciona instalação, mas não foi encontrado um valor (R$) próximo — confirme se o custo do serviço está descrito.'});
+    }
+    if(edState.f_tipo==='Por nossa conta'&&mn(edState.vfrete)>0&&!/(frete|transporte)/i.test(t)){
+      itens.push({nivel:'aviso',msg:'A Emissão indica frete por conta da Granda com valor, mas o texto da OS não menciona frete/transporte.'});
+    }
+    if(edState.elevacoes==='Sim'&&mn(edState.velev)>0&&!/eleva/i.test(t)){
+      itens.push({nivel:'aviso',msg:'A Emissão indica elevações com valor, mas o texto da OS não menciona elevação/plataforma elevatória.'});
+    }
+    if(edState.medicao==='Sim'&&mn(edState.vmed)>0&&!/medi[çc][ãa]o/i.test(t)){
+      itens.push({nivel:'aviso',msg:'A Emissão indica medição técnica com valor, mas o texto da OS não menciona medição.'});
+    }
+    if(edState.art==='Sim'&&mn(edState.vart)>0&&!/\bart\b|anota[çc][ãa]o de responsabilidade/i.test(t)){
+      itens.push({nivel:'aviso',msg:'A Emissão indica Emissão de ART com valor, mas o texto da OS não menciona ART/Anotação de Responsabilidade Técnica.'});
+    }
+  }
+  return itens;
+}
+// Aviso fixo, sempre exibido junto do resultado (independe do checklist ter achado algo
+// ou não) — lembrete de que a verificação é automática/heurística e não substitui o
+// vendedor conferir o PDF de verdade antes de emitir.
+const _AVISO_FIXO_OS='⚠️ CHEQUE O PDF DA ORDEM DE SERVIÇO, PODE CONTER ERROS DE EDIÇÃO.';
+function _renderOsCheckPanel(itens){
+  const panel=document.getElementById('os-check-result');
+  if(!panel)return;
+  const avisoFixo=`<div style="margin-top:10px;font-size:.78rem;font-weight:800;color:#b91c1c">${_AVISO_FIXO_OS}</div>`;
+  if(!itens.length){
+    panel.innerHTML=avisoFixo+'<div style="margin-top:4px;font-size:.76rem;color:#16a34a;font-weight:700">✅ Verificação automática não encontrou nenhum ponto de atenção.</div>';
+    return;
+  }
+  panel.innerHTML=avisoFixo+`<div style="margin-top:8px;border:1.5px solid #fde68a;background:#fffdf5;border-radius:10px;padding:12px 14px">
+    <div style="font-size:.72rem;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔍 Verificação automática da OS (${itens.length})</div>
+    ${itens.map(i=>`<div style="font-size:.8rem;color:#374151;padding:4px 0 4px 10px;border-left:2px solid ${i.nivel==='erro'?'#f87171':'#fbbf24'};margin-bottom:4px">${i.nivel==='erro'?'🔴':'🟡'} ${i.msg}</div>`).join('')}
+    <div style="font-size:.68rem;color:#9ca3af;margin-top:6px">Checklist automático (sem IA) — pode ter falso positivo, use como apoio, não como verdade absoluta.</div>
+  </div>`;
+}
+// Roda ao selecionar o PDF da OS: faz o upload de sempre (setUpload) e, em paralelo,
+// extrai o texto localmente pra já mostrar as checagens que não dependem da aba Valores
+// (cor/tinta, descritivo, digitação). O texto fica em ed.osPdfTexto pra ser reaproveitado
+// no submit(), quando ed.i_tipo/vinst/etc já estarão preenchidos.
+async function emOsPdfSelecionado(input){
+  setUpload('uz-os','uz-os-name',input,'arq_os');
+  const f=input.files[0];
+  if(!f)return;
+  const panel=document.getElementById('os-check-result');
+  if(panel)panel.innerHTML='<div style="margin-top:10px;font-size:.78rem;color:#94a3b8">🔍 Analisando PDF da OS...</div>';
+  try{
+    const texto=await _extrairTextoPDF(f);
+    ed.osPdfTexto=texto;
+    _renderOsCheckPanel(_checarOsPdf(texto,ed));
+  }catch(e){
+    console.error('Erro ao analisar PDF da OS',e);
+    ed.osPdfTexto='';
+    if(panel)panel.innerHTML='<div style="margin-top:10px;font-size:.78rem;color:#94a3b8">Não foi possível ler o conteúdo do PDF automaticamente (pode ser um arquivo escaneado/imagem) — confira manualmente.</div>';
+  }
+}
+let _avisosOsResolve=null;
+function _confirmarAvisosOs(itens){
+  return new Promise(resolve=>{
+    _avisosOsResolve=resolve;
+    let m=document.getElementById('mo-avisos-os');
+    if(!m){
+      m=document.createElement('div');m.id='mo-avisos-os';
+      m.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(3px)';
+      document.body.appendChild(m);
+    }
+    m.innerHTML=`<div style="background:#fff;border-radius:18px;padding:28px 28px 22px;max-width:520px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:inherit">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:50%;background:#fef3c7;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🔍</div>
+        <div><div style="font-size:.95rem;font-weight:800;color:#111">Verificação automática da OS</div><div style="font-size:.75rem;color:#6b7280;margin-top:2px">Vale a pena conferir antes de emitir — não impede o envio</div></div>
+      </div>
+      <div style="font-size:.78rem;font-weight:800;color:#b91c1c;margin-bottom:10px">${_AVISO_FIXO_OS}</div>
+      <div>${itens.map(i=>`<div style="font-size:.82rem;color:#374151;padding:5px 0 5px 12px;border-left:2px solid ${i.nivel==='erro'?'#f87171':'#fbbf24'};margin-bottom:4px">${i.nivel==='erro'?'🔴':'🟡'} ${i.msg}</div>`).join('')}</div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button onclick="_resolveAvisosOs(false)" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;font-size:.82rem;font-weight:700;cursor:pointer;color:#374151">Voltar e revisar</button>
+        <button onclick="_resolveAvisosOs(true)" style="flex:1;padding:10px;border-radius:10px;border:none;background:#e91e63;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer">Emitir mesmo assim</button>
+      </div>
+    </div>`;
+    m.style.display='flex';
+  });
+}
+function _resolveAvisosOs(val){
+  const m=document.getElementById('mo-avisos-os');if(m)m.style.display='none';
+  if(_avisosOsResolve){const r=_avisosOsResolve;_avisosOsResolve=null;r(val);}
+}
+// ===================== FIM VERIFICADOR DA OS =====================
+
 async function submit(){
   saveSt();
   const tabs=getTabs();
@@ -4805,6 +4937,18 @@ async function submit(){
     ).join('');
     showErrosModal(html,erros[0].aba);
     return;
+  }
+  // Verificação heurística da OS (checklist sem IA) — só roda se o PDF já foi lido com
+  // sucesso (ed.osPdfTexto), e agora com ed.i_tipo/vinst/f_tipo/vfrete/etc já preenchidos
+  // (aba Valores), então os cross-checks de custo x serviço ficam completos aqui, mesmo
+  // que o painel da aba Dados Gerais só tenha rodado as checagens de texto puro. Nunca
+  // bloqueia — é só um "tem certeza?" antes de emitir.
+  if(ed.osPdfTexto){
+    const itensOs=_checarOsPdf(ed.osPdfTexto,ed);
+    if(itensOs.length){
+      const prosseguir=await _confirmarAvisosOs(itensOs);
+      if(!prosseguir)return;
+    }
   }
   const liq=calcLiq();
   const fmtV=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2});
