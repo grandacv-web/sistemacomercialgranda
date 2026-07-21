@@ -852,6 +852,12 @@ select.fc{cursor:pointer}
     <!-- FINANCEIRO -->
     <div id="sec-cat-FINANCEIRO" style="display:none">
       <div id="dash-financeiro">
+        <div class="dash-tabs" style="margin-bottom:14px" id="fin-main-tabs">
+          <button class="dash-tab active fin-main-tab" onclick="finMainSetTab('receber',this)">📥 Contas a Receber</button>
+          <button class="dash-tab fin-main-tab" onclick="finMainSetTab('pagar',this)">📤 Contas a Pagar</button>
+          <button class="dash-tab fin-main-tab" onclick="finMainSetTab('dre',this)">📊 DRE</button>
+        </div>
+        <div id="fin-sec-receber">
         <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
           💰 Contas a Receber — todas as parcelas de vendas (do sistema ou da planilha) que ainda não foram confirmadas como recebidas. Confirmar aqui já libera a comissão do vendedor na quinzena correta.
         </div>
@@ -888,6 +894,50 @@ select.fc{cursor:pointer}
           <div id="fin-body"></div>
         </div>
         <div id="fin-view-fluxo" style="display:none"></div>
+        </div>
+        <div id="fin-sec-pagar" style="display:none">
+          <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+            📤 Contas a Pagar — despesas do grupo (Granda, Gnove, GRND Soluções), importadas do PDF do sistema de contas a pagar ou lançadas manualmente. Toda importação passa por uma tela de revisão antes de gravar.
+          </div>
+          <div id="cp-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+            <input id="cp-fil-busca" placeholder="Buscar fornecedor, despesa..." oninput="renderContasPagar()" style="flex:1;min-width:200px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+            <select id="cp-fil-empresa" onchange="renderContasPagar()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">🏢 Todas as empresas</option>
+            </select>
+            <select id="cp-fil-categoria" onchange="renderContasPagar()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">Todas as categorias</option>
+            </select>
+            <select id="cp-fil-status" onchange="renderContasPagar()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">Todos os status</option>
+              <option value="pendente">⏳ Pendente</option>
+              <option value="atrasado">⚠️ Atrasado</option>
+              <option value="pago">✅ Pago</option>
+            </select>
+            <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Vencimento de</span>
+            <input id="cp-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderContasPagar()">
+            <span style="font-size:.75rem;color:#94a3b8;font-weight:600">até</span>
+            <input id="cp-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderContasPagar()">
+            <button onclick="abrirImportarContasPagarPDF()" class="dash-btn-conf" style="white-space:nowrap">📥 Importar PDF</button>
+            <button onclick="abrirNovaContaPagar()" class="dash-btn-conf" style="white-space:nowrap;background:#1d4ed8">+ Nova despesa</button>
+          </div>
+          <div id="cp-body"></div>
+        </div>
+        <div id="fin-sec-dre" style="display:none">
+          <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+            📊 DRE gerencial por regime de competência — Receita pelo mês da venda, despesas de Contas a Pagar pelo mês de vencimento de cada lançamento. Comissões calculadas pela mesma venda que as gerou, independente de já terem sido pagas.
+          </div>
+          <div class="dash-mes-nav" style="margin-bottom:10px">
+            <button onclick="dreMov(-1)">◀</button>
+            <div class="dash-mes-label" id="dre-mes-lbl">—</div>
+            <button onclick="dreMov(1)">▶</button>
+            <select id="dre-fil-empresa" onchange="dreSetEmpresa(this.value)" style="margin-left:auto;padding:8px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">🏢 Todas as empresas (consolidado)</option>
+            </select>
+          </div>
+          <div id="dre-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+          <div id="dre-body"></div>
+        </div>
       </div>
     </div>
     <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
@@ -1384,6 +1434,66 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+<!-- CONTA A PAGAR — CRIAR/EDITAR (manual ou revisão de item importado) -->
+<div class="mov" id="mo-conta-pagar" onclick="cio(event,'mo-conta-pagar')">
+<div class="mvmod" style="width:560px;max-width:97vw;max-height:92vh;overflow-y:auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <h3 style="margin-bottom:0" id="cp-mod-titulo">+ Nova despesa</h3>
+    <button onclick="closeM('mo-conta-pagar')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <input type="hidden" id="cp-id">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="fg"><label>Empresa <span class="r">*</span></label>
+      <select class="fc" id="cp-empresa">${EMPRESAS_CONTAS_PAGAR.map(e=>`<option value="${e.id}">${e.label}</option>`).join('')}</select>
+    </div>
+    <div class="fg"><label>Categoria <span class="r">*</span></label>
+      <select class="fc" id="cp-categoria">${getPlanoContasDespesas().map(c=>`<option value="${c.id}">${c.nome}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="fg"><label>Fornecedor <span class="r">*</span></label><input class="fc no-upper" id="cp-fornecedor" placeholder="Nome do fornecedor"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div class="fg"><label>CPF/CNPJ (opcional)</label><input class="fc" id="cp-cnpj" placeholder="00.000.000/0000-00"></div>
+    <div class="fg"><label>N.F (opcional)</label><input class="fc" id="cp-nf" placeholder="Número da nota"></div>
+  </div>
+  <div class="fg"><label>Descrição da despesa <span class="r">*</span></label><input class="fc no-upper" id="cp-despesa" placeholder="Ex.: Aluguel imóvel, matéria-prima, etc."></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div class="fg"><label>Forma de pagamento</label>
+      <select class="fc" id="cp-forma">
+        <option value="Boleto">Boleto</option><option value="Pix">Pix</option><option value="Depósito">Depósito</option>
+        <option value="Cartão de Crédito">Cartão de Crédito</option><option value="Cheque">Cheque</option><option value="Transferência">Transferência</option>
+      </select>
+    </div>
+    <div class="fg"><label>Parcela</label><input class="fc" id="cp-parcela" placeholder="1/1"></div>
+    <div class="fg"><label>Vencimento <span class="r">*</span></label><input type="date" class="fc" id="cp-vencimento"></div>
+  </div>
+  <div class="fg"><label>Valor (R$) <span class="r">*</span></label><input class="fc no-upper" type="text" inputmode="numeric" id="cp-valor" oninput="fmtMoney(this)" placeholder="0,00"></div>
+  <label style="display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:600;color:#9a3412;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:9px 12px;cursor:pointer;margin-bottom:4px">
+    <input type="checkbox" id="cp-fora-planejado" style="width:16px;height:16px;flex-shrink:0;accent-color:#ea580c">
+    📌 Despesa fora do planejado (gasto não previsto/emergencial)
+  </label>
+  <button onclick="salvarContaPagarForm()" style="margin-top:10px;width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">Salvar</button>
+</div>
+</div>
+
+<!-- CONTA A PAGAR — IMPORTAR PDF (com tela de revisão antes de gravar) -->
+<div class="mov" id="mo-cp-import" onclick="cio(event,'mo-cp-import')">
+<div class="mvmod" style="width:980px;max-width:98vw;max-height:92vh;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">📥 Importar Contas a Pagar (PDF)</h3>
+    <button onclick="closeM('mo-cp-import')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
+    Selecione o PDF exportado do sistema de contas a pagar. Nada é gravado automaticamente — confira e ajuste categoria/empresa linha a linha antes de confirmar.
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <input type="file" id="cp-import-file" accept="application/pdf" onchange="_cpImportFileSelected(this.files[0])">
+  </div>
+  <div id="cp-import-status" style="font-size:.8rem;color:var(--ink3);margin-bottom:10px"></div>
+  <div id="cp-import-body" style="overflow-y:auto;flex:1"></div>
+  <button id="cp-import-confirmar-btn" onclick="confirmarImportacaoContasPagar()" style="display:none;margin-top:12px;width:100%;background:#16a34a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">Confirmar importação</button>
+</div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <!-- Comemoração automática de meta batida (semana/mês/empresa) — ver
      verificarComemoracoesMetas(). Banner leve pra semana (não bloqueia a tela),
@@ -1681,6 +1791,10 @@ select.fc{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<!-- pdf.js — usado só pra LER o PDF de Contas a Pagar na importação (extração posicional de
+     texto), ver parseContasPagarPDF(). Não tem relação com jsPDF acima (que gera PDFs). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window['pdfjsLib'])pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 
 <!-- Firebase Auth -->
 <script type="module">
@@ -1725,6 +1839,11 @@ window._fbSavePedido=(p)=>setDoc(doc(db,'pedidos',String(p.id)),p);
 window._fbDeletePedido=(id)=>deleteDoc(doc(db,'pedidos',String(id)));
 window._fbLoadPedidos=()=>getDocs(collection(db,'pedidos'));
 window._fbWatchPedidos=(cb)=>onSnapshot(collection(db,'pedidos'),cb);
+// Contas a Pagar — mesmo padrão de 'pedidos' (um doc por lançamento, não dentro de cfg) porque
+// o volume é alto (centenas por mês, ver importador de PDF) e cfg é um doc único no Firestore.
+window._fbSaveContaPagar=(c)=>setDoc(doc(db,'contasPagar',String(c.id)),c);
+window._fbDeleteContaPagar=(id)=>deleteDoc(doc(db,'contasPagar',String(id)));
+window._fbWatchContasPagar=(cb)=>onSnapshot(collection(db,'contasPagar'),cb);
 // Config global (compartilhada entre todos os usuários)
 window._fbSaveCfg=(data)=>setDoc(doc(db,'sistema','config'),data);
 window._fbLoadCfg=()=>getDocs(collection(db,'sistema')).then(snap=>{const d=snap.docs.find(x=>x.id==='config');return d?d.data():null;});
@@ -1753,7 +1872,7 @@ function renderCfgPermissoes(){
   }).join('');
 }
 
-let pedidos=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
+let pedidos=[],contasPagar=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
 let sf='os',sa=true,vid=null,eid=null;
 let step=0,ed={},editing=null;
 
@@ -2180,6 +2299,26 @@ function setupRealtimeSync(){
     }catch(e){}
   });
 }
+// Mesmo padrão de setupRealtimeSync() (pedidos), só que pra Contas a Pagar — coleção
+// separada porque o volume é alto (importação de PDF traz centenas de lançamentos por mês).
+function setupContasPagarSync(){
+  if(!window._fbWatchContasPagar)return;
+  window._fbWatchContasPagar(function(snapshot){
+    contasPagar=snapshot.docs.map(d=>d.data());
+    const elFin=document.getElementById('sec-cat-FINANCEIRO');
+    if(typeof renderContasPagar==='function'&&elFin&&elFin.style.display!=='none')renderContasPagar();
+  });
+}
+async function saveContaPagarFS(c){
+  if(!window._fbSaveContaPagar){console.warn('Firestore não disponível');return;}
+  try{await window._fbSaveContaPagar(c);}
+  catch(e){toast('Erro ao salvar no servidor: '+e.message,'terr');console.error(e);}
+}
+async function deleteContaPagarFS(id){
+  if(!window._fbDeleteContaPagar){console.warn('Firestore não disponível');return;}
+  try{await window._fbDeleteContaPagar(id);}
+  catch(e){toast('Erro ao excluir: '+e.message,'terr');console.error(e);}
+}
 
 function filt(){
   const q=vEl('srch').toLowerCase(),ft=vEl('f-tipo');
@@ -2442,7 +2581,13 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
         }
       },120);
     }
-    if(isFin&&typeof renderFinanceiro==='function')setTimeout(renderFinanceiro,120);
+    if(isFin&&typeof renderFinanceiro==='function')setTimeout(()=>{
+      document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
+      document.getElementById('fin-main-tabs')?.querySelector('.fin-main-tab')?.classList.add('active');
+      const sr=document.getElementById('fin-sec-receber'),sp=document.getElementById('fin-sec-pagar');
+      if(sr)sr.style.display='';if(sp)sp.style.display='none';
+      renderFinanceiro();
+    },120);
     // Ferramentas Comerciais é aberto pra qualquer usuário logado — sempre reabre na
     // ferramenta padrão (Tarefas) ao entrar na seção, igual comportamento antigo de
     // geralTab('tarefas') antes de virar item próprio do sidebar (2026-07-16).
@@ -5202,6 +5347,7 @@ function initAuth(tries){
         usuarioLogado=user;
         if(ls)ls.style.display='none';
         setupRealtimeSync();
+        setupContasPagarSync();
         load().then(()=>{
           const nomeMap=cfg.usuarioNomes||{};
           const catMap=cfg.usuarioCats||{};
@@ -6786,6 +6932,693 @@ function _cmpMesVenda(a,b){
 // Reaproveita a mesma fonte de dados da Comissões (getComissaoItemsAll) — cada parcela
 // já vem com confKey/status/qy/qm/qhalf, então confirmar aqui já confirma a comissão
 // do vendedor na quinzena certa, sem precisar de nenhum dado novo.
+// ══════════════════════════════════════════════════════════════════════════
+// CONTAS A PAGAR — Fase 1 (2026-07-21): cadastro manual + despesa "fora do planejado" +
+// importador do PDF de contas a pagar (sistema externo, hoje gerado por "Paulo He..."),
+// com plano de contas configurável pra alimentar o DRE nas próximas fases. Cada lançamento
+// vira um doc na coleção 'contasPagar' (ver _fbSaveContaPagar), igual pedidos.
+// As 3 empresas do grupo aparecem juntas no mesmo PDF (coluna "Para") — cada lançamento
+// guarda qual empresa é, e a tela deixa filtrar por uma ou ver o consolidado.
+// ══════════════════════════════════════════════════════════════════════════
+const EMPRESAS_CONTAS_PAGAR=[
+  {id:'GRANDA',label:'Granda Comunicação Visual'},
+  {id:'GNOVE',label:'Gnove Instalação'},
+  {id:'GRND',label:'GRND Soluções Industriais'},
+  {id:'OUTRA',label:'Outra / não identificada'}
+];
+function _capLabel(id){return (EMPRESAS_CONTAS_PAGAR.find(e=>e.id===id)||{}).label||id||'—';}
+// Plano de contas padrão, já classificado em grupos que a Fase 3 (motor de DRE) vai somar:
+// CMV (custo direto de produção), OPERACIONAL, FINANCEIRA e IMPOSTOS. Decisão do usuário
+// (2026-07-21): parcela de bem financiado (compra de máquina, terreno etc.) entra como
+// despesa financeira normal por enquanto, sem separar como investimento/CAPEX.
+function getPlanoContasDespesas(){
+  if(cfg.planoContasDespesas&&cfg.planoContasDespesas.length)return cfg.planoContasDespesas;
+  return [
+    {id:'materia_prima',nome:'Matéria-Prima e Insumos',grupo:'CMV'},
+    {id:'frete_obra',nome:'Frete e Transporte de Obra',grupo:'CMV'},
+    {id:'ocupacao',nome:'Ocupação e Utilidades',grupo:'OPERACIONAL'},
+    {id:'frota',nome:'Frota e Combustível',grupo:'OPERACIONAL'},
+    {id:'ti_software',nome:'TI e Softwares',grupo:'OPERACIONAL'},
+    {id:'servicos_prof',nome:'Serviços Profissionais',grupo:'OPERACIONAL'},
+    {id:'folha_beneficios',nome:'Folha e Benefícios',grupo:'OPERACIONAL'},
+    {id:'admin_geral',nome:'Despesas Administrativas Gerais',grupo:'OPERACIONAL'},
+    {id:'emprestimos',nome:'Empréstimos e Financiamentos',grupo:'FINANCEIRA'},
+    {id:'juros_tarifas',nome:'Juros e Tarifas Bancárias',grupo:'FINANCEIRA'},
+    {id:'impostos',nome:'Impostos e Parcelamentos Fiscais',grupo:'IMPOSTOS'},
+    {id:'nao_classificado',nome:'Não Classificado',grupo:'NAO_CLASSIFICADO'}
+  ];
+}
+function getCategoriaDespesa(id){return getPlanoContasDespesas().find(c=>c.id===id)||null;}
+const GRUPO_DRE_LABEL={CMV:'Custo de Produção (CMV)',OPERACIONAL:'Despesas Operacionais',FINANCEIRA:'Despesas Financeiras',IMPOSTOS:'Impostos',NAO_CLASSIFICADO:'Não Classificado'};
+function _normSemAcento(s){
+  return (s||'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+}
+// Classificação automática por palavra-chave — roda na revisão da importação (nunca grava
+// direto sem passar pela tela de revisão, ver renderImportacaoPreview()). Ordem importa: a
+// primeira regra que bater vence. "Pagamento ordem de compra"/"Despesa Nota Fiscal" sem
+// nenhuma outra palavra-chave reconhecida cai em Matéria-Prima (é o padrão largamente
+// majoritário dos fornecedores desse PDF — alumínio, acrílico, aço, tintas, ferragens), mas
+// sempre revisável antes de confirmar.
+const _REGRAS_CLASSIFICACAO=[
+  {cat:'impostos',re:/\bINSS\b|\bFGTS\b|\bISS\b|\bCBRC\b|\bREFIS\b|RECEITA FEDERAL|PARCELAMENTO FEDERAL|SECRETARIA DE ESTADO DA FAZENDA|MINISTERIO DA FAZENDA|PREFEITURA|\bFGRPS\b/},
+  {cat:'emprestimos',re:/EMPRESTIM|FINANCIAMENT|PRONAMPE|GIRO PRONAMPE|CONSORCIO/},
+  {cat:'juros_tarifas',re:/\bJUROS\b|TARIFA|RENEGOCIA|PARCELAMENTO CART|CONTA GARANTIDA/},
+  {cat:'folha_beneficios',re:/SEGURO DE VIDA|UNIMED|CONVENIO|ODONTOL|\bCURSO\b|TREINAMENTO|ADIANTAMENTO COLABORADORES|MEDICINA OCUPACIONAL|MEDICINA DO TRABALHO|ASSESSORIA DOS LIDERES|BUSCA EPI|\bEPIS?\b|CALLFARMA|NISSEI|DENTAL/},
+  {cat:'ocupacao',re:/ALUGUEL IMOVEL|ENERGIA ELETRICA|MONITORAME|DESINSETIZ|DESRATIZ|ZERO RESIDUOS|TROCA DE FILTRO/},
+  {cat:'frota',re:/COMBUSTIVEL|ALUGUEL CARRO|RASTREADOR|CONSERTO VEICULO|SEGURO FIAT|TATICO DE SEGURANCA/},
+  {cat:'ti_software',re:/SOFTWARE|SISTEMA|\bINTERNET\b|TELEFONE CELULAR|\bGCORE\b/},
+  {cat:'servicos_prof',re:/SERVICOS CONTABEIS|ADVOGADO|HONORARIOS|PRESTACAO DE SERVICOS|ALTERACAO DE CNPJ|\bACIPG\b/},
+  {cat:'frete_obra',re:/TRANSPORTES?\b|GUINDASTE|\bMUNCK\b|GUINCHO/}
+];
+function _classificarDespesaAuto(despesaRaw,fornecedor){
+  const txt=_normSemAcento((despesaRaw||'')+' '+(fornecedor||''));
+  for(const r of _REGRAS_CLASSIFICACAO){if(r.re.test(txt))return r.cat;}
+  if(/PAGAMENTO.*ORDEM DE COMPRA|DESPESA NOTA FISCAL/i.test(_normSemAcento(despesaRaw)))return'materia_prima';
+  return'nao_classificado';
+}
+// Empresa a partir do texto bruto da coluna "Para" do PDF (ou já normalizado no import).
+function _empresaFromParaTexto(txt){
+  const t=_normSemAcento(txt);
+  if(t.includes('GRANDA'))return'GRANDA';
+  if(t.includes('GNOVE'))return'GNOVE';
+  if(t.includes('GRND'))return'GRND';
+  return'OUTRA';
+}
+function novaContaPagar(dados){
+  return{
+    id:uid(),
+    origem:dados.origem||'manual', // 'manual' | 'pdf_import' | 'fora_planejado'
+    empresa:dados.empresa||'GRANDA',
+    fornecedor:(dados.fornecedor||'').trim(),
+    cnpjCpf:(dados.cnpjCpf||'').trim(),
+    despesaDesc:(dados.despesaDesc||'').trim(),
+    categoria:dados.categoria||'nao_classificado',
+    nf:(dados.nf||'').trim(),
+    formaPagamento:dados.formaPagamento||'',
+    parcela:(dados.parcela||'').trim(),
+    vencimento:dados.vencimento||'', // 'YYYY-MM-DD'
+    valor:Number(dados.valor)||0,
+    juros:Number(dados.juros)||0,
+    multa:Number(dados.multa)||0,
+    desconto:Number(dados.desconto)||0,
+    status:dados.status||'pendente', // 'pendente' | 'pago'
+    dataPagamento:dados.dataPagamento||null,
+    loteImportacao:dados.loteImportacao||'',
+    criadoEm:new Date().toISOString(),
+    criadoPor:usuarioLogado?.nomeExibicao||''
+  };
+}
+function _cpAtrasada(c){
+  if(c.status==='pago')return false;
+  const v=new Date((c.vencimento||'')+'T23:59:59');
+  if(isNaN(v))return false;
+  return new Date()>v;
+}
+async function salvarContaPagar(c){
+  await saveContaPagarFS(c);
+}
+async function marcarContaPagarPaga(id,pago){
+  const c=contasPagar.find(x=>x.id===id);if(!c)return;
+  c.status=pago?'pago':'pendente';
+  c.dataPagamento=pago?new Date().toISOString().slice(0,10):null;
+  await saveContaPagarFS(c);
+  toast(pago?'Marcado como pago! ✅':'Reaberto como pendente','tok');
+}
+async function excluirContaPagar(id){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem excluir contas a pagar','terr');return;}
+  if(!confirm('Excluir este lançamento de contas a pagar? Essa ação não pode ser desfeita.'))return;
+  await deleteContaPagarFS(id);
+  toast('Lançamento excluído','tok');
+}
+
+// ── UI: alterna entre Contas a Receber / Contas a Pagar dentro de Financeiro ──────────────
+function finMainSetTab(tab,btn){
+  document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const sr=document.getElementById('fin-sec-receber'),sp=document.getElementById('fin-sec-pagar'),sd=document.getElementById('fin-sec-dre');
+  if(sr)sr.style.display=tab==='receber'?'':'none';
+  if(sp)sp.style.display=tab==='pagar'?'':'none';
+  if(sd)sd.style.display=tab==='dre'?'':'none';
+  if(tab==='receber'){if(typeof renderFinanceiro==='function')renderFinanceiro();}
+  else if(tab==='pagar'){if(typeof renderContasPagar==='function')renderContasPagar();}
+  else{if(typeof renderDRE==='function')renderDRE();}
+}
+let _cpItemsAtuais=[];
+function _cpFilteredItems(){
+  let items=contasPagar.map(c=>({...c,statusCalc:c.status==='pago'?'pago':(_cpAtrasada(c)?'atrasado':'pendente')}));
+  const q=(document.getElementById('cp-fil-busca')?.value||'').toLowerCase().trim();
+  const femp=document.getElementById('cp-fil-empresa')?.value||'';
+  const fcat=document.getElementById('cp-fil-categoria')?.value||'';
+  const fstat=document.getElementById('cp-fil-status')?.value||'';
+  const di=document.getElementById('cp-fil-data-ini')?.value||'';
+  const df=document.getElementById('cp-fil-data-fim')?.value||'';
+  items=items.filter(c=>
+    (!q||(c.fornecedor||'').toLowerCase().includes(q)||(c.despesaDesc||'').toLowerCase().includes(q))
+    &&(!femp||c.empresa===femp)
+    &&(!fcat||c.categoria===fcat)
+    &&(!fstat||c.statusCalc===fstat)
+    &&(!di||(c.vencimento&&c.vencimento>=di))
+    &&(!df||(c.vencimento&&c.vencimento<=df))
+  );
+  items.sort((a,b)=>(a.vencimento||'').localeCompare(b.vencimento||''));
+  return items;
+}
+function renderContasPagar(){
+  const body=document.getElementById('cp-body');if(!body)return;
+  if(!_isFinanceiroUser()){
+    const cardsEl=document.getElementById('cp-cards');if(cardsEl)cardsEl.innerHTML='';
+    body.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador podem ver as Contas a Pagar.</div>';
+    return;
+  }
+  const selEmp=document.getElementById('cp-fil-empresa');
+  if(selEmp&&selEmp.options.length<=1)selEmp.innerHTML='<option value="">🏢 Todas as empresas</option>'+EMPRESAS_CONTAS_PAGAR.map(e=>`<option value="${e.id}">${e.label}</option>`).join('');
+  const selCat=document.getElementById('cp-fil-categoria');
+  if(selCat&&selCat.options.length<=1)selCat.innerHTML='<option value="">Todas as categorias</option>'+getPlanoContasDespesas().map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+
+  const items=_cpFilteredItems();
+  const cardsEl=document.getElementById('cp-cards');
+  if(cardsEl){
+    const totPendente=items.filter(c=>c.statusCalc!=='pago').reduce((s,c)=>s+c.valor,0);
+    const totAtrasado=items.filter(c=>c.statusCalc==='atrasado').reduce((s,c)=>s+c.valor,0);
+    const totPago=items.filter(c=>c.statusCalc==='pago').reduce((s,c)=>s+c.valor,0);
+    const cards=[
+      {label:'A pagar',val:totPendente,color:'#dbeafe',text:'#1e40af'},
+      {label:'Em atraso',val:totAtrasado,color:'#fee2e2',text:'#b91c1c'},
+      {label:'Pago',val:totPago,color:'#dcfce7',text:'#16a34a'},
+      {label:'Lançamentos',val:items.length,color:'#f1f5f9',text:'#475569',isCount:true}
+    ];
+    cardsEl.innerHTML=cards.map(c=>`<div style="background:${c.color};border-radius:12px;padding:14px 16px"><div style="font-size:.68rem;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:.5px">${c.label}</div><div style="font-size:1.3rem;font-weight:800;color:${c.text};margin-top:4px">${c.isCount?c.val:fmtR(c.val)}</div></div>`).join('');
+  }
+  if(!items.length){
+    body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhum lançamento encontrado com esses filtros.</div>';
+    return;
+  }
+  _cpItemsAtuais=items;
+  const statusBadge=c=>{
+    if(c.statusCalc==='pago')return'<span style="background:#dcfce7;color:#16a34a;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">✅ Pago</span>';
+    if(c.statusCalc==='atrasado')return'<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">⚠️ Atrasado</span>';
+    return'<span style="background:#fef9c3;color:#92400e;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">⏳ Pendente</span>';
+  };
+  body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+    <thead><tr><th>Vencimento</th><th>Empresa</th><th>Fornecedor</th><th>Despesa</th><th>Categoria</th><th>Parcela</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+    <tbody>${items.map(c=>`
+      <tr>
+        <td style="white-space:nowrap">${fmtD(c.vencimento)}${c.origem==='fora_planejado'?' <span title="Despesa fora do planejado" style="color:#ea580c">📌</span>':''}</td>
+        <td>${_capLabel(c.empresa)}</td>
+        <td title="${(c.fornecedor||'').replace(/"/g,'&quot;')}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.fornecedor||'—'}</td>
+        <td title="${(c.despesaDesc||'').replace(/"/g,'&quot;')}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.despesaDesc||'—'}</td>
+        <td>
+          <select onchange="_cpMudarCategoria('${c.id}',this.value)" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid var(--border)">
+            ${getPlanoContasDespesas().map(cat=>`<option value="${cat.id}" ${cat.id===c.categoria?'selected':''}>${cat.nome}</option>`).join('')}
+          </select>
+        </td>
+        <td>${c.parcela||'—'}</td>
+        <td style="font-weight:700;white-space:nowrap">${fmtR(c.valor)}</td>
+        <td>${statusBadge(c)}</td>
+        <td style="white-space:nowrap">
+          ${c.statusCalc==='pago'
+            ?`<button onclick="marcarContaPagarPaga('${c.id}',false)" title="Reabrir" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">↩️</button>`
+            :`<button onclick="marcarContaPagarPaga('${c.id}',true)" title="Marcar como pago" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">✅</button>`}
+          <button onclick="abrirEditarContaPagar('${c.id}')" title="Editar" style="background:#fff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">✏️</button>
+          <button onclick="excluirContaPagar('${c.id}')" title="Excluir" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">🗑️</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+async function _cpMudarCategoria(id,categoria){
+  const c=contasPagar.find(x=>x.id===id);if(!c)return;
+  c.categoria=categoria;
+  await saveContaPagarFS(c);
+  toast('Categoria atualizada','tok');
+}
+// ── Criar/editar manualmente (inclui o campo "fora do planejado") ────────────────────────
+function abrirNovaContaPagar(){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem lançar contas a pagar','terr');return;}
+  document.getElementById('cp-mod-titulo').textContent='+ Nova despesa';
+  document.getElementById('cp-id').value='';
+  document.getElementById('cp-empresa').value='GRANDA';
+  document.getElementById('cp-categoria').value='nao_classificado';
+  document.getElementById('cp-fornecedor').value='';
+  document.getElementById('cp-cnpj').value='';
+  document.getElementById('cp-nf').value='';
+  document.getElementById('cp-despesa').value='';
+  document.getElementById('cp-forma').value='Boleto';
+  document.getElementById('cp-parcela').value='1/1';
+  document.getElementById('cp-vencimento').value='';
+  const vEl=document.getElementById('cp-valor');vEl.value='';vEl.dataset.raw='0';
+  document.getElementById('cp-fora-planejado').checked=false;
+  openM('mo-conta-pagar');
+}
+function abrirEditarContaPagar(id){
+  const c=contasPagar.find(x=>x.id===id);if(!c){toast('Lançamento não encontrado','terr');return;}
+  document.getElementById('cp-mod-titulo').textContent='✏️ Editar despesa';
+  document.getElementById('cp-id').value=c.id;
+  document.getElementById('cp-empresa').value=c.empresa||'GRANDA';
+  document.getElementById('cp-categoria').value=c.categoria||'nao_classificado';
+  document.getElementById('cp-fornecedor').value=c.fornecedor||'';
+  document.getElementById('cp-cnpj').value=c.cnpjCpf||'';
+  document.getElementById('cp-nf').value=c.nf||'';
+  document.getElementById('cp-despesa').value=c.despesaDesc||'';
+  document.getElementById('cp-forma').value=c.formaPagamento||'Boleto';
+  document.getElementById('cp-parcela').value=c.parcela||'';
+  document.getElementById('cp-vencimento').value=c.vencimento||'';
+  const vEl=document.getElementById('cp-valor');vEl.value=Number(c.valor||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});vEl.dataset.raw=String(c.valor||0);
+  document.getElementById('cp-fora-planejado').checked=c.origem==='fora_planejado';
+  openM('mo-conta-pagar');
+}
+async function salvarContaPagarForm(){
+  const id=document.getElementById('cp-id').value||'';
+  const fornecedor=(document.getElementById('cp-fornecedor').value||'').trim();
+  const despesa=(document.getElementById('cp-despesa').value||'').trim();
+  const vencimento=document.getElementById('cp-vencimento').value||'';
+  const valor=moneyToNum(document.getElementById('cp-valor').value||'');
+  if(!fornecedor){toast('Informe o fornecedor','terr');return;}
+  if(!despesa){toast('Informe a descrição da despesa','terr');return;}
+  if(!vencimento){toast('Informe o vencimento','terr');return;}
+  if(!valor||valor<=0){toast('Informe o valor','terr');return;}
+  const foraPlanejado=document.getElementById('cp-fora-planejado').checked;
+  const existente=id?contasPagar.find(x=>x.id===id):null;
+  const dados={
+    id:id||undefined,
+    origem:foraPlanejado?'fora_planejado':(existente?.origem==='pdf_import'?'pdf_import':'manual'),
+    empresa:document.getElementById('cp-empresa').value,
+    fornecedor,cnpjCpf:(document.getElementById('cp-cnpj').value||'').trim(),
+    despesaDesc:despesa,
+    categoria:document.getElementById('cp-categoria').value,
+    nf:(document.getElementById('cp-nf').value||'').trim(),
+    formaPagamento:document.getElementById('cp-forma').value,
+    parcela:(document.getElementById('cp-parcela').value||'').trim(),
+    vencimento,valor,
+    juros:existente?.juros||0,multa:existente?.multa||0,desconto:existente?.desconto||0,
+    status:existente?.status||'pendente',dataPagamento:existente?.dataPagamento||null,
+    loteImportacao:existente?.loteImportacao||''
+  };
+  const c=existente?Object.assign(existente,dados):novaContaPagar(dados);
+  if(!existente)c.id=id||c.id;
+  await salvarContaPagar(c);
+  closeM('mo-conta-pagar');
+  toast(existente?'Despesa atualizada! ✅':'Despesa lançada! ✅','tok');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// IMPORTADOR DE PDF — Contas a Pagar
+// Extração posicional via pdf.js: cada palavra vem com x/y; linhas se formam agrupando por
+// y (top); dentro de cada linha, os campos mais confiáveis (CNPJ/CPF, datas, valores em R$,
+// forma de pagamento, status) são achados por CONTEÚDO (regex), não por posição de coluna —
+// evita o problema de larguras de coluna que variam entre o cabeçalho e os dados. Algoritmo
+// validado em Python (pdfplumber) contra um PDF real de agosto/2026 antes de ser portado pra
+// cá: 265/265 lançamentos, soma batendo com o total impresso no rodapé até o centavo.
+// Nunca grava direto — sempre passa pela tela de revisão (renderImportPreview()).
+// ══════════════════════════════════════════════════════════════════════════
+const _CP_CNPJ_RE=/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/;
+const _CP_CPF_RE=/\d{3}\.\d{3}\.\d{3}-\d{2}/;
+const _CP_DATE_RE=/\d{2}\/\d{2}\/\d{4}/;
+const _CP_MONEY_RE=/-?\d{1,3}(?:\.\d{3})*,\d{2}/g;
+const _CP_TITULO_ENUM=['Cartão de Crédito','Cartão','Depósito','Boleto','Pix','Cheque','Transferência'];
+const _CP_STATUS_ENUM=['Pendente','Pago','Atrasado','Cancelado','Baixado'];
+const _CP_PARA_CONT_RE=/^(COMUNICACAO|INSTALACAO|SOLUCOES|INDUST)\.*$/;
+
+function _cpMoneyToFloat(s){return parseFloat(s.replace(/\./g,'').replace(',','.'));}
+
+function _cpParseAnchorLine(lineText){
+  let cnpjCpf='',fornecedor='',rest;
+  const mDoc=_CP_CNPJ_RE.exec(lineText)||_CP_CPF_RE.exec(lineText);
+  if(mDoc){
+    cnpjCpf=mDoc[0];
+    fornecedor=lineText.slice(0,mDoc.index).trim();
+    rest=lineText.slice(mDoc.index+mDoc[0].length);
+  } else {
+    // fallback: fornecedor "Não definido" etc, sem CPF/CNPJ na linha — usa a palavra-chave
+    // da empresa como ponto de corte.
+    let mEmp=null;
+    for(const key of['GRANDA','GNOVE','GRND']){
+      const idx=lineText.indexOf(key);
+      if(idx!==-1&&(!mEmp||idx<mEmp.idx))mEmp={idx,key};
+    }
+    if(!mEmp)return null;
+    fornecedor=lineText.slice(0,mEmp.idx).trim();
+    rest=lineText.slice(mEmp.idx);
+  }
+  let tituloIdx=-1,titulo='';
+  for(const t of _CP_TITULO_ENUM){
+    const idx=rest.indexOf(t);
+    if(idx!==-1&&(tituloIdx===-1||idx<tituloIdx)){tituloIdx=idx;titulo=t;}
+  }
+  if(tituloIdx===-1)return null;
+  const middleBlob=rest.slice(0,tituloIdx);
+  const afterTitulo=rest.slice(tituloIdx+titulo.length);
+
+  const mParc=/\d+\/\d+/.exec(afterTitulo);
+  if(!mParc)return null;
+  const parcelas=mParc[0];
+  const afterParc=afterTitulo.slice(mParc.index+mParc[0].length);
+
+  const mVenc=_CP_DATE_RE.exec(afterParc);
+  if(!mVenc)return null;
+  const vencimentoBR=mVenc[0];
+  const tail=afterParc.slice(mVenc.index+mVenc[0].length);
+
+  const moneyTokens=tail.match(_CP_MONEY_RE)||[];
+  if(moneyTokens.length<5)return null;
+  const[valor,juros,multa,desconto,atualizado]=moneyTokens.slice(0,5).map(_cpMoneyToFloat);
+
+  let status=null;
+  for(const s of _CP_STATUS_ENUM){if(tail.includes(s)){status=s;break;}}
+
+  let empresa='OUTRA';
+  if(middleBlob.includes('GRANDA'))empresa='GRANDA';
+  else if(middleBlob.includes('GNOVE'))empresa='GNOVE';
+  else if(middleBlob.includes('GRND'))empresa='GRND';
+
+  let despesaRaw=middleBlob
+    .replace(/GRANDA\s*COMUNICACAO\.*/,'')
+    .replace(/GNOVE\s*INSTALACAO\.*/,'')
+    .replace(/GRND\s*SOLUCOES\s*INDUST\.*/,'')
+    .replace(/\b(GRANDA|GNOVE|GRND)\b/,'');
+  despesaRaw=despesaRaw.replace(/\s+/g,' ').trim().replace(/^\.+|\.+$/g,'').trim();
+
+  const[dd,mm,yyyy]=vencimentoBR.split('/');
+  return{
+    cnpjCpf,fornecedor:fornecedor.replace(/\s+/g,' ').trim(),empresa,
+    despesaRaw,nf:'',titulo,parcela:parcelas,
+    vencimento:`${yyyy}-${mm}-${dd}`,valor,juros,multa,desconto,atualizado,
+    status:status==='Pago'?'pago':'pendente'
+  };
+}
+
+async function parseContasPagarPDF(arrayBuffer){
+  const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  const records=[];
+  let cur=null,curExtraForn=[],curExtraDesp=[];
+  const finalize=()=>{
+    if(!cur)return;
+    if(curExtraForn.length)cur.fornecedor=(cur.fornecedor+' '+curExtraForn.join(' ')).trim();
+    if(curExtraDesp.length)cur.despesaRaw=(cur.despesaRaw+' '+curExtraDesp.join(' ')).trim();
+    records.push(cur);
+  };
+  for(let pageNum=1;pageNum<=pdf.numPages;pageNum++){
+    const page=await pdf.getPage(pageNum);
+    const content=await page.getTextContent();
+    // agrupa itens por linha (top arredondado — pdf.js usa transform[5] como y, crescente
+    // pra cima; multiplicamos por -1 só pra ordenar de cima pra baixo depois)
+    const lines={};
+    content.items.forEach(it=>{
+      if(!it.str||!it.str.trim())return;
+      const y=Math.round(it.transform[5]); // agrupa por linha (mesma baseline = mesma linha da tabela)
+      if(!lines[y])lines[y]=[];
+      lines[y].push({text:it.str,x:it.transform[4]});
+    });
+    const ys=Object.keys(lines).map(Number).sort((a,b)=>b-a); // maior y = mais acima na página
+    for(const y of ys){
+      const ws=lines[y].slice().sort((a,b)=>a.x-b.x);
+      const texts=ws.map(w=>w.text).filter(t=>t.trim()!=='');
+      if(!texts.length)continue;
+      const lineText=texts.join(' ');
+      if(texts.includes('Fornecedor')&&texts.includes('Vencimento')&&texts.includes('Valor'))continue;
+      if(lineText.startsWith('Período de')||lineText.startsWith('Contas a pagar')||lineText.startsWith('Impresso em'))continue;
+      if(lineText.trim()==='títulos')continue;
+      if(/^\d+$/.test(texts[0])&&texts[1]&&/^-?\d{1,3}(\.\d{3})*,\d{2}$/.test(texts[1]))continue; // linha de totais
+
+      const rec=_cpParseAnchorLine(lineText);
+      if(rec){
+        finalize();
+        cur=rec;curExtraForn=[];curExtraDesp=[];
+      } else {
+        if(!cur)continue;
+        for(const w of ws){
+          if(_CP_PARA_CONT_RE.test(w.text))continue;
+          if(w.x<175)curExtraForn.push(w.text);
+          else if(w.x>=250&&w.x<320)curExtraDesp.push(w.text);
+        }
+      }
+    }
+  }
+  finalize();
+  return records;
+}
+
+let _cpImportRecords=[];
+function abrirImportarContasPagarPDF(){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem importar contas a pagar','terr');return;}
+  document.getElementById('cp-import-file').value='';
+  document.getElementById('cp-import-status').innerHTML='';
+  document.getElementById('cp-import-body').innerHTML='';
+  document.getElementById('cp-import-confirmar-btn').style.display='none';
+  _cpImportRecords=[];
+  openM('mo-cp-import');
+}
+async function _cpImportFileSelected(file){
+  if(!file)return;
+  const statusEl=document.getElementById('cp-import-status');
+  const bodyEl=document.getElementById('cp-import-body');
+  const btnEl=document.getElementById('cp-import-confirmar-btn');
+  statusEl.innerHTML='⏳ Lendo PDF...';
+  bodyEl.innerHTML='';
+  btnEl.style.display='none';
+  try{
+    if(!window.pdfjsLib){statusEl.innerHTML='<span style="color:#dc2626">Biblioteca de leitura de PDF não carregada. Verifique sua conexão.</span>';return;}
+    const buf=await file.arrayBuffer();
+    const records=await parseContasPagarPDF(buf);
+    if(!records.length){statusEl.innerHTML='<span style="color:#dc2626">Não consegui reconhecer nenhum lançamento nesse PDF. Confira se é o relatório de Contas a Pagar exportado do sistema.</span>';return;}
+    _cpImportRecords=records.map((r,idx)=>({...r,_key:'imp_'+idx,_selecionado:true,_categoria:_classificarDespesaAuto(r.despesaRaw,r.fornecedor)}));
+    renderImportPreview(file.name);
+  }catch(e){
+    console.error(e);
+    statusEl.innerHTML='<span style="color:#dc2626">Erro ao ler o PDF: '+e.message+'</span>';
+  }
+}
+// Duplicado = mesmo fornecedor+vencimento+valor+parcela já existente em contasPagar — evita
+// lançar de novo se o mesmo PDF (ou um mês sobreposto) for importado outra vez.
+function _cpEhDuplicado(r){
+  return contasPagar.some(c=>c.fornecedor===r.fornecedor&&c.vencimento===r.vencimento&&Math.abs(c.valor-r.valor)<0.01&&c.parcela===r.parcela);
+}
+function renderImportPreview(fileName){
+  const statusEl=document.getElementById('cp-import-status');
+  const bodyEl=document.getElementById('cp-import-body');
+  const btnEl=document.getElementById('cp-import-confirmar-btn');
+  const somaCalculada=_cpImportRecords.reduce((s,r)=>s+r.valor,0);
+  const duplicados=_cpImportRecords.filter(r=>_cpEhDuplicado(r)).length;
+  const naoClassificados=_cpImportRecords.filter(r=>r._categoria==='nao_classificado').length;
+  statusEl.innerHTML=`📄 <strong>${fileName}</strong> — ${_cpImportRecords.length} lançamento(s) encontrado(s), soma <strong>${fmtR(somaCalculada)}</strong>.`
+    +(duplicados?` <span style="color:#d97706">⚠️ ${duplicados} possível(is) duplicado(s) — já desmarcados abaixo.</span>`:'')
+    +(naoClassificados?` <span style="color:#dc2626">${naoClassificados} sem categoria reconhecida — revise antes de confirmar.</span>`:'');
+  _cpImportRecords.forEach(r=>{if(_cpEhDuplicado(r))r._selecionado=false;});
+  bodyEl.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+    <thead><tr><th></th><th>Empresa</th><th>Fornecedor</th><th>Despesa</th><th>Categoria</th><th>Vencimento</th><th>Parcela</th><th>Valor</th></tr></thead>
+    <tbody>${_cpImportRecords.map((r,idx)=>`
+      <tr style="${_cpEhDuplicado(r)?'opacity:.55':''}">
+        <td><input type="checkbox" ${r._selecionado?'checked':''} onchange="_cpImportRecords[${idx}]._selecionado=this.checked"></td>
+        <td>
+          <select onchange="_cpImportRecords[${idx}].empresa=this.value" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid var(--border)">
+            ${EMPRESAS_CONTAS_PAGAR.map(e=>`<option value="${e.id}" ${e.id===r.empresa?'selected':''}>${e.label}</option>`).join('')}
+          </select>
+        </td>
+        <td title="${(r.fornecedor||'').replace(/"/g,'&quot;')}" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.fornecedor||'—'}</td>
+        <td title="${(r.despesaRaw||'').replace(/"/g,'&quot;')}" style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.despesaRaw||'—'}${_cpEhDuplicado(r)?' <span style="color:#d97706;font-weight:700">(duplicado)</span>':''}</td>
+        <td>
+          <select onchange="_cpImportRecords[${idx}]._categoria=this.value" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid ${r._categoria==='nao_classificado'?'#fecaca':'var(--border)'}">
+            ${getPlanoContasDespesas().map(cat=>`<option value="${cat.id}" ${cat.id===r._categoria?'selected':''}>${cat.nome}</option>`).join('')}
+          </select>
+        </td>
+        <td style="white-space:nowrap">${fmtD(r.vencimento)}</td>
+        <td>${r.parcela||'—'}</td>
+        <td style="font-weight:700;white-space:nowrap">${fmtR(r.valor)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+  btnEl.style.display='';
+  btnEl.textContent=`Confirmar importação (${_cpImportRecords.filter(r=>r._selecionado).length} selecionado(s))`;
+  bodyEl.querySelectorAll('input[type=checkbox]').forEach(chk=>chk.addEventListener('change',()=>{
+    btnEl.textContent=`Confirmar importação (${_cpImportRecords.filter(r=>r._selecionado).length} selecionado(s))`;
+  }));
+}
+async function confirmarImportacaoContasPagar(){
+  const selecionados=_cpImportRecords.filter(r=>r._selecionado);
+  if(!selecionados.length){toast('Nenhum lançamento selecionado','terr');return;}
+  const fileName=document.getElementById('cp-import-file').files[0]?.name||'';
+  const lote=fileName+' @ '+new Date().toLocaleString('pt-BR');
+  const btnEl=document.getElementById('cp-import-confirmar-btn');
+  btnEl.disabled=true;btnEl.textContent='Gravando...';
+  let ok=0;
+  for(const r of selecionados){
+    const c=novaContaPagar({
+      origem:'pdf_import',empresa:r.empresa,fornecedor:r.fornecedor,cnpjCpf:r.cnpjCpf,
+      despesaDesc:r.despesaRaw,categoria:r._categoria,nf:r.nf,formaPagamento:r.titulo,
+      parcela:r.parcela,vencimento:r.vencimento,valor:r.valor,juros:r.juros,multa:r.multa,
+      desconto:r.desconto,status:r.status,loteImportacao:lote
+    });
+    await salvarContaPagar(c);
+    ok++;
+  }
+  btnEl.disabled=false;
+  closeM('mo-cp-import');
+  toast(`${ok} lançamento(s) importado(s)! ✅`,'tok');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DRE — Fase 3 (2026-07-21): motor de resultado mensal, regime de COMPETÊNCIA.
+//
+// RECEITA: mesma fonte de "Vendas do Mês"/Metas (getVendaRowsMerged(), já mescla planilha+
+// Firestore e já filtra Garantia/Amostra/Interno/Brinde via isComercialPedido) — conta pelo
+// MÊS DA VENDA (r.m: mesVendaOverride > mês reconciliado da planilha > emissão), não pelo
+// mês de recebimento da parcela. r.op (frete+mobilização+elevação+instalação+ART+remoção+
+// medição+laudo) é o custo direto de entrega já registrado em cada pedido — entra como CMV
+// interno.
+//
+// COMISSÕES: getComissaoItemsAll() filtrado por emY/emM (mês da VENDA, igual acima, não a
+// quinzena de pagamento) — soma valor*pct/100 (vendedor) + valor*pctClab/100 (Clabonde/
+// gerente) de TODAS as parcelas da venda, esteja o recebimento confirmado ou não (é assim
+// que a Receita Bruta também já conta — pra não misturar regime dentro do mesmo DRE).
+//
+// DESPESAS (Contas a Pagar): mês de VENCIMENTO de cada lançamento (não existe uma "data de
+// competência" separada nesse cadastro hoje — é a aproximação possível com o dado disponível,
+// deixada explícita na tela). Agrupadas pelo grupo do plano de contas (CMV/OPERACIONAL/
+// FINANCEIRA/IMPOSTOS/NAO_CLASSIFICADO, ver getPlanoContasDespesas()).
+//
+// Limitação conhecida (igual ao resto do sistema, ver getVendasMes()): não existe um campo
+// de ANO separado nas linhas de venda — o filtro de mês (r.m) não distingue anos. Contas a
+// Pagar tem vencimento completo (AAAA-MM-DD), então essa parte já é filtrada por ano certo.
+// ══════════════════════════════════════════════════════════════════════════
+let _dreMesAtual={y:new Date().getFullYear(),m:new Date().getMonth()+1};
+let _dreEmpresaFiltro='';
+function dreMov(dir){
+  _dreMesAtual.m+=dir;
+  if(_dreMesAtual.m>12){_dreMesAtual.m=1;_dreMesAtual.y++;}
+  if(_dreMesAtual.m<1){_dreMesAtual.m=12;_dreMesAtual.y--;}
+  renderDRE();
+}
+function dreSetEmpresa(v){_dreEmpresaFiltro=v;renderDRE();}
+function calcularDRE(y,m,empresaFiltro){
+  _invalidateDashCache();
+  // Só a Granda tem vendas rastreadas neste sistema — Gnove/GRND só entram pelo lado da
+  // despesa (Contas a Pagar). Ver aviso mostrado em renderDRE() quando esse for o caso.
+  const incluirReceita=!empresaFiltro||empresaFiltro==='GRANDA';
+
+  const vendasMes=incluirReceita?getVendaRowsMerged().filter(r=>r.m===m):[];
+  const receitaBruta=vendasMes.reduce((s,r)=>s+(r.br||0),0);
+  const custoProducaoInterno=vendasMes.reduce((s,r)=>s+(r.op||0),0);
+
+  const comItens=incluirReceita?getComissaoItemsAll().filter(i=>i.emY===y&&i.emM===m):[];
+  const comissaoVendedores=comItens.reduce((s,i)=>s+(i.valor*(i.pct||0)/100),0);
+  const comissaoGerente=comItens.reduce((s,i)=>s+(i.valor*(i.pctClab||0)/100),0);
+  const totalComissoes=comissaoVendedores+comissaoGerente;
+
+  const cpMes=contasPagar.filter(c=>{
+    if(!c.vencimento)return false;
+    const partes=c.vencimento.split('-');
+    if(parseInt(partes[0],10)!==y||parseInt(partes[1],10)!==m)return false;
+    if(empresaFiltro&&c.empresa!==empresaFiltro)return false;
+    return true;
+  });
+  // cat==null cobre tanto 'nao_classificado' quanto qualquer categoria antiga/inválida que
+  // não exista mais no plano de contas — nunca deve "sumir" do DRE sem aparecer em algum
+  // grupo, então cai em NAO_CLASSIFICADO por segurança.
+  const somaGrupo=grupo=>cpMes.filter(c=>{const cat=getCategoriaDespesa(c.categoria);return cat?cat.grupo===grupo:grupo==='NAO_CLASSIFICADO';}).reduce((s,c)=>s+c.valor,0);
+  const cmvExterno=somaGrupo('CMV');
+  const despOperacionais=somaGrupo('OPERACIONAL');
+  const despFinanceiras=somaGrupo('FINANCEIRA');
+  const impostos=somaGrupo('IMPOSTOS');
+  const naoClassificado=somaGrupo('NAO_CLASSIFICADO');
+
+  const custoProducaoTotal=custoProducaoInterno+cmvExterno;
+  const lucroBruto=receitaBruta-custoProducaoTotal;
+  const resultadoOperacional=lucroBruto-totalComissoes-despOperacionais;
+  const lucroLiquido=resultadoOperacional-despFinanceiras-impostos-naoClassificado;
+  const foraPlanejadoTotal=cpMes.filter(c=>c.origem==='fora_planejado').reduce((s,c)=>s+c.valor,0);
+  const qtdNaoClassificado=cpMes.filter(c=>c.categoria==='nao_classificado').length;
+
+  // Detalhe por categoria (pra abrir o "porquê" de cada grupo na tela)
+  const porCategoria={};
+  cpMes.forEach(c=>{
+    const cat=getCategoriaDespesa(c.categoria);
+    const nome=cat?cat.nome:'Não Classificado';
+    const grupo=cat?cat.grupo:'NAO_CLASSIFICADO';
+    const key=grupo+'::'+nome;
+    if(!porCategoria[key])porCategoria[key]={grupo,nome,total:0};
+    porCategoria[key].total+=c.valor;
+  });
+
+  return{y,m,empresaFiltro,incluirReceita,
+    receitaBruta,custoProducaoInterno,cmvExterno,custoProducaoTotal,lucroBruto,
+    comissaoVendedores,comissaoGerente,totalComissoes,
+    despOperacionais,resultadoOperacional,
+    despFinanceiras,impostos,naoClassificado,lucroLiquido,
+    foraPlanejadoTotal,qtdNaoClassificado,
+    porCategoria:Object.values(porCategoria).sort((a,b)=>b.total-a.total)
+  };
+}
+function renderDRE(){
+  const el=document.getElementById('dre-body');if(!el)return;
+  const lbl=document.getElementById('dre-mes-lbl');
+  const cardsEl=document.getElementById('dre-cards');
+  if(!_isFinanceiroUser()){
+    if(cardsEl)cardsEl.innerHTML='';
+    el.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador podem ver o DRE.</div>';
+    return;
+  }
+  const selEmp=document.getElementById('dre-fil-empresa');
+  if(selEmp&&selEmp.options.length<=1)selEmp.innerHTML='<option value="">🏢 Todas as empresas (consolidado)</option>'+EMPRESAS_CONTAS_PAGAR.filter(e=>e.id!=='OUTRA').map(e=>`<option value="${e.id}">${e.label}</option>`).join('');
+
+  const{y,m}=_dreMesAtual;
+  if(lbl)lbl.textContent=MESES_PT[m]+' '+y;
+  const d=calcularDRE(y,m,_dreEmpresaFiltro);
+  const pctOf=(v,base)=>base>0.005?(v/base*100).toFixed(1).replace('.',',')+'%':'—';
+  const pctCor=v=>v>=0?'#16a34a':'#dc2626';
+
+  if(cardsEl){
+    const margemLiq=pctOf(d.lucroLiquido,d.receitaBruta);
+    const cards=[
+      {label:'Receita Bruta',val:fmtR(d.receitaBruta),color:'#dbeafe',text:'#1e40af'},
+      {label:'Resultado Operacional',val:fmtR(d.resultadoOperacional),color:'#f1f5f9',text:pctCor(d.resultadoOperacional)},
+      {label:'Lucro Líquido',val:fmtR(d.lucroLiquido),color:d.lucroLiquido>=0?'#dcfce7':'#fee2e2',text:pctCor(d.lucroLiquido)},
+      {label:'Margem Líquida',val:margemLiq,color:'#fef9c3',text:'#92400e'}
+    ];
+    cardsEl.innerHTML=cards.map(c=>`<div style="background:${c.color};border-radius:12px;padding:14px 16px"><div style="font-size:.68rem;font-weight:700;color:${c.text};text-transform:uppercase;letter-spacing:.5px">${c.label}</div><div style="font-size:1.25rem;font-weight:800;color:${c.text};margin-top:4px">${c.val}</div></div>`).join('');
+  }
+
+  const avisos=[];
+  if(_dreEmpresaFiltro&&_dreEmpresaFiltro!=='GRANDA')avisos.push(`ℹ️ ${_capLabel(_dreEmpresaFiltro)} não tem vendas registradas neste sistema — este DRE mostra só as despesas dessa empresa.`);
+  if(d.qtdNaoClassificado>0)avisos.push(`🚨 ${d.qtdNaoClassificado} lançamento(s) de Contas a Pagar sem categoria reconhecida somando ${fmtR(d.naoClassificado)} — reclassifique antes de fechar o mês (aba Contas a Pagar).`);
+  if(d.foraPlanejadoTotal>0.005)avisos.push(`📌 Inclui ${fmtR(d.foraPlanejadoTotal)} em despesas fora do planejado no mês.`);
+
+  const linha=(label,val,{bold,indent,cor,pct}={})=>`
+    <tr>
+      <td style="padding:${bold?'10px':'6px'} 4px ${bold?'10px':'6px'} ${indent?'22px':'4px'};font-weight:${bold?800:500};font-size:${bold?'.88rem':'.82rem'};color:${bold?'#1e293b':'#475569'};border-top:${bold?'1.5px solid var(--border)':'none'}">${label}</td>
+      <td style="padding:${bold?'10px':'6px'} 4px;text-align:right;font-weight:${bold?800:600};font-size:${bold?'.88rem':'.82rem'};color:${cor||(bold?'#1e293b':'#334155')};border-top:${bold?'1.5px solid var(--border)':'none'};white-space:nowrap">${fmtR(val)}</td>
+      <td style="padding:${bold?'10px':'6px'} 4px;text-align:right;font-size:.72rem;color:#94a3b8;border-top:${bold?'1.5px solid var(--border)':'none'};white-space:nowrap">${pct||''}</td>
+    </tr>`;
+
+  const catBlock=grupo=>d.porCategoria.filter(c=>c.grupo===grupo).map(c=>linha(c.nome,-c.total,{indent:true})).join('');
+
+  el.innerHTML=`
+    ${avisos.length?`<div style="margin-bottom:14px;display:flex;flex-direction:column;gap:6px">${avisos.map(a=>`<div style="font-size:.78rem;padding:8px 12px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;color:#9a3412">${a}</div>`).join('')}</div>`:''}
+    <div class="dash-card">
+      <table style="width:100%;border-collapse:collapse">
+        <tbody>
+          ${linha('RECEITA BRUTA',d.receitaBruta,{bold:true})}
+          ${linha('(–) Custo de Produção (CMV)',-d.custoProducaoTotal,{bold:true,cor:'#dc2626'})}
+          ${linha('Entrega/instalação por pedido (frete, mobilização, elevação, ART, remoção, medição)',-d.custoProducaoInterno,{indent:true})}
+          ${catBlock('CMV')}
+          ${linha('= LUCRO BRUTO',d.lucroBruto,{bold:true,cor:pctCor(d.lucroBruto),pct:'margem '+pctOf(d.lucroBruto,d.receitaBruta)})}
+          ${linha('(–) Comissões',-d.totalComissoes,{bold:true,cor:'#dc2626'})}
+          ${linha('Vendedores',-d.comissaoVendedores,{indent:true})}
+          ${linha('Gerência (Clabonde)',-d.comissaoGerente,{indent:true})}
+          ${linha('(–) Despesas Operacionais',-d.despOperacionais,{bold:true,cor:'#dc2626'})}
+          ${catBlock('OPERACIONAL')}
+          ${linha('= RESULTADO OPERACIONAL (EBITDA)',d.resultadoOperacional,{bold:true,cor:pctCor(d.resultadoOperacional),pct:'margem '+pctOf(d.resultadoOperacional,d.receitaBruta)})}
+          ${linha('(–) Despesas Financeiras',-d.despFinanceiras,{bold:true,cor:'#dc2626'})}
+          ${catBlock('FINANCEIRA')}
+          ${linha('(–) Impostos',-d.impostos,{bold:true,cor:'#dc2626'})}
+          ${catBlock('IMPOSTOS')}
+          ${d.naoClassificado>0.005?linha('(–) Não Classificado',-d.naoClassificado,{bold:true,cor:'#dc2626'}):''}
+          ${linha('= LUCRO LÍQUIDO',d.lucroLiquido,{bold:true,cor:pctCor(d.lucroLiquido),pct:'margem '+pctOf(d.lucroLiquido,d.receitaBruta)})}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:.7rem;color:#94a3b8;margin-top:10px">Receita e comissões pelo mês da venda · Despesas de Contas a Pagar pelo mês de vencimento de cada lançamento · valores negativos entre parênteses representam reduções sobre a linha anterior.</div>`;
+}
+
 function _isFinanceiroUser(){
   const {cat,isAdm}=_getUserCat();
   return isAdm||cat==='FINANCEIRO';
