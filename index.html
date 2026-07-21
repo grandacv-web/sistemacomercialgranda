@@ -7391,33 +7391,56 @@ async function _cpImportFileSelected(file){
   }
 }
 // Duplicado = mesmo fornecedor+vencimento+valor+parcela já existente em contasPagar — evita
-// lançar de novo se o mesmo PDF (ou um mês sobreposto) for importado outra vez.
-function _cpEhDuplicado(r){
-  return contasPagar.some(c=>c.fornecedor===r.fornecedor&&c.vencimento===r.vencimento&&Math.abs(c.valor-r.valor)<0.01&&c.parcela===r.parcela);
+// lançar de novo se o mesmo PDF (ou um período sobreposto) for importado outra vez. Devolve
+// o LANÇAMENTO EXISTENTE (não só true/false) pra dar pra comparar o status: um PDF novo pode
+// trazer a mesma parcela já marcada como paga no sistema de origem — nesse caso a linha some
+// como duplicado "puro" (nada mudou), mas se o status mudou a tela oferece SINCRONIZAR em vez
+// de simplesmente pular ou lançar de novo (ver renderImportPreview()/confirmarImportacaoContasPagar()).
+function _cpAcharDuplicado(r){
+  return contasPagar.find(c=>c.fornecedor===r.fornecedor&&c.vencimento===r.vencimento&&Math.abs(c.valor-r.valor)<0.01&&c.parcela===r.parcela)||null;
 }
 function renderImportPreview(fileName){
   const statusEl=document.getElementById('cp-import-status');
   const bodyEl=document.getElementById('cp-import-body');
   const btnEl=document.getElementById('cp-import-confirmar-btn');
   const somaCalculada=_cpImportRecords.reduce((s,r)=>s+r.valor,0);
-  const duplicados=_cpImportRecords.filter(r=>_cpEhDuplicado(r)).length;
+
+  // Classifica cada linha: 'novo' (não existe ainda) | 'duplicado' (já existe, nada mudou,
+  // fica desmarcado) | 'sync' (já existe mas o status mudou — ex.: virou Pago — fica marcado
+  // pra ATUALIZAR o existente em vez de criar um segundo lançamento).
+  _cpImportRecords.forEach(r=>{
+    const dup=_cpAcharDuplicado(r);
+    r._dupId=dup?dup.id:null;
+    if(!dup){r._tipoImport='novo';r._selecionado=true;}
+    else if(dup.status===r.status){r._tipoImport='duplicado';r._selecionado=false;}
+    else{r._tipoImport='sync';r._selecionado=true;}
+  });
+  const qtdDuplicado=_cpImportRecords.filter(r=>r._tipoImport==='duplicado').length;
+  const qtdSync=_cpImportRecords.filter(r=>r._tipoImport==='sync').length;
   const naoClassificados=_cpImportRecords.filter(r=>r._categoria==='nao_classificado').length;
   statusEl.innerHTML=`📄 <strong>${fileName}</strong> — ${_cpImportRecords.length} lançamento(s) encontrado(s), soma <strong>${fmtR(somaCalculada)}</strong>.`
-    +(duplicados?` <span style="color:#d97706">⚠️ ${duplicados} possível(is) duplicado(s) — já desmarcados abaixo.</span>`:'')
+    +(qtdDuplicado?` <span style="color:#d97706">⚠️ ${qtdDuplicado} já lançado(s) sem mudança — desmarcados.</span>`:'')
+    +(qtdSync?` <span style="color:#1d4ed8">🔄 ${qtdSync} já lançado(s) com status diferente — vão só atualizar o status.</span>`:'')
     +(naoClassificados?` <span style="color:#dc2626">${naoClassificados} sem categoria reconhecida — revise antes de confirmar.</span>`:'');
-  _cpImportRecords.forEach(r=>{if(_cpEhDuplicado(r))r._selecionado=false;});
+
   bodyEl.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
-    <thead><tr><th></th><th>Empresa</th><th>Fornecedor</th><th>Despesa</th><th>Categoria</th><th>Vencimento</th><th>Parcela</th><th>Valor</th></tr></thead>
-    <tbody>${_cpImportRecords.map((r,idx)=>`
-      <tr style="${_cpEhDuplicado(r)?'opacity:.55':''}">
-        <td><input type="checkbox" ${r._selecionado?'checked':''} onchange="_cpImportRecords[${idx}]._selecionado=this.checked"></td>
+    <thead><tr><th></th><th>Empresa</th><th>Fornecedor</th><th>Despesa</th><th>Categoria</th><th>Vencimento</th><th>Parcela</th><th>Valor</th><th>Status</th></tr></thead>
+    <tbody>${_cpImportRecords.map((r,idx)=>{
+      const isDup=r._tipoImport==='duplicado',isSync=r._tipoImport==='sync';
+      const statusLbl={pendente:'⏳ Pendente',pago:'✅ Pago'}[r.status]||r.status;
+      let tag='';
+      if(isDup)tag=' <span style="color:#d97706;font-weight:700">(já lançado — sem mudança)</span>';
+      else if(isSync)tag=` <span style="color:#1d4ed8;font-weight:700">(🔄 status vai virar ${statusLbl})</span>`;
+      return`
+      <tr style="${isDup?'opacity:.55':''}${isSync?'background:#eff6ff':''}">
+        <td><input type="checkbox" ${r._selecionado?'checked':''} onchange="_cpImportRecords[${idx}]._selecionado=this.checked;_cpAtualizaContadorImport()"></td>
         <td>
           <select onchange="_cpImportRecords[${idx}].empresa=this.value" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid var(--border)">
             ${EMPRESAS_CONTAS_PAGAR.map(e=>`<option value="${e.id}" ${e.id===r.empresa?'selected':''}>${e.label}</option>`).join('')}
           </select>
         </td>
         <td title="${(r.fornecedor||'').replace(/"/g,'&quot;')}" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.fornecedor||'—'}</td>
-        <td title="${(r.despesaRaw||'').replace(/"/g,'&quot;')}" style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.despesaRaw||'—'}${_cpEhDuplicado(r)?' <span style="color:#d97706;font-weight:700">(duplicado)</span>':''}</td>
+        <td title="${(r.despesaRaw||'').replace(/"/g,'&quot;')}" style="max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.despesaRaw||'—'}${tag}</td>
         <td>
           <select onchange="_cpImportRecords[${idx}]._categoria=this.value" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid ${r._categoria==='nao_classificado'?'#fecaca':'var(--border)'}">
             ${getPlanoContasDespesas().map(cat=>`<option value="${cat.id}" ${cat.id===r._categoria?'selected':''}>${cat.nome}</option>`).join('')}
@@ -7426,14 +7449,20 @@ function renderImportPreview(fileName){
         <td style="white-space:nowrap">${fmtD(r.vencimento)}</td>
         <td>${r.parcela||'—'}</td>
         <td style="font-weight:700;white-space:nowrap">${fmtR(r.valor)}</td>
-      </tr>`).join('')}
+        <td style="white-space:nowrap">${statusLbl}</td>
+      </tr>`;
+    }).join('')}
     </tbody>
   </table></div>`;
+  _cpAtualizaContadorImport();
+}
+function _cpAtualizaContadorImport(){
+  const btnEl=document.getElementById('cp-import-confirmar-btn');if(!btnEl)return;
   btnEl.style.display='';
-  btnEl.textContent=`Confirmar importação (${_cpImportRecords.filter(r=>r._selecionado).length} selecionado(s))`;
-  bodyEl.querySelectorAll('input[type=checkbox]').forEach(chk=>chk.addEventListener('change',()=>{
-    btnEl.textContent=`Confirmar importação (${_cpImportRecords.filter(r=>r._selecionado).length} selecionado(s))`;
-  }));
+  const sel=_cpImportRecords.filter(r=>r._selecionado);
+  const novos=sel.filter(r=>r._tipoImport==='novo').length;
+  const syncs=sel.filter(r=>r._tipoImport==='sync').length;
+  btnEl.textContent=`Confirmar (${novos} novo(s)${syncs?' + '+syncs+' atualização(ões) de status':''})`;
 }
 async function confirmarImportacaoContasPagar(){
   const selecionados=_cpImportRecords.filter(r=>r._selecionado);
@@ -7442,8 +7471,20 @@ async function confirmarImportacaoContasPagar(){
   const lote=fileName+' @ '+new Date().toLocaleString('pt-BR');
   const btnEl=document.getElementById('cp-import-confirmar-btn');
   btnEl.disabled=true;btnEl.textContent='Gravando...';
-  let ok=0;
+  let ok=0,sync=0;
   for(const r of selecionados){
+    if(r._tipoImport==='sync'&&r._dupId){
+      // Não cria um segundo lançamento — só atualiza o status do que já existe, igual
+      // marcarContaPagarPaga() faria manualmente.
+      const existente=contasPagar.find(c=>c.id===r._dupId);
+      if(existente){
+        existente.status=r.status;
+        existente.dataPagamento=r.status==='pago'?new Date().toISOString().slice(0,10):null;
+        await saveContaPagarFS(existente);
+        sync++;
+      }
+      continue;
+    }
     const c=novaContaPagar({
       origem:'pdf_import',empresa:r.empresa,fornecedor:r.fornecedor,cnpjCpf:r.cnpjCpf,
       despesaDesc:r.despesaRaw,categoria:r._categoria,nf:r.nf,formaPagamento:r.titulo,
@@ -7455,7 +7496,7 @@ async function confirmarImportacaoContasPagar(){
   }
   btnEl.disabled=false;
   closeM('mo-cp-import');
-  toast(`${ok} lançamento(s) importado(s)! ✅`,'tok');
+  toast(`${ok} lançamento(s) importado(s)${sync?' e '+sync+' status atualizado(s)':''}! ✅`,'tok');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
