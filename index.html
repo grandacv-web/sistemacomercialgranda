@@ -1064,8 +1064,13 @@ select.fc{cursor:pointer}
       </select>
       <div style="font-size:.66rem;color:#9a3412;margin-top:5px;line-height:1.4">Use isto quando a venda foi fechada num mês mas só emitida depois — a emissão continua com a data de hoje, só o mês que conta pra Metas/Comissões/Lista de Vendas muda.</div>
     </div>
-    <div id="ev-tipo-wrap" style="grid-column:span 2">
-      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>
+    <div style="grid-column:span 1">
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria</label>
+      <input id="ev-categoria" type="text" list="ev-categoria-datalist" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;text-transform:uppercase">
+      <datalist id="ev-categoria-datalist"></datalist>
+    </div>
+    <div id="ev-tipo-wrap" style="grid-column:span 1">
+      <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Tipo do Pedido</label>
     </div>
     <div style="grid-column:span 2">
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pedido em PDF</label>
@@ -1986,7 +1991,7 @@ function getTarefasComerciaisPendentes(){
   const out=[];
   pedidos.forEach(p=>{
     (p.tarefasComerciais||[]).forEach(t=>{
-      if(t.status!=='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||'',job:p.job||'',prazo:p.prazo||''});
+      if(t.status!=='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||'',job:p.job||'',prazo:p.prazo||''});
     });
   });
   (cfg.tarefasGerais||[]).forEach(t=>{
@@ -1999,7 +2004,7 @@ function getTarefasComerciaisConcluidas(){
   const out=[];
   pedidos.forEach(p=>{
     (p.tarefasComerciais||[]).forEach(t=>{
-      if(t.status==='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||p.tipo||'',job:p.job||'',prazo:p.prazo||''});
+      if(t.status==='concluida')out.push({...t,pedidoId:p.id,os:p.os,cliente:p.cliente,vendedor:p.responsavel||'—',tipoPedido:p.tipoPedido||'',job:p.job||'',prazo:p.prazo||''});
     });
   });
   (cfg.tarefasGerais||[]).forEach(t=>{
@@ -3131,15 +3136,28 @@ async function editarValoresPedido(pedidoId){
     if(liqInp){const liqVal=pagExist[`Parcela ${pe.idx} (Líquido)`];const n=moneyToNum(liqVal||'0');liqInp.value=n>0?n.toLocaleString('pt-BR',{minimumFractionDigits:2}):'';liqInp.dataset.raw=String(n);}
     if(dateInp)dateInp.value=_brToIso(pe.date);
   });
-  // Categoria/Tipo: texto livre se veio da planilha importada, select fechado (TC) se emitido pelo sistema
+  // Categoria (2026-07-22, separada do Tipo) — antes o único <select> aqui era de Tipo
+  // (Venda/Garantia/etc, ver TC) e ao salvar sobrescrevia p.tipoPedido com o MESMO valor,
+  // misturando os dois conceitos (ex.: badge "Venda" aparecendo numa coluna que deveria só
+  // ter categoria tipo MANUTENÇÃO/LOJA — ver catCor()/pedidoToVendaRow). Agora é sempre um
+  // campo de texto com sugestões da lista cadastrada (getTiposPedido()), independente da
+  // venda ter vindo da planilha ou sido emitida pelo sistema — nunca mais grava em cima do
+  // Tipo, nem o Tipo grava em cima dela (ver salvarValoresPedido()).
+  const catInp=document.getElementById('ev-categoria');
+  if(catInp)catInp.value=p.tipoPedido||'';
+  const catDl=document.getElementById('ev-categoria-datalist');
+  if(catDl)catDl.innerHTML=getTiposPedido().map(t=>`<option value="${t}">`).join('');
+  // Tipo do Pedido: texto livre se veio da planilha importada/venda manual — aqui "tipo"
+  // historicamente guarda a categoria do produto pra esses registros específicos (ver
+  // isComercialPedido()), select fechado (TC) se emitido pelo fluxo normal do sistema.
   const tipoWrap=document.getElementById('ev-tipo-wrap');
   if(tipoWrap){
     if(p.importadoPlanilha){
-      tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>`+
+      tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Tipo do Pedido</label>`+
         `<input id="ev-tipo" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box" value="${(p.tipo||'').replace(/"/g,'&quot;')}">`;
     }else{
       const opts=Object.keys(TC).map(k=>`<option value="${k}" ${p.tipo===k?'selected':''}>${k}</option>`).join('');
-      tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria / Tipo</label>`+
+      tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Tipo do Pedido</label>`+
         `<select id="ev-tipo" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;background:#fff">${opts}</select>`;
     }
   }
@@ -3308,7 +3326,11 @@ async function salvarValoresPedido(){
   if(_evOcUrl)p.ocUrl=_evOcUrl;
   if(_evPdfUrl)p.arq_os_url=_evPdfUrl;
   const novoTipo=gi('ev-tipo');
-  if(novoTipo){p.tipo=novoTipo;if(p.tipoPedido!==undefined)p.tipoPedido=novoTipo;}
+  if(novoTipo)p.tipo=novoTipo;
+  // Categoria agora é independente do Tipo (2026-07-22) — não sobrescreve mais uma a outra,
+  // ver comentário em editarValoresPedido().
+  const novaCategoria=gi('ev-categoria');
+  if(novaCategoria)p.tipoPedido=novaCategoria;
   closeM('mo-ev');
   await savePedidoFS(p);
   renderAll();
@@ -6831,7 +6853,7 @@ async function _reativarVendaSeCancelada(os){
 function _infoVendaCanceladaPorOs(os){
   const s=String(os);
   const p=pedidos.find(x=>String(x.os)===s);
-  if(p)return{cliente:p.cliente||'—',categoria:p.tipoPedido||p.tipo||'—',mes:''};
+  if(p)return{cliente:p.cliente||'—',categoria:p.tipoPedido||'—',mes:''};
   const x=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[s]:null;
   if(x)return{cliente:x.cl||'—',categoria:x.cat||'—',mes:x.mes||''};
   return{cliente:'(não encontrado — pode ter sido um OS de teste ou já excluído)',categoria:'—',mes:''};
@@ -7284,7 +7306,7 @@ function getComissaoItemsAll(){
       // registrado (conf), pra nunca sobrepor uma decisão humana real (ex.: Financeiro já
       // marcou "não recebido" com motivo, ou já confirmou com valor negociado).
       const autoHistorico=!!xlsxRef&&!conf&&_antesOuIgualJulhoI(dataAtiva);
-      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',categoria:xlsxRef?(xlsxRef.cat||''):(p.tipoPedido||p.tipo||''),mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
+      const item={...parc,valor:valorAjustado,valorBruto:valorBrutoAjustado,status:conf?conf.status:(autoHistorico?'confirmado':'pendente'),historicoAutoConfirmado:autoHistorico,confirmedAt:conf?conf.confirmedAt:null,motivoAtraso:conf?conf.motivoAtraso||'':'',motivoAtrasoEm:conf?conf.motivoAtrasoEm||'':'',pct,pctClab,dataAtiva,nomeVend:vendForPct||p.responsavel||'—',cliente:p.cliente||'—',categoria:xlsxRef?(xlsxRef.cat||''):(p.tipoPedido||''),mesPedido:emMes,emY,emM,pedidoOs:p.os!=null?p.os:'—',job:p.job||'',cidade:p.locCidade||'',_pid:p.id,pedidoPdfUrl:p.arq_os_url||'',ocUrl:p.ocUrl||'',qy:qi.y,qm:qi.m,qhalf:qi.half};
       all.push(item);
     });
   });
@@ -10665,7 +10687,7 @@ function pedidoToVendaRow(p){
   // (já é assim em getComissaoItemsAll(), essa função tinha ficado de fora). Evita pedido
   // contando no vendedor errado (ou "sem vendedor") por nome divergente/vazio no Firestore.
   const vendaVend=xlsxRow?(mapVendedorName(xlsxRow.v)||p.responsavel||''):(p.responsavel||'');
-  return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||p.tipo,v:vendaVend,
+  return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||'',v:vendaVend,
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
     numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||'',cidade:p.locCidade||'',
     mesAjustado:!!p.mesVendaOverride};
