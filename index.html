@@ -1380,6 +1380,29 @@ select.fc{cursor:pointer}
 </div>
 </div>
 
+<!-- ADIAR TAREFA MODAL -->
+<div class="mov" id="mo-tarefa-adiar" onclick="cio(event,'mo-tarefa-adiar')">
+<div class="mvmod" style="width:480px;max-width:96vw">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">⏳ Adiar Tarefa</h3>
+    <button onclick="closeM('mo-tarefa-adiar')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div id="tf-adiar-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px"></div>
+  <input type="hidden" id="tf-adiar-pedido-id">
+  <input type="hidden" id="tf-adiar-tarefa-id">
+  <div class="fg">
+    <label>Novo prazo <span class="r">*</span></label>
+    <input type="date" id="tf-adiar-novo-prazo" class="fc">
+  </div>
+  <div class="fg">
+    <label>Justificativa do adiamento <span class="r">*</span></label>
+    <textarea id="tf-adiar-justificativa" class="fc" rows="3" placeholder="Explique o motivo do adiamento..." style="text-transform:none"></textarea>
+  </div>
+  <div id="tf-adiar-aviso-admin" style="font-size:.72rem;color:#94a3b8;margin-bottom:12px"></div>
+  <button onclick="_confirmarAdiamentoTarefa()" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">Enviar pedido de adiamento</button>
+</div>
+</div>
+
 <!-- MOTIVO NÃO RECEBIDO MODAL -->
 <div class="mov" id="mo-motivo-nr" onclick="cio(event,'mo-motivo-nr')">
 <div class="mvmod" style="width:480px;max-width:96vw">
@@ -1537,6 +1560,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="permissoes" onclick="setCfgSec('permissoes',this)">🔐 Permissões</button>
       <button class="cfg-menu-btn admin-only" data-sec="usuarios" onclick="setCfgSec('usuarios',this)">👥 Usuários</button>
       <button class="cfg-menu-btn admin-only" data-sec="tipospedido" onclick="setCfgSec('tipospedido',this)">🏷️ Categoria de Pedido</button>
+      <button class="cfg-menu-btn admin-only" data-sec="vendascanceladas" onclick="setCfgSec('vendascanceladas',this)">🚫 Vendas Canceladas</button>
       <button class="cfg-menu-btn admin-only" data-sec="gruposcliente" onclick="setCfgSec('gruposcliente',this)">🏢 Grupos de Cliente</button>
       <button class="cfg-menu-btn admin-only" data-sec="motivosadiamento" onclick="setCfgSec('motivosadiamento',this)">⏭ Motivos de Adiamento</button>
       <button class="cfg-menu-btn admin-only" data-sec="tarefasauto" onclick="setCfgSec('tarefasauto',this)">📌 Tarefas Automáticas</button>
@@ -1733,6 +1757,11 @@ select.fc{cursor:pointer}
           <button class="btn-next" onclick="addTipoPedido()" style="white-space:nowrap;padding:9px 16px">+ Adicionar</button>
         </div>
       </div>
+      <div class="cfg-sec" id="cfg-sec-vendascanceladas" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Vendas Canceladas</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Vendas marcadas como "canceladas" (botão Cancelar, por Nº de OS) somem de Lista de Vendas, Metas, Comissões e Gráficos — sem aparecer em lugar nenhum da tela, então não tem como reativar clicando na linha se o pedido nunca foi emitido pelo sistema (só existe na planilha colada). Reative aqui se cancelou por engano, ou se um OS antigo cancelado está escondendo uma venda nova sem querer (2026-07-22 — achado ao investigar líquido de Junho R$49.083,38 a menos que a planilha).</p>
+        <div id="cfg-vendas-canceladas-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
       <div class="cfg-sec" id="cfg-sec-gruposcliente" style="display:none">
         <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Grupos de Cliente (Financeiro)</div>
         <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Usado na Concentração por Cliente do Fluxo de Caixa (Financeiro) — junta todas as lojas de uma mesma rede numa linha só (ex: todo "BOB'S" vira uma linha), a não ser que "Separar franqueado" esteja marcado: nesse caso, qualquer pedido cuja Categoria contenha a palavra "FRANQUEADO" fica de fora do grupo e aparece com o nome do cliente, separado (porque o franqueado paga por conta própria, é uma empresa diferente da rede). As palavras-chave são comparadas com o Cliente e com o JOB do pedido — coloque mais de uma separada por vírgula se a marca aparecer escrita de formas diferentes.</p>
@@ -1861,7 +1890,7 @@ window._fbAdminDeleteUser=(email)=>httpsCallable(functions,'adminDeleteUser')({e
 </script>
 
 <script>
-const TC={'Venda':'tv','Garantia / Retrabalho':'tg','Amostra':'ta','Interno':'ti','Brinde':'tb2'};
+const TC={'Venda':'tv','Permuta':'tv','Garantia / Retrabalho':'tg','Amostra':'ta','Interno':'ti','Brinde':'tb2'};
 
 const CATEGORIAS_USUARIOS=['ADMINISTRADOR','COMERCIAL','PROJETOS','COMPRAS','PRODUÇÃO','PCP','QUALIDADE','PLANEJAMENTO','RH','FINANCEIRO'];
 
@@ -1906,8 +1935,20 @@ const TAREFA_TIPOS_SUGERIDOS=['Lançar no GCore'];
 // na interface). descricao é NOVA (2026-07-16): texto livre opcional com mais detalhe, que
 // só aparece completo ao abrir a tarefa (ver abrirDetalheTarefa()) — na lista aparece só um
 // resumo, separado visualmente do título.
+// adiamentoPendente/historicoAdiamentos/atrasoForcado (2026-07-22): fluxo de adiar tarefa.
+// Usuário responsável (ou admin) pode pedir novo prazo com justificativa obrigatória — ver
+// solicitarAdiamentoTarefa()/_aplicarSolicitacaoAdiamento(). Se quem pede já é admin, o
+// pedido entra aprovado na hora (não faz sentido admin aprovar o próprio pedido); se for
+// usuário comum, fica em adiamentoPendente até um admin decidir (ver decidirAdiamentoTarefa()/
+// _aplicarDecisaoAdiamento()). Enquanto pendente, prazoTarefa NÃO muda (continua mostrando o
+// prazo antigo na lista/detalhe, com um aviso de "aguardando aprovação" — ver
+// _tarefaAdiamentoBadges()). Aprovado: prazoTarefa vira o novo prazo, não conta atraso.
+// Reprovado: prazoTarefa volta a ficar como estava, mas atrasoForcado=true faz a tarefa
+// contar como atrasada no Relatório mesmo que a data do prazo original ainda não tenha
+// vencido (ver _tarefaAtrasada()) — é a penalidade do pedido negado. historicoAdiamentos
+// guarda todo pedido já decidido (aprovado ou reprovado), pra auditoria.
 function novaTarefaComercial(tipo,responsavel,prazoTarefa,criadoPor,descricao){
-  return{id:uid(),tipo,descricao:descricao||'',status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||'',criadoPor:criadoPor||''};
+  return{id:uid(),tipo,descricao:descricao||'',status:'pendente',criadaEm:new Date().toISOString(),concluidaEm:null,responsavel:responsavel||'',prazoTarefa:prazoTarefa||'',criadoPor:criadoPor||'',adiamentoPendente:null,historicoAdiamentos:[],atrasoForcado:false};
 }
 // Regras configuráveis em Configurações > Tarefas Automáticas (cfg.regrasTarefasComerciais).
 // Cada regra: {id, tipo:'' (vazio=qualquer, ou uma chave de TC como "Venda"/"Amostra"),
@@ -1988,6 +2029,105 @@ async function marcarTarefaComercial(pedidoId,tarefaId,concluida){
   await savePedidoFS(p);
   renderTarefasComerciais();
   renderAll();
+  _refreshTarefasBadge();
+}
+// ── ADIAR TAREFA (2026-07-22) ──────────────────────────────────────────────
+// Responsável pela tarefa ou admin pedem novo prazo com justificativa obrigatória (mesma
+// trava de permissão de sempre, ver _podeMexerNaTarefa()). Validação e mutação do objeto
+// tarefa ficam centralizadas em _aplicarSolicitacaoAdiamento(), reaproveitada tanto pra
+// tarefa de pedido quanto avulsa geral — mesmo padrão de marcarTarefaComercial/
+// marcarTarefaGeral logo acima.
+function _aplicarSolicitacaoAdiamento(t,novoPrazo,justificativa){
+  if(!_podeMexerNaTarefa(t.responsavel)){toast('Só o responsável ou um administrador pode adiar esta tarefa','terr');return false;}
+  if(t.status==='concluida'){toast('Essa tarefa já foi concluída — reabra antes de adiar.','terr');return false;}
+  if(!novoPrazo){toast('Informe o novo prazo','terr');return false;}
+  if(!justificativa||!justificativa.trim()){toast('Justificativa do adiamento é obrigatória','terr');return false;}
+  const {isAdm}=_getUserCat();
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  const agora=new Date().toISOString();
+  const registro={prazoAntigo:t.prazoTarefa||'',prazoSolicitado:novoPrazo,justificativa:justificativa.trim(),solicitadoPor:meuNome,dataSolicitacao:agora};
+  if(!t.historicoAdiamentos)t.historicoAdiamentos=[];
+  if(isAdm){
+    // Admin pedindo adiamento pra si mesmo aprovar não faz sentido — já entra valendo.
+    t.prazoTarefa=novoPrazo;
+    t.atrasoForcado=false;
+    t.adiamentoPendente=null;
+    t.historicoAdiamentos.push({...registro,decisao:'aprovado',decididoPor:meuNome,dataDecisao:agora,obsDecisao:'Aprovado automaticamente (adiado por administrador)'});
+    toast('Prazo adiado!','tok');
+  } else {
+    t.adiamentoPendente=registro;
+    toast('Pedido de adiamento enviado — aguardando aprovação do administrador.','tok');
+  }
+  return true;
+}
+async function solicitarAdiamentoTarefa(pedidoId,tarefaId,novoPrazo,justificativa){
+  if(!pedidoId)return solicitarAdiamentoTarefaGeral(tarefaId,novoPrazo,justificativa);
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p||!p.tarefasComerciais)return;
+  const t=p.tarefasComerciais.find(x=>x.id===tarefaId);
+  if(!t)return;
+  if(!_aplicarSolicitacaoAdiamento(t,novoPrazo,justificativa))return;
+  await savePedidoFS(p);
+  renderTarefasComerciais();
+  closeM('mo-tarefa-adiar');closeM('mo-tarefa-detalhe');
+  _refreshTarefasBadge();
+}
+async function solicitarAdiamentoTarefaGeral(tarefaId,novoPrazo,justificativa){
+  const t=(cfg.tarefasGerais||[]).find(x=>x.id===tarefaId);
+  if(!t)return;
+  if(!_aplicarSolicitacaoAdiamento(t,novoPrazo,justificativa))return;
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderTarefasComerciais();
+  closeM('mo-tarefa-adiar');closeM('mo-tarefa-detalhe');
+  _refreshTarefasBadge();
+}
+// Aprovar/reprovar um pedido de adiamento já feito — só admin (ver _podeDecidirAdiamento()).
+// Aprovado: prazoTarefa passa a ser o novo prazo solicitado, sem contar atraso. Reprovado:
+// prazoTarefa volta a ser o original, mas atrasoForcado=true marca a tarefa como atrasada
+// no Relatório independente da data (ver _tarefaAtrasada()) — é a penalidade combinada com
+// o usuário: pediu adiamento e foi negado, conta contra ele.
+function _podeDecidirAdiamento(){return _getUserCat().isAdm;}
+function _aplicarDecisaoAdiamento(t,aprovado){
+  if(!_podeDecidirAdiamento()){toast('Só um administrador pode aprovar ou reprovar um adiamento','terr');return false;}
+  if(!t.adiamentoPendente){toast('Não há pedido de adiamento pendente nesta tarefa','terr');return false;}
+  const meuNome=usuarioLogado?.nomeExibicao||'';
+  const agora=new Date().toISOString();
+  const pend=t.adiamentoPendente;
+  if(!t.historicoAdiamentos)t.historicoAdiamentos=[];
+  if(aprovado){
+    t.prazoTarefa=pend.prazoSolicitado;
+    t.atrasoForcado=false;
+    t.historicoAdiamentos.push({...pend,decisao:'aprovado',decididoPor:meuNome,dataDecisao:agora});
+    toast('Adiamento aprovado — novo prazo aplicado.','tok');
+  } else {
+    t.atrasoForcado=true;
+    t.historicoAdiamentos.push({...pend,decisao:'reprovado',decididoPor:meuNome,dataDecisao:agora});
+    toast('Adiamento reprovado — vai contar como atraso no relatório.','twar');
+  }
+  t.adiamentoPendente=null;
+  return true;
+}
+async function decidirAdiamentoTarefa(pedidoId,tarefaId,aprovado){
+  if(!pedidoId)return decidirAdiamentoTarefaGeral(tarefaId,aprovado);
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p||!p.tarefasComerciais)return;
+  const t=p.tarefasComerciais.find(x=>x.id===tarefaId);
+  if(!t)return;
+  if(!_aplicarDecisaoAdiamento(t,aprovado))return;
+  await savePedidoFS(p);
+  renderTarefasComerciais();
+  closeM('mo-tarefa-detalhe');
+  _refreshTarefasBadge();
+}
+async function decidirAdiamentoTarefaGeral(tarefaId,aprovado){
+  const t=(cfg.tarefasGerais||[]).find(x=>x.id===tarefaId);
+  if(!t)return;
+  if(!_aplicarDecisaoAdiamento(t,aprovado))return;
+  if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderTarefasComerciais();
+  closeM('mo-tarefa-detalhe');
   _refreshTarefasBadge();
 }
 // Contador de pendências no ícone "🧰 Ferramentas Comerciais" do sidebar — admin vê o
@@ -2177,6 +2317,9 @@ async function _enviarEmailTarefa(t,pedidoInfo){
 // atrasada (não tem o que comparar) — fica de fora do Relatório em vez de contar a favor ou
 // contra ninguém (ver renderRelatorioTarefas()).
 function _tarefaAtrasada(t){
+  // Adiamento reprovado conta como atraso na hora, independente da data do prazo original
+  // (ver decidirAdiamentoTarefa()/_aplicarDecisaoAdiamento()) — é a penalidade do pedido negado.
+  if(t.atrasoForcado)return true;
   if(!t.prazoTarefa)return false;
   const prazo=new Date(t.prazoTarefa+'T23:59:59');
   if(isNaN(prazo))return false;
@@ -3394,9 +3537,10 @@ function editP(){closeM('mo-vp');openEmissao(vid)}
 // EMISSÃO
 function getTabs(){
   const t=[{id:'dados',l:'Dados'},{id:'valores',l:'Valores'}];
-  // Só pedidos do tipo "Venda" cobram do cliente — Garantia/Retrabalho, Amostra, Interno
-  // e Brinde não têm nada a receber, então a aba de Pagamento nem aparece.
-  if(!ed.tipo||ed.tipo==='Venda')t.push({id:'pagamento',l:'Pagamento'});
+  // Venda e Permuta cobram do cliente (Permuta é troca por produto/serviço em vez de
+  // dinheiro, mas ainda passa por OC/NF normalmente) — Garantia/Retrabalho, Amostra,
+  // Interno e Brinde não têm nada a receber, então a aba de Pagamento nem aparece (2026-07-22).
+  if(!ed.tipo||ed.tipo==='Venda'||ed.tipo==='Permuta')t.push({id:'pagamento',l:'Pagamento'});
   t.push({id:'projetos',l:'Projetos'});
   if(ed.remocao==='Sim')t.push({id:'remocoes',l:'Remoções'});
   if(ed.i_tipo==='Por nossa conta')t.push({id:'instalacao',l:'Instalação'});
@@ -3889,7 +4033,7 @@ function renderStep(id){
     bd.innerHTML=`<div class="fsec">
       <div class="fsec-t"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> DADOS GERAIS DO PEDIDO</div>
       <div class="fg"><label>1. Tipo do Pedido <span class="r">*</span></label>
-        <div class="rc-list">${['Venda','Garantia / Retrabalho','Amostra','Interno','Brinde'].map(t=>`<div class="rc" data-val="${t}" onclick="selTipo(this)" ${ed.tipo===t?'style="border-color:#00bac7;background:#e0f7fa"':''}><input type="radio" ${ed.tipo===t?'checked':''}><span>${t}</span></div>`).join('')}</div>
+        <div class="rc-list">${['Venda','Permuta','Garantia / Retrabalho','Amostra','Interno','Brinde'].map(t=>`<div class="rc" data-val="${t}" onclick="selTipo(this)" ${ed.tipo===t?'style="border-color:#00bac7;background:#e0f7fa"':''}><input type="radio" ${ed.tipo===t?'checked':''}><span>${t}</span></div>`).join('')}</div>
       </div>
       <div class="g2">
         <div class="fg"><label>2. Responsável pelo Pedido</label>
@@ -4903,9 +5047,10 @@ async function submit(){
   if(ed.medicao==='Sim'&&!ed.vmed)erros.push({msg:'Valor da medição técnica não informado',aba:idxVal,label:'Valores'});
   if(!ed.art)erros.push({msg:'Informe se há Emissão de ART (TEM ART?)',aba:idxVal,label:'Valores'});
   if(ed.art==='Sim'&&!ed.vart)erros.push({msg:'Valor da ART não informado',aba:idxVal,label:'Valores'});
-  // Aba pagamento — só existe (e só é exigida) pra pedidos do tipo "Venda"; os demais
-  // tipos (Garantia/Retrabalho, Amostra, Interno, Brinde) não cobram nada do cliente.
-  if(ed.tipo==='Venda'){
+  // Aba pagamento — só existe (e só é exigida) pra pedidos do tipo "Venda" ou "Permuta"
+  // (2026-07-22); os demais tipos (Garantia/Retrabalho, Amostra, Interno, Brinde) não
+  // cobram nada do cliente.
+  if(ed.tipo==='Venda'||ed.tipo==='Permuta'){
     const idxPag=idx('pagamento');
     if(!ed.tem_oc)erros.push({msg:'Informe se tem Ordem de Compra',aba:idxPag,label:'Pagamento'});
     if(ed.tem_oc==='Sim'&&!ed.arq_oc)erros.push({msg:'Faça upload do arquivo da Ordem de Compra',aba:idxPag,label:'Pagamento'});
@@ -5457,6 +5602,7 @@ function setCfgSec(sec,btn){
   if(btn)btn.classList.add('active');
   if(sec==='permissoes')renderCfgPermissoes();
   if(sec==='tipospedido')renderTiposPedido();
+  if(sec==='vendascanceladas')renderVendasCanceladas();
   if(sec==='gruposcliente')renderGruposCliente();
   if(sec==='motivosadiamento')renderMotivosAdiamento();
   if(sec==='tarefasauto')renderRegrasTarefasAuto();
@@ -5696,7 +5842,7 @@ function getTiposPedido(){
   return cfg.tiposPedido&&cfg.tiposPedido.length?cfg.tiposPedido:[
     'MANUTENÇÃO','QUIOSQUE BASIC','QUIOSQUE STANDARD','QUIOSQUE ESPECIAL','LOJA','LOJA NOVA ZAMP','LOJA HÍBRIDA','LOJA SHOPPING',
     'LETRAS CAIXA','TOTEM','TOTEM E INTERNOS','CONCESSIONÁRIO','RETROFIT CONCESSIONÁRIO','BK É FOGO','COROAS KIDS',
-    'REFORMA UNIDADE','PAINÉIS DE LONA','EXTERNOS','REVEST. BALCÃO','FRANQUEADO SHOPPING','HÍBRIDO RUA'
+    'REFORMA UNIDADE','PAINÉIS DE LONA','EXTERNOS','REVEST. BALCÃO','FRANQUEADO SHOPPING','HÍBRIDO RUA','PERMUTA'
   ];
 }
 
@@ -6596,9 +6742,10 @@ function isComercialPedido(p){
   // — aqui o campo "tipo" guarda a CATEGORIA do produto (não Venda/Garantia/etc), então sempre conta.
   if(p.importadoPlanilha)return true;
   // origemComercial = emitido pelo fluxo normal de "Novo Pedido" — só conta como venda de fato
-  // se o Tipo escolhido no pedido for "Venda". Garantia/Retrabalho, Amostra, Interno e Brinde
-  // não entram em Lista de Vendas, Metas nem Comissões (mas continuam existindo como pedidos).
-  return !!(p.origemComercial&&p.tipo==='Venda');
+  // se o Tipo escolhido no pedido for "Venda" ou "Permuta" (2026-07-22, comissão normal pros
+  // dois). Garantia/Retrabalho, Amostra, Interno e Brinde não entram em Lista de Vendas,
+  // Metas nem Comissões (mas continuam existindo como pedidos).
+  return !!(p.origemComercial&&(p.tipo==='Venda'||p.tipo==='Permuta'));
 }
 // Vendas canceladas pelo cliente — guardado por Nº de OS (e não por id de pedido), porque
 // vendas vindas só da planilha (XLSX_VENDAS) não têm um documento no Firestore pra apagar.
@@ -6618,6 +6765,54 @@ async function _reativarVendaSeCancelada(os){
   cfg.vendasCanceladas=cfg.vendasCanceladas.filter(x=>String(x)!==s);
   if(window._fbSaveCfg)await window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+}
+// ── PAINEL "VENDAS CANCELADAS" (Configurações, 2026-07-22) ──────────────────────
+// Antes disso não existia NENHUMA tela pra ver o que está em cfg.vendasCanceladas — uma
+// venda cancelada some de getVendaRowsMerged() (Lista de Vendas/Metas/Comissões/Gráficos)
+// e só volta sozinha se alguém reemitir/reeditar um pedido com aquele mesmo OS (ver
+// _reativarVendaSeCancelada, chamado em salvarVendaManual/salvarValoresPedido/submit). Pra
+// venda que só existe na planilha colada (nunca teve pedido no Firestore), não tem como
+// isso acontecer sozinho — o OS cancelado fica escondendo aquela linha pra sempre, sem
+// nenhum aviso na tela. Foi assim que 3 vendas de junho (OS 234/235/236, Bob's Camorim/
+// Praia do Recreio/Novo Leblon) sumiram do líquido do mês (R$49.083,38) sem deixar rastro.
+// Como o pedido/linha em si não aparece em getVendaRowsMerged() (é filtrado por
+// isVendaCancelada), essa função busca informação pra exibir (cliente/categoria/mês) direto
+// em `pedidos` (Firestore, sem o filtro) e, na falta disso, no XLSX_VENDAS_BY_OS estático.
+function _infoVendaCanceladaPorOs(os){
+  const s=String(os);
+  const p=pedidos.find(x=>String(x.os)===s);
+  if(p)return{cliente:p.cliente||'—',categoria:p.tipoPedido||p.tipo||'—',mes:''};
+  const x=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[s]:null;
+  if(x)return{cliente:x.cl||'—',categoria:x.cat||'—',mes:x.mes||''};
+  return{cliente:'(não encontrado — pode ter sido um OS de teste ou já excluído)',categoria:'—',mes:''};
+}
+function renderVendasCanceladas(){
+  const el=document.getElementById('cfg-vendas-canceladas-list');if(!el)return;
+  const lista=getVendasCanceladas();
+  if(!lista.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhuma venda cancelada no momento. 🎉</p>';return;}
+  el.innerHTML=lista.map(os=>{
+    const info=_infoVendaCanceladaPorOs(os);
+    return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--border-lt);border-radius:10px;background:#fff">
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:.82rem;color:#1e293b">OS ${os} — ${info.cliente}</div>
+        <div style="font-size:.72rem;color:#64748b;margin-top:2px">${info.categoria}${info.mes?' · '+info.mes:''}</div>
+      </div>
+      <button onclick="reativarVendaCancelada('${String(os).replace(/'/g,"\\'")}')" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">🔓 Reativar</button>
+    </div>`;
+  }).join('');
+}
+async function reativarVendaCancelada(os){
+  const {isAdm}=_getUserCat();
+  if(!isAdm){toast('Apenas administradores podem reativar vendas','terr');return;}
+  if(!confirm(`Reativar a venda do pedido OS ${os}? Ela volta a aparecer em Lista de Vendas, Metas, Comissões e Gráficos.`))return;
+  await _reativarVendaSeCancelada(os);
+  _invalidateDashCache();
+  renderVendasCanceladas();
+  renderAll();
+  if(typeof renderDashVendas==='function')renderDashVendas();
+  if(typeof renderDashGraficos==='function')renderDashGraficos();
+  if(typeof renderDashComissoes==='function')renderDashComissoes();
+  toast('Venda reativada!','tok');
 }
 // Fonte única de vendas: mescla a planilha (XLSX_VENDAS) com os pedidos do Firestore,
 // sem precisar de nenhum passo de "importar" — é a mesma lista usada na Lista de Vendas.
@@ -9401,6 +9596,16 @@ function tarefasTab(tab,btn){
   if(isRel)renderRelatorioTarefas();
   else renderTarefasComerciais();
 }
+// Badge(s) de adiamento — reaproveitado na lista e no detalhe, pra não duplicar a mesma
+// lógica em dois lugares e correr risco de um lado mostrar algo que o outro não mostra.
+// Adiamento pendente sempre tem prioridade sobre o aviso de reprovado (só pode ter os dois
+// em sequência, nunca ao mesmo tempo — decidirAdiamentoTarefa() sempre zera um pra marcar
+// o outro).
+function _tarefaAdiamentoBadges(t,pendente){
+  if(t.adiamentoPendente)return`<span style="background:#fef3c7;color:#92400e;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">🕓 Adiamento pendente (novo prazo: ${fmtD(t.adiamentoPendente.prazoSolicitado)})</span>`;
+  if(t.atrasoForcado&&pendente)return`<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">🚫 Adiamento reprovado</span>`;
+  return'';
+}
 function renderTarefasComerciais(){
   const body=document.getElementById('tarefas-body');if(!body)return;
   const {isAdm}=_getUserCat();
@@ -9443,15 +9648,22 @@ function renderTarefasComerciais(){
           <span>${t.tipo}</span>
           ${t.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:700;white-space:nowrap">👤 ${t.responsavel}</span>`:`<span style="background:#f1f5f9;color:#94a3b8;border-radius:20px;padding:1px 9px;font-size:.64rem;font-weight:600;white-space:nowrap">Sem responsável</span>`}
           ${prazoBadge}
+          ${_tarefaAdiamentoBadges(t,pendente)}
         </div>
         ${descResumo}
         <div style="font-size:.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px">${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
         <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}${t.criadoPor?' · Lançada por '+t.criadoPor:''}</div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+      <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:220px" onclick="event.stopPropagation()">
         ${pendente
           ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Concluir</button>`
           :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false)" style="background:#f1f5f9;color:#475569;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">↩️ Reabrir</button>`}
+        ${pendente&&!t.adiamentoPendente&&_podeMexerNaTarefa(t.responsavel)
+          ?`<button onclick="abrirAdiarTarefa('${t.pedidoId||''}','${t.id}')" style="background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;border-radius:7px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">⏳ Adiar</button>`
+          :''}
+        ${pendente&&t.adiamentoPendente&&isAdm
+          ?`<button onclick="decidirAdiamentoTarefa('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">✅ Aprovar</button><button onclick="decidirAdiamentoTarefa('${t.pedidoId||''}','${t.id}',false)" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:7px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">❌ Reprovar</button>`
+          :''}
         ${_podeExcluirTarefa(t.criadoPor)
           ?`<button onclick="excluirTarefaComercial('${t.pedidoId||''}','${t.id}')" title="Excluir tarefa — só quem lançou ou um administrador vê este botão" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:7px;padding:7px 10px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🗑️</button>`
           :''}
@@ -9464,12 +9676,27 @@ let _tarefasListaAtual=[];
 function abrirDetalheTarefa(tarefaId){
   const t=_tarefasListaAtual.find(x=>x.id===tarefaId);
   if(!t){toast('Tarefa não encontrada (a lista pode ter mudado) — atualize e tente de novo','terr');return;}
+  const {isAdm}=_getUserCat();
   const pendente=t.status!=='concluida';
   const atrasada=_tarefaAtrasada(t);
   let prazoBadge='';
   if(t.prazoTarefa){
     if(atrasada)prazoBadge=`<span style="background:#fee2e2;color:#dc2626;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">⚠️ Prazo ${fmtD(t.prazoTarefa)}${pendente?' (vencido)':' — concluída com atraso'}</span>`;
     else prazoBadge=`<span style="background:${pendente?'#fef9c3':'#dcfce7'};color:${pendente?'#92400e':'#16a34a'};border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">${pendente?'📅 Prazo '+fmtD(t.prazoTarefa):'✅ No prazo'}</span>`;
+  }
+  // Bloco de adiamento: pedido aguardando decisão (com justificativa/novo prazo/quem pediu)
+  // ou, se já foi reprovado e não há novo pedido em aberto, o aviso explicando por que essa
+  // tarefa está contando como atrasada mesmo sem o prazo original ter vencido ainda.
+  let adiamentoBloco='';
+  if(t.adiamentoPendente){
+    adiamentoBloco=`<div style="background:#fffbeb;border-left:3px solid #f59e0b;border-radius:6px;padding:12px 14px;font-size:.8rem;color:#78350f;line-height:1.6;margin-bottom:16px">
+      <div style="font-weight:700;margin-bottom:4px">🕓 Pedido de adiamento aguardando aprovação</div>
+      <div>Novo prazo solicitado: <strong>${fmtD(t.adiamentoPendente.prazoSolicitado)}</strong></div>
+      <div>Justificativa: ${t.adiamentoPendente.justificativa}</div>
+      <div style="font-size:.72rem;color:#92400e;margin-top:4px">Solicitado por ${t.adiamentoPendente.solicitadoPor||'—'} em ${_fmtDataHora(t.adiamentoPendente.dataSolicitacao)}</div>
+    </div>`;
+  } else if(t.atrasoForcado){
+    adiamentoBloco=`<div style="background:#fef2f2;border-left:3px solid #dc2626;border-radius:6px;padding:10px 14px;font-size:.78rem;color:#7f1d1d;margin-bottom:16px">🚫 Um pedido de adiamento desta tarefa foi reprovado — conta como atraso no relatório, independente da data do prazo.</div>`;
   }
   const body=document.getElementById('td-body');if(!body)return;
   body.innerHTML=`
@@ -9478,23 +9705,59 @@ function abrirDetalheTarefa(tarefaId){
       <span style="background:${pendente?'#dbeafe':'#dcfce7'};color:${pendente?'#1d4ed8':'#16a34a'};border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">${pendente?'⏳ Pendente':'✅ Concluída'}</span>
       ${t.responsavel?`<span style="background:#dbeafe;color:#1d4ed8;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">👤 ${t.responsavel}</span>`:`<span style="background:#f1f5f9;color:#94a3b8;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:600;white-space:nowrap">Sem responsável</span>`}
       ${prazoBadge}
+      ${_tarefaAdiamentoBadges(t,pendente)}
     </div>
     <div style="font-size:.68rem;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Descrição</div>
     ${t.descricao?`<div style="background:#f8fafc;border-left:3px solid #1d4ed8;border-radius:6px;padding:12px 14px;font-size:.85rem;color:#374151;line-height:1.6;white-space:pre-wrap;margin-bottom:16px">${t.descricao}</div>`:'<div style="font-size:.8rem;color:#94a3b8;font-style:italic;margin-bottom:16px">Sem descrição detalhada.</div>'}
+    ${adiamentoBloco}
     <div style="border-top:1px solid var(--border-lt);padding-top:12px;font-size:.8rem;color:#475569;display:flex;flex-direction:column;gap:6px">
       <div>${t.avulsaGeral?'📌 Tarefa avulsa (sem venda vinculada)':'<strong>Pedido:</strong> OS '+(t.os||'—')+' · '+(t.cliente||'—')+(t.job?' · JOB: '+t.job:'')+' · '+t.vendedor+(t.prazo?' · Prazo do pedido: '+fmtD(t.prazo):'')}</div>
       <div style="font-size:.76rem;color:#94a3b8">${pendente?'Criada em '+_fmtDataHora(t.criadaEm):'Concluída em '+_fmtDataHora(t.concluidaEm)}${t.criadoPor?' · Lançada por '+t.criadoPor:''}</div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:20px">
+    <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap">
       ${pendente
         ?`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',true);closeM('mo-tarefa-detalhe')" style="flex:1;background:#16a34a;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">✅ Concluir</button>`
         :`<button onclick="marcarTarefaComercial('${t.pedidoId||''}','${t.id}',false);closeM('mo-tarefa-detalhe')" style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">↩️ Reabrir</button>`}
+      ${pendente&&!t.adiamentoPendente&&_podeMexerNaTarefa(t.responsavel)
+        ?`<button onclick="abrirAdiarTarefa('${t.pedidoId||''}','${t.id}')" style="background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;border-radius:9px;padding:11px 16px;font-size:.85rem;font-weight:700;cursor:pointer">⏳ Adiar</button>`
+        :''}
+      ${pendente&&t.adiamentoPendente&&isAdm
+        ?`<button onclick="decidirAdiamentoTarefa('${t.pedidoId||''}','${t.id}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:9px;padding:11px 16px;font-size:.85rem;font-weight:700;cursor:pointer">✅ Aprovar adiamento</button><button onclick="decidirAdiamentoTarefa('${t.pedidoId||''}','${t.id}',false)" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:9px;padding:11px 16px;font-size:.85rem;font-weight:700;cursor:pointer">❌ Reprovar</button>`
+        :''}
       ${_podeExcluirTarefa(t.criadoPor)
         ?`<button onclick="closeM('mo-tarefa-detalhe');excluirTarefaComercial('${t.pedidoId||''}','${t.id}')" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:9px;padding:11px 16px;font-size:.85rem;font-weight:700;cursor:pointer">🗑️ Excluir</button>`
         :''}
     </div>
   `;
   openM('mo-tarefa-detalhe');
+}
+// Abre o modal de adiamento pra uma tarefa específica (achada em _tarefasListaAtual, igual
+// abrirDetalheTarefa()) — pré-preenche o prazo atual como referência e ajusta o aviso
+// conforme quem está pedindo é admin (aprova na hora) ou não (fica pendente).
+function abrirAdiarTarefa(pedidoId,tarefaId){
+  const t=_tarefasListaAtual.find(x=>x.id===tarefaId);
+  if(!t){toast('Tarefa não encontrada (a lista pode ter mudado) — atualize e tente de novo','terr');return;}
+  if(!_podeMexerNaTarefa(t.responsavel)){toast('Só o responsável ou um administrador pode adiar esta tarefa','terr');return;}
+  const elP=document.getElementById('tf-adiar-pedido-id');if(elP)elP.value=pedidoId||'';
+  const elT=document.getElementById('tf-adiar-tarefa-id');if(elT)elT.value=tarefaId;
+  const elN=document.getElementById('tf-adiar-novo-prazo');if(elN)elN.value=t.prazoTarefa||'';
+  const elJ=document.getElementById('tf-adiar-justificativa');if(elJ)elJ.value='';
+  const elInfo=document.getElementById('tf-adiar-info');
+  if(elInfo)elInfo.innerHTML=`<strong>${t.tipo}</strong><br>Prazo atual: ${t.prazoTarefa?fmtD(t.prazoTarefa):'sem prazo definido'}`;
+  const {isAdm}=_getUserCat();
+  const elAviso=document.getElementById('tf-adiar-aviso-admin');
+  if(elAviso)elAviso.textContent=isAdm?'Como administrador, este adiamento já entra aprovado — o novo prazo passa a valer na hora.':'Este pedido ficará pendente de aprovação de um administrador. Enquanto isso, o prazo atual continua valendo e a tarefa não conta atraso.';
+  openM('mo-tarefa-adiar');
+}
+function _confirmarAdiamentoTarefa(){
+  const pedidoId=document.getElementById('tf-adiar-pedido-id')?.value||'';
+  const tarefaId=document.getElementById('tf-adiar-tarefa-id')?.value||'';
+  const novoPrazo=document.getElementById('tf-adiar-novo-prazo')?.value||'';
+  const justificativa=document.getElementById('tf-adiar-justificativa')?.value||'';
+  if(!tarefaId)return;
+  if(!novoPrazo){toast('Informe o novo prazo','terr');return;}
+  if(!justificativa.trim()){toast('Justificativa do adiamento é obrigatória','terr');return;}
+  solicitarAdiamentoTarefa(pedidoId,tarefaId,novoPrazo,justificativa);
 }
 // Busca de pedido tipo autocomplete (2026-07-16) — substituiu o <select> antigo, que tinha
 // centenas de opções ("OS 275 · FILIAL BK DRIVE T-63"...) e era praticamente impossível de
