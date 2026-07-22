@@ -861,6 +861,7 @@ select.fc{cursor:pointer}
           <button class="dash-tab active fin-main-tab" onclick="finMainSetTab('contas',this)">💰 Contas a Pagar/Receber</button>
           <button class="dash-tab fin-main-tab" onclick="finMainSetTab('dre',this)">📊 DRE</button>
           <button class="dash-tab fin-main-tab" onclick="finMainSetTab('fluxocx',this)">💵 Fluxo de Caixa</button>
+          <button class="dash-tab fin-main-tab" onclick="finMainSetTab('opped',this)">🛠️ Operacionais Pedidos</button>
         </div>
         <!-- Lista unificada (2026-07-22, a pedido do usuário) — substitui as antigas abas
              separadas "Contas a Receber"/"Contas a Pagar" por uma lista só, com filtro de
@@ -979,6 +980,24 @@ select.fc{cursor:pointer}
             </label>
           </div>
           <div id="fcx-body"></div>
+        </div>
+        <div id="fin-sec-opped" style="display:none">
+          <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+            🛠️ Previsão do que vamos gastar com os operacionais de cada pedido (Mão de Obra, Frete e Elevações) — não é o realizado, é uma projeção calculada a partir do que o vendedor preencheu na Emissão (valores + Prazo de Finalização + Estimativa de Instalação/Frete). Só entram pedidos emitidos direto pelo sistema como Venda/Permuta com Prazo de Finalização preenchido — pedidos antigos importados da planilha não têm esses dados e por isso não aparecem aqui.
+          </div>
+          <div class="dash-mes-nav" style="margin-bottom:10px">
+            <button onclick="opMov(-1)">◀</button>
+            <div class="dash-mes-label" id="op-mes-lbl">—</div>
+            <button onclick="opMov(1)">▶</button>
+          </div>
+          <div id="op-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:#64748b;cursor:pointer;font-weight:600">
+              <input type="checkbox" id="op-fil-so-movimento" onchange="renderOperacionaisPedidos()"> Mostrar só os dias com lançamento
+            </label>
+          </div>
+          <div id="op-body"></div>
+          <div id="op-pendencias" style="margin-top:22px"></div>
         </div>
       </div>
     </div>
@@ -2808,8 +2827,8 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     if(isFin&&typeof fcAplicarFiltros==='function')setTimeout(()=>{
       document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
       document.getElementById('fin-main-tabs')?.querySelector('.fin-main-tab')?.classList.add('active');
-      const sc=document.getElementById('fin-sec-contas'),sd=document.getElementById('fin-sec-dre'),sf=document.getElementById('fin-sec-fluxocx');
-      if(sc)sc.style.display='';if(sd)sd.style.display='none';if(sf)sf.style.display='none';
+      const sc=document.getElementById('fin-sec-contas'),sd=document.getElementById('fin-sec-dre'),sf=document.getElementById('fin-sec-fluxocx'),so=document.getElementById('fin-sec-opped');
+      if(sc)sc.style.display='';if(sd)sd.style.display='none';if(sf)sf.style.display='none';if(so)so.style.display='none';
       fcAplicarFiltros();
     },120);
     // Ferramentas Comerciais é aberto pra qualquer usuário logado — sempre reabre na
@@ -3651,7 +3670,7 @@ function openEmissao(eid2){
       arq_prod:proj.arq_prod||'',layout_inst:proj.layout_inst||'',fotos_orig:proj.fotos_orig||'',pasta_arquivos:proj.pasta_arquivos||'',laudo:proj.laudo||'',
       iacomp:inst['Quem vai acompanhar a obra']||'',itel:inst['Telefone']||'',
       iend:inst['Endereço de Instalação']||'',ihor:inst['Horário']||'Comercial',
-      inum:inst['Instaladores']||'',idias:inst['Estimativa de Instalação']||'',
+      inum:inst['Instaladores']||'',idias:inst['Estimativa']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
       ibloqenergia:inst['Necessita de Bloqueio de Energia']||'',
       icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',icep_ok:false,
@@ -7606,12 +7625,14 @@ async function excluirContaPagar(id){
 function finMainSetTab(tab,btn){
   document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  const sc=document.getElementById('fin-sec-contas'),sd=document.getElementById('fin-sec-dre'),sf=document.getElementById('fin-sec-fluxocx');
+  const sc=document.getElementById('fin-sec-contas'),sd=document.getElementById('fin-sec-dre'),sf=document.getElementById('fin-sec-fluxocx'),so=document.getElementById('fin-sec-opped');
   if(sc)sc.style.display=tab==='contas'?'':'none';
   if(sd)sd.style.display=tab==='dre'?'':'none';
   if(sf)sf.style.display=tab==='fluxocx'?'':'none';
+  if(so)so.style.display=tab==='opped'?'':'none';
   if(tab==='contas'){if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();}
   else if(tab==='fluxocx'){if(typeof renderFluxoCaixa==='function')renderFluxoCaixa();}
+  else if(tab==='opped'){if(typeof renderOperacionaisPedidos==='function')renderOperacionaisPedidos();}
   else{if(typeof renderDRE==='function')renderDRE();}
 }
 let _cpItemsAtuais=[];
@@ -8395,6 +8416,242 @@ function _fcxVerDia(iso){
     ${linhasEntrada?`<table class="dash-table" style="margin-bottom:16px"><thead><tr><th>Cliente</th><th>Vendedor</th><th>Parcela</th><th>Valor</th></tr></thead><tbody>${linhasEntrada}</tbody></table>`:'<div style="padding:8px 4px;color:#94a3b8;font-size:.82rem;margin-bottom:16px">Nenhuma entrada prevista nesse dia.</div>'}
     <div style="font-size:.82rem;font-weight:700;color:#dc2626;margin-bottom:6px">📤 Saídas previstas — ${fmtR(d.saidas)}</div>
     ${linhasSaida?`<table class="dash-table"><thead><tr><th>Fornecedor</th><th>Categoria</th><th>Empresa</th><th>Valor</th></tr></thead><tbody>${linhasSaida}</tbody></table>`:'<div style="padding:8px 4px;color:#94a3b8;font-size:.82rem">Nenhuma saída prevista nesse dia.</div>'}
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// OPERACIONAIS PEDIDOS (projeção) — aba nova do Financeiro (2026-07-22, a pedido do
+// usuário: "uma previsão do que temos para gastar com os operacionais de cada pedido...
+// é uma previsão e não pelo realizado de fato"). Só entram pedidos emitidos DIRETO pelo
+// sistema como Venda/Permuta (isComercialPedido()&&!importadoPlanilha) com Prazo de
+// Finalização preenchido — pedidos antigos vindos da planilha nunca tiveram os campos de
+// Estimativa de Instalação/Prazo de Frete preenchidos, então não tem como calcular (e o
+// próprio usuário confirmou que os anteriores não precisam entrar).
+//
+// Fórmulas (2026-07-22, definidas pelo usuário):
+//  MÃO DE OBRA = 70% de (Instalação + Mobilização + Remoção + ART) — metade (35% do
+//    total) lançada 7 dias ANTES do Prazo de Finalização, a outra metade 7 dias DEPOIS.
+//  FRETE = 70% do Valor do Frete — lançado 20 dias depois da "data de coleta", que é o
+//    Prazo de Finalização menos a Estimativa de Instalação menos o Prazo Estimado de
+//    Frete (ambos em dias, preenchidos na Emissão — ver _opDiasFromTxt()).
+//  ELEVAÇÕES = 70% do Valor das Elevações — lançado no próprio dia do Prazo de
+//    Finalização (dia da entrega).
+//
+// (Corrigido de passagem: ed.idias/inst['Estimativa de Instalação'] estava sendo LIDO com
+// uma chave diferente da que era SALVA — ed.idias salvava em inst['Estimativa'] mas o
+// recarregamento pra edição procurava inst['Estimativa de Instalação'], então o campo
+// sempre voltava vazio ao reabrir um pedido pra editar. Corrigido em openEmissao() pra
+// usar a mesma chave 'Estimativa' dos dois lados — sem isso este cálculo de Frete nunca
+// teria o dado de instalação de nenhum pedido reaberto/editado.)
+// ════════════════════════════════════════════════════════════════════════════════════
+let _opMesAtual={y:new Date().getFullYear(),m:new Date().getMonth()+1};
+let _opCacheAtual={}; // porDia da última renderização — usado pelo modal de detalhe (_opVerDia)
+function opMov(dir){
+  _opMesAtual.m+=dir;
+  if(_opMesAtual.m>12){_opMesAtual.m=1;_opMesAtual.y++;}
+  if(_opMesAtual.m<1){_opMesAtual.m=12;_opMesAtual.y--;}
+  renderOperacionaisPedidos();
+}
+// Extrai o número de dias de um texto livre tipo "2 DIAS", "5 dias úteis", "3 dias
+// corridos" — usado tanto pra Estimativa de Instalação (digitada à mão pelo vendedor)
+// quanto pro Prazo Estimado de Frete (calculado sozinho na Emissão, ver atualizaPrazo()).
+function _opDiasFromTxt(s){
+  if(!s)return null;
+  const m=String(s).match(/(\d+)/);
+  return m?parseInt(m[1],10):null;
+}
+function _opAddDias(iso,dias){
+  if(!iso)return null;
+  const d=new Date(iso+'T00:00:00');
+  if(isNaN(d))return null;
+  d.setDate(d.getDate()+dias);
+  const pad=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+// Mês da venda de um pedido — MESMA prioridade de 3 níveis usada em pedidoToVendaRow()
+// (e portanto na Lista de Vendas): 1) mesVendaOverride (correção manual, sempre vence),
+// 2) mês reconciliado na planilha colada (XLSX_VENDAS_BY_OS), 3) mês de emissão como
+// último recurso. Bug corrigido em 2026-07-22: essa função pulava o nível 2 (planilha) e
+// caía direto no mês de emissão — um pedido reconciliado como JUNHO na planilha (ex.:
+// Burger King Hortolândia) mas só sincronizado/emitido no Firestore em julho aparecia
+// aqui como "vendido em julho" quando a Lista de Vendas (que usa os 3 níveis) já mostrava
+// junho corretamente. Só precisamos do mês aqui (não do row inteiro) pra filtrar quem
+// entra em _opPedidosElegiveis() sem chamar pedidoToVendaRow() antes da hora.
+function _opMesVenda(p){
+  if(p.mesVendaOverride)return parseInt(p.mesVendaOverride,10)||0;
+  const xlsxRow=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
+  if(xlsxRow&&xlsxRow.m)return xlsxRow.m;
+  if(p.emissaoEm){const partes=p.emissaoEm.split('-');return parseInt(partes[1],10)||0;}
+  return 0;
+}
+// Pedidos elegíveis: emitidos direto pelo sistema (não vieram da planilha antiga),
+// contando como Venda/Permuta de fato (mesmo critério de isComercialPedido()), com Prazo
+// de Finalização preenchido (sem isso não tem como calcular nenhuma das 3 datas) e
+// vendidos a partir de julho/2026 em diante (2026-07-22, a pedido do usuário: "faça isso
+// apenas com pedidos que foram vendidos em julho, não precisa pegar os de trás" — os
+// meses anteriores nunca tiveram os dados de Estimativa de Instalação/Frete preenchidos
+// mesmo, então não entrariam de qualquer forma, mas o filtro deixa isso explícito).
+function _opPedidosElegiveis(){
+  return pedidos.filter(p=>isComercialPedido(p)&&!p.importadoPlanilha&&p.prazo&&_opMesVenda(p)>=7);
+}
+// Calcula TODOS os lançamentos previstos (qualquer mês) de uma vez só — as datas de Mão
+// de Obra/Frete podem cair num mês diferente do Prazo de Finalização do pedido (ex.:
+// finalização dia 3 joga a 1ª parcela de Mão de Obra pro mês anterior), então não dá pra
+// filtrar por mês ANTES de calcular. renderOperacionaisPedidos() filtra por mês DEPOIS.
+function _opCalcularTodosEventos(){
+  const eventos=[];
+  const pendencias=[];
+  _opPedidosElegiveis().forEach(p=>{
+    const r=pedidoToVendaRow(p);
+    const prazo=p.prazo;
+    const base={id:p.id,os:r.p,cliente:r.cl,job:r.job,vendedor:r.v,prazoFinal:prazo};
+
+    // MÃO DE OBRA — instalação + mobilização + remoção + ART (ver pedidoToVendaRow: mo=
+    // Valor da Instalação, vi=Valor da Mobilização, rem=Valor da Remoção, art=Valor da ART).
+    const somaMO=(r.mo||0)+(r.vi||0)+(r.rem||0)+(r.art||0);
+    if(somaMO>0.005){
+      const metade=somaMO*0.7/2;
+      const d1=_opAddDias(prazo,-7),d2=_opAddDias(prazo,7);
+      if(d1)eventos.push({...base,iso:d1,cat:'MAO_OBRA',valor:metade,detalhe:'1ª metade — 7 dias antes da finalização'});
+      if(d2)eventos.push({...base,iso:d2,cat:'MAO_OBRA',valor:metade,detalhe:'2ª metade — 7 dias depois da finalização'});
+    }
+    // ELEVAÇÕES — no dia da entrega/finalização.
+    if((r.el||0)>0.005){
+      eventos.push({...base,iso:prazo,cat:'ELEVACOES',valor:r.el*0.7,detalhe:'Dia da entrega'});
+    }
+    // FRETE — precisa da Estimativa de Instalação + Prazo Estimado de Frete (ambos em
+    // dias) pra calcular a data de coleta; sem os dois, vai pra Pendências em vez de
+    // entrar silenciosamente com uma data errada.
+    if((r.ft||0)>0.005){
+      const diasInst=_opDiasFromTxt(p.instalacao&&p.instalacao['Estimativa']);
+      const diasFrete=_opDiasFromTxt(p.frete&&p.frete['Prazo Estimado de Entrega']);
+      if(diasInst==null||diasFrete==null){
+        const faltando=[diasInst==null?'Estimativa de Instalação':null,diasFrete==null?'Prazo Estimado de Frete (preencha o CEP de entrega na aba Frete da Emissão)':null].filter(Boolean);
+        pendencias.push({...base,valor:r.ft*0.7,motivo:'Falta '+faltando.join(' e ')+' pra calcular a data de coleta.'});
+      } else {
+        const coleta=_opAddDias(prazo,-(diasInst+diasFrete));
+        const dFrete=coleta?_opAddDias(coleta,20):null;
+        if(dFrete)eventos.push({...base,iso:dFrete,cat:'FRETE',valor:r.ft*0.7,detalhe:`20 dias após a coleta estimada (${fmtD(coleta)})`});
+      }
+    }
+  });
+  return{eventos,pendencias};
+}
+function renderOperacionaisPedidos(){
+  const body=document.getElementById('op-body');if(!body)return;
+  if(!_isFinanceiroUser()){
+    const cardsElBlk=document.getElementById('op-cards');if(cardsElBlk)cardsElBlk.innerHTML='';
+    const pendElBlk=document.getElementById('op-pendencias');if(pendElBlk)pendElBlk.innerHTML='';
+    body.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador podem ver os Operacionais Pedidos.</div>';
+    return;
+  }
+  const{y,m}=_opMesAtual;
+  const lbl=document.getElementById('op-mes-lbl');if(lbl)lbl.textContent=MESES_PT[m]+' '+y;
+
+  const{eventos,pendencias}=_opCalcularTodosEventos();
+  const porDia={};
+  eventos.forEach(e=>{
+    const partes=e.iso.split('-');
+    if(parseInt(partes[0],10)!==y||parseInt(partes[1],10)!==m)return;
+    if(!porDia[e.iso])porDia[e.iso]={MAO_OBRA:0,FRETE:0,ELEVACOES:0,itens:[]};
+    porDia[e.iso][e.cat]+=e.valor;
+    porDia[e.iso].itens.push(e);
+  });
+  _opCacheAtual=porDia;
+
+  const pad=n=>String(n).padStart(2,'0');
+  const ultimoDia=new Date(y,m,0).getDate();
+  const hojeIso=new Date().toISOString().slice(0,10);
+  const soMovimento=document.getElementById('op-fil-so-movimento')?.checked;
+
+  let totMO=0,totFR=0,totEL=0;
+  const linhas=[];
+  for(let dia=1;dia<=ultimoDia;dia++){
+    const iso=`${y}-${pad(m)}-${pad(dia)}`;
+    const d=porDia[iso]||{MAO_OBRA:0,FRETE:0,ELEVACOES:0};
+    const total=d.MAO_OBRA+d.FRETE+d.ELEVACOES;
+    totMO+=d.MAO_OBRA;totFR+=d.FRETE;totEL+=d.ELEVACOES;
+    const temMovimento=total>0.005;
+    if(soMovimento&&!temMovimento)continue;
+    const diaSemana=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(y,m-1,dia).getDay()];
+    linhas.push({iso,dia,diaSemana,MAO_OBRA:d.MAO_OBRA,FRETE:d.FRETE,ELEVACOES:d.ELEVACOES,total,temMovimento,isHoje:iso===hojeIso});
+  }
+
+  const cardsEl=document.getElementById('op-cards');
+  if(cardsEl){
+    cardsEl.innerHTML=`
+      <div style="background:#ede9fe;border-radius:10px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#7c3aed">👷 Mão de Obra (mês)</div><div style="font-size:1.1rem;font-weight:800;color:#7c3aed">${fmtR(totMO)}</div></div>
+      <div style="background:#ffedd5;border-radius:10px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#c2410c">🚚 Frete (mês)</div><div style="font-size:1.1rem;font-weight:800;color:#c2410c">${fmtR(totFR)}</div></div>
+      <div style="background:#e0f2fe;border-radius:10px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#0369a1">🏗️ Elevações (mês)</div><div style="font-size:1.1rem;font-weight:800;color:#0369a1">${fmtR(totEL)}</div></div>
+      <div style="background:#f1f5f9;border-radius:10px;padding:12px"><div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#475569">Total previsto (mês)</div><div style="font-size:1.1rem;font-weight:800;color:#1a1f36">${fmtR(totMO+totFR+totEL)}</div></div>`;
+  }
+
+  if(!linhas.length){
+    body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhum lançamento operacional previsto nesse mês.</div>';
+  } else {
+    const rows=linhas.map(l=>{
+      const bg=l.isHoje?'background:#eff6ff;':(!l.temMovimento?'opacity:.55;':'');
+      const cursor=l.temMovimento?'cursor:pointer;':'';
+      const onclick=l.temMovimento?` onclick="_opVerDia('${l.iso}')"`:'';
+      return`<tr style="${bg}${cursor}"${onclick}>
+        <td style="white-space:nowrap;font-size:.78rem;font-weight:${l.isHoje?'800':'500'}">${String(l.dia).padStart(2,'0')}/${pad(m)} ${l.diaSemana}${l.isHoje?' <span style="color:#1d4ed8;font-weight:700">· hoje</span>':''}</td>
+        <td style="font-weight:700;color:#7c3aed;white-space:nowrap">${l.MAO_OBRA>0.005?fmtR(l.MAO_OBRA):'—'}</td>
+        <td style="font-weight:700;color:#c2410c;white-space:nowrap">${l.FRETE>0.005?fmtR(l.FRETE):'—'}</td>
+        <td style="font-weight:700;color:#0369a1;white-space:nowrap">${l.ELEVACOES>0.005?fmtR(l.ELEVACOES):'—'}</td>
+        <td style="font-weight:800;white-space:nowrap;color:#1a1f36">${l.temMovimento?fmtR(l.total):'—'}</td>
+      </tr>`;
+    }).join('');
+    body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+      <thead><tr><th>Dia</th><th>👷 Mão de Obra</th><th>🚚 Frete</th><th>🏗️ Elevações</th><th>Total do dia</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  }
+
+  const pendEl=document.getElementById('op-pendencias');
+  if(pendEl){
+    if(!pendencias.length){pendEl.innerHTML='';}
+    else{
+      const rowsP=pendencias.map(pd=>`<tr>
+        <td style="font-size:.72rem;white-space:nowrap">${pedidoDisplay(pd.os)||'—'}</td>
+        <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${pd.cliente||'—'}</td>
+        <td style="font-size:.72rem">${pd.job||'—'}</td>
+        <td style="font-size:.72rem;white-space:nowrap">${fmtD(pd.prazoFinal)||'—'}</td>
+        <td style="font-weight:700;white-space:nowrap">${fmtR(pd.valor)}</td>
+        <td style="font-size:.72rem;color:#d97706">${pd.motivo}</td>
+        <td><button onclick="openEmissao('${pd.id}')" style="background:#fff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap">✏️ Completar</button></td>
+      </tr>`).join('');
+      pendEl.innerHTML=`<div style="font-size:.82rem;font-weight:700;color:#d97706;margin-bottom:8px">⚠️ Pendências — Frete não calculado (falta dado na Emissão)</div>
+        <div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>JOB</th><th>Prazo</th><th>Valor frete (70%)</th><th>Motivo</th><th></th></tr></thead><tbody>${rowsP}</tbody></table></div>`;
+    }
+  }
+}
+// Modal de detalhe de um dia do Operacionais Pedidos — lista os pedidos que compõem cada
+// categoria naquele dia (lê do cache preenchido no último renderOperacionaisPedidos()).
+function _opVerDia(iso){
+  const d=_opCacheAtual[iso]||{itens:[]};
+  const catLabel={MAO_OBRA:'👷 Mão de Obra',FRETE:'🚚 Frete',ELEVACOES:'🏗️ Elevações'};
+  const linhas=(d.itens||[]).slice().sort((a,b)=>a.cat.localeCompare(b.cat)).map(e=>`<tr>
+    <td style="font-size:.72rem;white-space:nowrap">${catLabel[e.cat]||e.cat}</td>
+    <td style="font-size:.72rem;white-space:nowrap">${pedidoDisplay(e.os)||'—'}</td>
+    <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${e.cliente||'—'}</td>
+    <td style="font-size:.72rem">${e.job||'—'}</td>
+    <td style="font-size:.72rem">${e.detalhe||''}</td>
+    <td style="font-weight:700;white-space:nowrap">${fmtR(e.valor)}</td>
+  </tr>`).join('');
+  document.getElementById('op-dia-modal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='op-dia-modal';
+  modal.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  const total=(d.itens||[]).reduce((s,e)=>s+e.valor,0);
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px 24px;max-width:920px;width:92%;max-height:82vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:10px">
+      <div style="font-size:1rem;font-weight:800;color:#1a1f36">📅 ${fmtD(iso)}</div>
+      <button onclick="document.getElementById('op-dia-modal').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div style="font-size:.8rem;color:#64748b;margin-bottom:14px">${(d.itens||[]).length} lançamento(s) · Total: <strong style="color:#1a1f36">${fmtR(total)}</strong></div>
+    ${(d.itens||[]).length?`<div style="overflow-x:auto"><table class="dash-table"><thead><tr><th>Categoria</th><th>Pedido</th><th>Cliente</th><th>JOB</th><th>Detalhe</th><th>Valor</th></tr></thead><tbody>${linhas}</tbody></table></div>`:'<div style="padding:16px 4px;color:#94a3b8;font-size:.85rem">Nenhum lançamento nesse dia.</div>'}
   </div>`;
   document.body.appendChild(modal);
 }
