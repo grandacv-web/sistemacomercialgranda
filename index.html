@@ -3274,7 +3274,15 @@ async function salvarValoresPedido(){
   // Atualiza dados do pedido (OS, Ordem de Compra, JOB, Prazo, Vendedor, Categoria/Tipo) — nome do cliente não é editável aqui
   const gi=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
   const novoOs=gi('ev-os');
-  if(novoOs)p.os=novoOs;
+  // OS duplicado (2026-07-22) — só valida quando o número realmente MUDA (deixar o mesmo OS
+  // de sempre nunca deve travar, mesmo que já bata com a planilha — ver pedidoToVendaRow).
+  // Ver _osJaEmUso().
+  if(novoOs&&novoOs!==p.os){
+    if(_osJaEmUso(novoOs,p.id,p.origPlanilhaOs)){toast('Nº da OS "'+novoOs+'" já está em uso por outra venda — use um número diferente','terr');return;}
+    p.os=novoOs;
+  } else if(novoOs){
+    p.os=novoOs;
+  }
   // Reativa este OS caso estivesse marcado como cancelado — admin editando/definindo o
   // número aqui é sinal claro de que a venda deve voltar a aparecer na lista.
   await _reativarVendaSeCancelada(p.os);
@@ -3460,6 +3468,10 @@ async function salvarVendaManual(){
   const temPagamento=(veVal>0&&veDataRaw)||parcValsRaw.some((v,i)=>v>0&&parcDatasRaw[i]);
   if(!mes){toast('Selecione o mês da venda','terr');return;}
   if(!os){toast('Informe o número do pedido','terr');return;}
+  // OS duplicado (2026-07-22) — venda manual sempre cria um pedido NOVO, então qualquer
+  // colisão (com outro pedido ou com a planilha colada) é sempre um erro de digitação, sem
+  // exceção. Ver _osJaEmUso().
+  if(_osJaEmUso(os,null)){toast('Nº da OS "'+os+'" já está em uso por outra venda — use um número diferente','terr');return;}
   if(!cliente){toast('Informe o cliente','terr');return;}
   if(!cat){toast('Informe a categoria','terr');return;}
   if(!vend){toast('Informe o vendedor','terr');return;}
@@ -4967,6 +4979,18 @@ function _renderOsCheckPanel(itens){
     <div style="font-size:.68rem;color:#9ca3af;margin-top:6px">Checklist automático (sem IA) — pode ter falso positivo, use como apoio, não como verdade absoluta.</div>
   </div>`;
 }
+// Extrai o Nº da Ordem de Serviço a partir do texto do PDF (2026-07-22) — a Ordem de
+// Serviço da própria Granda estampa o número logo junto do rótulo "Ordem de serviço". Só um
+// CANDIDATO pra ajudar a preencher o campo sozinho — nunca inventa nada nem bloqueia; se o
+// texto não bater com o padrão esperado (ex.: PDF escaneado sem OCR, ou layout diferente),
+// simplesmente não acha nada e o vendedor digita como sempre. \D{0,25}? cobre "Nº"/"N°"/":"/
+// quebras de linha entre o rótulo e o número, sem pular pra frente demais e pegar outra
+// coisa (outro número da página).
+function _extrairNumeroOsDoPdf(texto){
+  const t=(texto||'').replace(/\s+/g,' ');
+  const m=t.match(/ordem\s+de\s+servi[çc]o\D{0,25}?(\d{1,8})/i);
+  return m?m[1]:'';
+}
 // Roda ao selecionar o PDF da OS: faz o upload de sempre (setUpload) e, em paralelo,
 // extrai o texto localmente pra já mostrar as checagens que não dependem da aba Valores
 // (cor/tinta, descritivo, digitação). O texto fica em ed.osPdfTexto pra ser reaproveitado
@@ -4981,6 +5005,22 @@ async function emOsPdfSelecionado(input){
     const texto=await _extrairTextoPDF(f);
     ed.osPdfTexto=texto;
     _renderOsCheckPanel(_checarOsPdf(texto,ed));
+    // Preenche o Nº da OS sozinho a partir do PDF (2026-07-22) — só se o campo estiver
+    // vazio; se o vendedor já tinha digitado outro número, NUNCA sobrescreve sem avisar
+    // (evita apagar um número certo digitado por engano de leitura do PDF), só alerta pra
+    // conferir qual dos dois está certo. Reduz erro de digitação/duplicidade de OS na raiz.
+    const numeroDetectado=_extrairNumeroOsDoPdf(texto);
+    if(numeroDetectado){
+      const campoOs=document.getElementById('em-os');
+      const atual=(campoOs?.value||'').trim();
+      if(!atual){
+        if(campoOs)campoOs.value=numeroDetectado;
+        ed.os=numeroDetectado;
+        toast('Nº da OS preenchido automaticamente a partir do PDF: '+numeroDetectado+' — confira antes de emitir.','tok');
+      } else if(atual!==numeroDetectado){
+        toast('⚠️ O PDF indica OS '+numeroDetectado+', mas o campo está com "'+atual+'" — confira qual está certo.','twar');
+      }
+    }
   }catch(e){
     console.error('Erro ao analisar PDF da OS',e);
     ed.osPdfTexto='';
@@ -5033,6 +5073,16 @@ async function submit(){
   if(!ed.email_comprador||!ed.email_comprador.includes('@'))erros.push({msg:'E-mail do Comprador(a) não informado ou inválido',aba:0,label:'Dados Gerais'});
   if(!ed.email_engenheiro||!ed.email_engenheiro.includes('@'))erros.push({msg:'E-mail do Engenheiro da Obra não informado ou inválido',aba:0,label:'Dados Gerais'});
   if(!ed.os)erros.push({msg:'Nº da Ordem de Serviço não informado',aba:0,label:'Dados Gerais'});
+  // OS duplicado (2026-07-22) — só valida se for pedido novo OU se o OS mudou em relação ao
+  // que já estava salvo (reabrir o mesmo pedido pra editar sem trocar o OS nunca deve travar
+  // aqui, mesmo que esse OS já bata com uma linha da planilha — isso é esperado, ver
+  // pedidoToVendaRow). Ver _osJaEmUso().
+  {
+    const _pedOrigOs=editing?pedidos.find(x=>x.id===editing):null;
+    if(ed.os&&(!_pedOrigOs||_pedOrigOs.os!==ed.os)&&_osJaEmUso(ed.os,editing,_pedOrigOs?_pedOrigOs.origPlanilhaOs:null)){
+      erros.push({msg:'Nº da OS "'+ed.os+'" já está em uso por outra venda — use um número diferente',aba:0,label:'Dados Gerais'});
+    }
+  }
   // Aba valores
   const idxVal=idx('valores');
   if(!ed.vtotal)erros.push({msg:'Valor total do pedido não informado',aba:idxVal,label:'Valores'});
@@ -6800,6 +6850,23 @@ function renderVendasCanceladas(){
       <button onclick="reativarVendaCancelada('${String(os).replace(/'/g,"\\'")}')" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:7px 14px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">🔓 Reativar</button>
     </div>`;
   }).join('');
+}
+// ── VALIDAÇÃO DE OS DUPLICADO (2026-07-22) ──────────────────────────────────
+// Nº de OS precisa ser único. Sem essa trava, dois pedidos diferentes (ou um pedido novo e
+// uma linha da planilha colada) com o mesmo número viram DUAS linhas separadas em
+// getVendaRowsMerged() contando como vendas distintas (só a origem importadoPlanilha exclui
+// a linha da planilha em duplicidade — um pedido emitido normal, não). Achado na prática:
+// reativar a venda cancelada OS 234 (Bob's Camorim, da planilha) escancarou que já existia
+// outro pedido emitido no sistema usando o mesmo "234", os dois contando juntos.
+// excludeId = id do próprio pedido (edição não colide consigo mesmo).
+// excludeOrigPlanilhaOs = origPlanilhaOs do próprio pedido — é o mesmo OS que ele já
+// substituiu ao nascer de uma linha da planilha (ver editarVendaLista()), não uma colisão.
+function _osJaEmUso(os,excludeId,excludeOrigPlanilhaOs){
+  const s=String(os||'').trim();
+  if(!s)return false;
+  if(pedidos.some(p=>p.id!==excludeId&&String(p.os||'').trim()===s))return true;
+  if(excludeOrigPlanilhaOs&&String(excludeOrigPlanilhaOs).trim()===s)return false;
+  return (typeof XLSX_VENDAS_BY_OS!=='undefined')&&Object.prototype.hasOwnProperty.call(XLSX_VENDAS_BY_OS,s);
 }
 async function reativarVendaCancelada(os){
   const {isAdm}=_getUserCat();
