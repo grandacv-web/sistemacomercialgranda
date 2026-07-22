@@ -10504,9 +10504,19 @@ const XLSX_VENDAS=[
   {mes:"JUNHO",m:6,p:"207",cl:"V PERECK",cat:"VENDA LOCAL",v:"BRUNO",br:123927.0,ft:1500.0,vi:2000.0,el:0.0,mo:67000.0,art:1500.0,ba:0.0,ou:0.0,lq:73927.0,op:50000.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/08/2026",valor:14785.4},{dataStr:"05/09/2026",valor:14785.4},{dataStr:"05/10/2026",valor:14785.4}]},
   {mes:"JUNHO",m:6,p:"210",cl:"POPEYES ABC - REVESTIMENTO EXTRA",cat:"POPEYES SHOPPING",v:"JULIO",br:3186.0,ft:0.0,vi:0.0,el:0.0,mo:1250.0,art:0.0,ba:0.0,ou:0.0,lq:1936.0,op:1250.0,entrega:"16/06/2026",parcelas:[{dataStr:"15/07/2026",valor:1936.0}]},
   {mes:"JUNHO",m:6,p:"200",cl:"POPEYES ABC - PAINEL MDF EXTRA",cat:"POPEYES SHOPPING",v:"JULIO",br:11700.0,ft:2500.0,vi:1500.0,el:0.0,mo:1800.0,art:100.0,ba:0.0,ou:0.0,lq:5800.0,op:5900.0,entrega:"24/07/2026",parcelas:[{dataStr:"15/08/2026",valor:5800.0}]},
-  {mes:"JUNHO",m:6,p:"234",cl:"BOB'S CAMORIM RJ",cat:"LOJA",v:"BRUNO",br:30049.5,ft:0.0,vi:3720.0,el:0.0,mo:6000.0,art:500.0,ba:0.0,ou:0.0,lq:19829.5,op:10220.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/07/2026",valor:19829.5}]},
-  {mes:"JUNHO",m:6,p:"235",cl:"BOB'S PRAIA DO RECREIO",cat:"LOJA",v:"BRUNO",br:24033.75,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:24033.75,op:0.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/08/2026",valor:12016.88}]},
-  {mes:"JUNHO",m:6,p:"236",cl:"BOB'S NOVO LEBLON",cat:"LOJA",v:"BRUNO",br:5220.13,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:5220.13,op:0.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/08/2026",valor:2610.07}]},
+  // OS 234/235/236 DESAMBIGUADOS (2026-07-22): a Granda emitiu esses 3 números duas vezes
+  // de verdade — pro Bob's (aqui, planilha reconciliada) e pra outros 3 pedidos ativos e
+  // válidos no sistema (Bexcellent/Burguer M2A/Miss Burguer, Firestore), sem nenhuma relação
+  // com o Bob's. Os dois lados estão certos, o sistema é que não tinha como separar dois
+  // registros com o mesmo "p" — cancelar/reativar um sempre mexia nos dois juntos, e o Bob's
+  // herdava (ou emprestava) valores financeiros do outro via XLSX_VENDAS_BY_OS (pedidoToVendaRow
+  // casa por OS). Sufixo aqui só na CHAVE interna da planilha reconciliada (mesmo padrão já
+  // usado em "S/N-UBERLANDIA-JUN" pra desambiguar placeholder repetido) — não mexe no pedido
+  // real da Bexcellent/M2A/Miss Burguer no Firestore, que continua com seu "234"/"235"/"236"
+  // original e intocado.
+  {mes:"JUNHO",m:6,p:"234-CAMORIM",cl:"BOB'S CAMORIM RJ",cat:"LOJA",v:"BRUNO",br:30049.5,ft:0.0,vi:3720.0,el:0.0,mo:6000.0,art:500.0,ba:0.0,ou:0.0,lq:19829.5,op:10220.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/07/2026",valor:19829.5}]},
+  {mes:"JUNHO",m:6,p:"235-RECREIO",cl:"BOB'S PRAIA DO RECREIO",cat:"LOJA",v:"BRUNO",br:24033.75,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:24033.75,op:0.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/08/2026",valor:12016.88}]},
+  {mes:"JUNHO",m:6,p:"236-LEBLON",cl:"BOB'S NOVO LEBLON",cat:"LOJA",v:"BRUNO",br:5220.13,ft:0.0,vi:0.0,el:0.0,mo:0.0,art:0.0,ba:0.0,ou:0.0,lq:5220.13,op:0.0,entrega:"10/08/2026",parcelas:[{dataStr:"05/08/2026",valor:2610.07}]},
 ];
 // Lookup por OS para recuperar o detalhamento operacional original da planilha
 // quando um pedido importado no Firestore ficou sem essas despesas preenchidas.
