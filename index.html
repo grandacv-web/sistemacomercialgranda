@@ -436,9 +436,9 @@ select.fc{cursor:pointer}
   </button>
   <div class="sb-nav" id="sb-nav">
     <!-- GERAL -->
-    <button class="sb-btn active" id="sb-geral" onclick="setSection('geral')" title="Geral">
+    <button class="sb-btn active" id="sb-geral" onclick="setSection('geral')" title="Visão Comercial">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span class="sb-btn-label">Geral</span>
+      <span class="sb-btn-label">Visão Comercial</span>
     </button>
     <!-- Categorias geradas dinamicamente -->
     <div id="sb-cats"></div>
@@ -484,6 +484,7 @@ select.fc{cursor:pointer}
     <button class="dash-tab" id="gtab-graficos" onclick="geralTab('graficos',this)">📈 Gráficos</button>
     <button class="dash-tab active" id="gtab-vendas" onclick="geralTab('vendas',this)">📊 Vendas do Mês</button>
     <button class="dash-tab" id="gtab-emissao" onclick="geralTab('emissao',this)">📋 Lista de Emissão</button>
+    <button class="dash-tab" id="gtab-metas" onclick="geralTab('metas',this)" style="display:none">🎯 Metas e Comissões</button>
   </div>
 
   <!-- SUB-ABA: VENDAS DO MÊS (padrão ao abrir) -->
@@ -722,6 +723,47 @@ select.fc{cursor:pointer}
     </div>
   </div>
 
+  <!-- SUB-ABA: METAS E COMISSÕES (2026-07-22, a pedido do usuário: movida de dentro da
+       categoria própria "Comercial" do sidebar pra virar mais uma aba aqui em Visão
+       Comercial, ao lado de Lista de Emissão — sidebar "Geral" renomeado pra "Visão
+       Comercial" no mesmo pedido). Continua admin-only: a aba só aparece pra admin no
+       menu (gtab-metas escondido em buildSidebarCats()) e o conteúdo mantém a mesma trava
+       de PIN/administrador de sempre (dashMetasUnlocked/_dashShowPinModal), só que agora
+       decidida dentro de geralTab('metas') em vez de setSection('cat:COMERCIAL'). -->
+  <div id="geral-tab-metas" style="display:none;padding:16px 20px">
+    <div id="dash-comercial">
+      <div id="dash-comercial-restricted" style="display:none;padding:40px 4px;text-align:center;color:#dc2626">
+        <div style="font-size:2rem;margin-bottom:8px">🔒</div>
+        <div style="font-size:.85rem;font-weight:700">ACESSO NÃO PERMITIDO — apenas administradores podem acessar Metas &amp; Comissões.</div>
+      </div>
+      <div id="dash-comercial-body">
+        <div class="dash-sec-title" style="margin-bottom:14px">🎯 Metas &amp; Comissões</div>
+        <div id="dash-tab-metas">
+          <div class="dash-mes-nav">
+            <button onclick="dashMov(-1)">◀</button>
+            <div class="dash-mes-label" id="dash-mes-lbl">—</div>
+            <button onclick="dashMov(1)">▶</button>
+            <button onclick="auditarLiquidosMes()" style="margin-left:auto;background:#fefce8;border:1.5px solid #fde68a;color:#92400e;border-radius:8px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔍 Auditar Bruto/Líquido do Mês</button>
+          </div>
+          <div id="dash-audit-liq"></div>
+          <div id="dash-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
+          <div class="dash-card">
+            <div class="dash-sec-title">🎯 Metas do Mês</div>
+            <div style="overflow-x:auto">
+              <table class="dash-table"><thead><tr><th>Vendedor</th><th>Meta do Mês</th><th>Total Vendas</th><th>Status</th><th>% Bateu Meta</th><th>% Não Bateu</th><th>% Comissão</th></tr></thead><tbody id="dash-metas-body"></tbody></table>
+            </div>
+            <div id="dash-empresa-row" style="margin-top:14px;padding:12px 16px;background:#f5f3ff;border-radius:10px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:.82rem;border:1px solid #ede9fe"></div>
+            <div id="dash-prospec-section"></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-sec-title">💰 Recebimentos & Comissões</div>
+            <div id="dash-comissoes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 </div><!-- /sec-geral -->
@@ -817,41 +859,6 @@ select.fc{cursor:pointer}
         </div>
         <div id="tarefas-body"></div>
         <div id="tarefas-relatorio" style="display:none"></div>
-      </div>
-    </div>
-    <!-- COMERCIAL: agora só Metas & Comissões (Gráficos foi pra Geral, pra ficar junto
-         de Lista de Vendas/Emissão) — continua exigindo administrador + PIN, igual antes. -->
-    <div id="sec-cat-COMERCIAL" style="display:none">
-      <div id="dash-comercial">
-        <div id="dash-comercial-restricted" style="display:none;padding:40px 4px;text-align:center;color:#dc2626">
-          <div style="font-size:2rem;margin-bottom:8px">🔒</div>
-          <div style="font-size:.85rem;font-weight:700">ACESSO NÃO PERMITIDO — apenas administradores podem acessar Metas &amp; Comissões.</div>
-        </div>
-        <div id="dash-comercial-body">
-          <div class="dash-sec-title" style="margin-bottom:14px">🎯 Metas &amp; Comissões</div>
-          <div id="dash-tab-metas">
-            <div class="dash-mes-nav">
-              <button onclick="dashMov(-1)">◀</button>
-              <div class="dash-mes-label" id="dash-mes-lbl">—</div>
-              <button onclick="dashMov(1)">▶</button>
-              <button onclick="auditarLiquidosMes()" style="margin-left:auto;background:#fefce8;border:1.5px solid #fde68a;color:#92400e;border-radius:8px;padding:7px 12px;font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap">🔍 Auditar Bruto/Líquido do Mês</button>
-            </div>
-            <div id="dash-audit-liq"></div>
-            <div id="dash-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
-            <div class="dash-card">
-              <div class="dash-sec-title">🎯 Metas do Mês</div>
-              <div style="overflow-x:auto">
-                <table class="dash-table"><thead><tr><th>Vendedor</th><th>Meta do Mês</th><th>Total Vendas</th><th>Status</th><th>% Bateu Meta</th><th>% Não Bateu</th><th>% Comissão</th></tr></thead><tbody id="dash-metas-body"></tbody></table>
-              </div>
-              <div id="dash-empresa-row" style="margin-top:14px;padding:12px 16px;background:#f5f3ff;border-radius:10px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;font-size:.82rem;border:1px solid #ede9fe"></div>
-              <div id="dash-prospec-section"></div>
-            </div>
-            <div class="dash-card">
-              <div class="dash-sec-title">💰 Recebimentos & Comissões</div>
-              <div id="dash-comissoes"></div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
     <!-- FINANCEIRO -->
@@ -1118,12 +1125,12 @@ select.fc{cursor:pointer}
       </select>
       <div style="font-size:.66rem;color:#9a3412;margin-top:5px;line-height:1.4">Use isto quando a venda foi fechada num mês mas só emitida depois — a emissão continua com a data de hoje, só o mês que conta pra Metas/Comissões/Lista de Vendas muda.</div>
     </div>
-    <div style="grid-column:span 1">
+    <div style="grid-column:span 2">
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria</label>
-      <input id="ev-categoria" type="text" list="ev-categoria-datalist" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;text-transform:uppercase">
-      <datalist id="ev-categoria-datalist"></datalist>
+      <input type="hidden" id="ev-categoria">
+      <div id="ev-categoria-wrap" class="rc-row"></div>
     </div>
-    <div id="ev-tipo-wrap" style="grid-column:span 1">
+    <div id="ev-tipo-wrap" style="grid-column:span 2">
       <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Tipo do Pedido</label>
     </div>
     <div style="grid-column:span 2">
@@ -1299,8 +1306,8 @@ select.fc{cursor:pointer}
   </div>
   <div style="margin-bottom:10px">
     <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Categoria <span class="r">*</span></label>
-    <input id="vm-cat" type="text" list="vm-cat-list" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
-    <datalist id="vm-cat-list"></datalist>
+    <input type="hidden" id="vm-cat">
+    <div id="vm-cat-wrap" class="rc-row"></div>
   </div>
   <div style="margin-bottom:12px">
     <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Valor Bruto (R$) <span class="r">*</span></label>
@@ -2725,22 +2732,26 @@ function atualizarBotaoNovoPedido(){
 function buildSidebarCats(){
   const container=document.getElementById('sb-cats');
   if(!container)return;
-  // Menus reduzidos a pedido do usuário (2026-07-03): só Comercial e Financeiro ficam
-  // no menu além do Geral. As demais categorias (RH, Compras, PCP, etc.) continuam
-  // existindo como opção de cadastro de usuário, só não têm mais botão no sidebar.
+  // Menus reduzidos a pedido do usuário (2026-07-03): só Financeiro fica no menu além
+  // de Visão Comercial. As demais categorias (RH, Compras, PCP, etc.) continuam existindo
+  // como opção de cadastro de usuário, só não têm mais botão no sidebar.
   // Financeiro só aparece pra quem é admin ou categoria FINANCEIRO — a lista de Contas a
   // Receber mostra valor de venda por vendedor, então não pode ficar visível pra vendedor nenhum.
-  // COMERCIAL (rótulo "Metas e Comissões" pro usuário, chave interna continua COMERCIAL
-  // pra não quebrar cadastro/permissões já salvos) só aparece pra admin — 2026-07-14: antes
-  // o botão aparecia pra todo mundo e só o conteúdo era travado com PIN depois do clique.
+  // COMERCIAL (rótulo "Metas e Comissões") deixou de ser categoria própria do sidebar
+  // (2026-07-22, a pedido do usuário) — virou uma aba dentro de "Visão Comercial" (sec-
+  // geral, ver geralTab('metas')), ao lado de Lista de Emissão. Continua só pra admin: em
+  // vez de esconder o botão do sidebar (não existe mais), agora é a aba gtab-metas que
+  // fica escondida abaixo.
   const _isAdmSidebar=_getUserCat().isAdm;
+  const elGtabMetas=document.getElementById('gtab-metas');
+  if(elGtabMetas)elGtabMetas.style.display=_isAdmSidebar?'':'none';
   // FERRAMENTAS COMERCIAIS é fixo pra qualquer usuário logado (não é uma categoria
-  // configurável de cadastro como COMERCIAL/FINANCEIRO) — fica logo depois de Geral, ver
-  // pedido do usuário de 2026-07-16 de tirar isso de dentro da tela Geral e virar item
-  // próprio do sidebar. Sempre primeiro na lista.
-  const cats=['FERRAMENTAS',...(_isAdmSidebar?['COMERCIAL']:[]),...(_isFinanceiroUser()?['FINANCEIRO']:[])];
-  const catIcons={'FERRAMENTAS':'🧰','COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
-  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS','COMERCIAL':'METAS E COMISSÕES'};
+  // configurável de cadastro como COMERCIAL/FINANCEIRO) — fica logo depois de Visão
+  // Comercial, ver pedido do usuário de 2026-07-16 de tirar isso de dentro da tela Geral e
+  // virar item próprio do sidebar. Sempre primeiro na lista.
+  const cats=['FERRAMENTAS',...(_isFinanceiroUser()?['FINANCEIRO']:[])];
+  const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS'};
   container.innerHTML=cats.map(cat=>`
     <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${catLabelsSidebar[cat]||cat}" style="font-size:.7rem">
       <span style="font-size:1rem;flex-shrink:0;width:18px;text-align:center">${catIcons[cat]||'📁'}</span>
@@ -2764,12 +2775,6 @@ function setSection(sec){
     toast('ACESSO NÃO PERMITIDO','terr');
     return;
   }
-  // Mesma trava pra COMERCIAL (rótulo "Metas e Comissões") — 2026-07-14: agora é
-  // admin-only também na entrada da seção, não só no PIN que aparecia depois de clicar.
-  if(sec==='cat:COMERCIAL'&&!_getUserCat().isAdm){
-    toast('ACESSO NÃO PERMITIDO','terr');
-    return;
-  }
   currentSection=sec;
   const isGeral=sec==='geral';
 
@@ -2785,45 +2790,24 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
   if(!isGeral){const sbExp=document.getElementById('sidebar')?.classList.contains('expanded');secCat.style.left=sbExp?'220px':'64px';}
   if(!isGeral){
     const cat=sec.replace('cat:','');
-    const isCom=cat==='COMERCIAL';
     const isFerr=cat==='FERRAMENTAS';
     // Atualiza header da seção
-    const catIcons={'FERRAMENTAS':'🧰','COMERCIAL':'💼','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
-    // Rótulo de exibição: COMERCIAL virou "Metas e Comissões" (2026-07-14) — chave interna
-    // continua COMERCIAL (cadastro de usuário, permissões, cores etc. não mudam).
-    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais','COMERCIAL':'Metas e Comissões'};
-    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','COMERCIAL':'Acompanhamento de metas e comissões da equipe','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Planejamento estratégico','PROJETOS':'Gestão de projetos'};
+    const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais'};
+    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Planejamento estratégico','PROJETOS':'Gestão de projetos'};
     const nameEl=document.getElementById('cat-hdr-name');
     const descEl=document.getElementById('cat-hdr-desc');
     if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+(catLabelsHeader[cat]||(cat.charAt(0)+cat.slice(1).toLowerCase()));
     if(descEl)descEl.textContent=catDescs[cat]||'';
     const isFin=cat==='FINANCEIRO';
     document.getElementById('sec-cat-FERRAMENTAS').style.display=isFerr?'':'none';
-    document.getElementById('sec-cat-COMERCIAL').style.display=isCom?'':'none';
     document.getElementById('sec-cat-FINANCEIRO').style.display=isFin?'':'none';
-    document.getElementById('sec-cat-generic').style.display=(isCom||isFin||isFerr)?'none':'';
-    // Botão só aparece na seção COMERCIAL
+    document.getElementById('sec-cat-generic').style.display=(isFin||isFerr)?'none':'';
+    // "Novo Pedido" do cabeçalho de categoria não tem mais seção COMERCIAL pra aparecer
+    // (virou aba dentro de Visão Comercial, que já tem seu próprio botão duplicado —
+    // btn-novo-pedido-vendas) — fica sempre escondido aqui.
     const btnNovo=document.getElementById('btn-novo-pedido');
-    if(!isCom){
-      if(btnNovo)btnNovo.style.display='none';
-    } else {
-      atualizarBotaoNovoPedido();
-      // Comercial agora é só Metas & Comissões (Gráficos foi pra Geral) — continua
-      // admin-only, com o mesmo mecanismo de PIN de sempre (dashMetasUnlocked/_dashShowPinModal).
-      setTimeout(()=>{
-        const _isAdmDash=_getUserCat().isAdm;
-        const body=document.getElementById('dash-comercial-body');
-        const restr=document.getElementById('dash-comercial-restricted');
-        if(!_isAdmDash){
-          if(body)body.style.display='none';
-          if(restr)restr.style.display='';
-        } else {
-          if(body)body.style.display='';
-          if(restr)restr.style.display='none';
-          initDashComercial();
-        }
-      },120);
-    }
+    if(btnNovo)btnNovo.style.display='none';
     if(isFin&&typeof fcAplicarFiltros==='function')setTimeout(()=>{
       document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
       document.getElementById('fin-main-tabs')?.querySelector('.fin-main-tab')?.classList.add('active');
@@ -2845,19 +2829,24 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
   }
 }
 
-// Sub-abas da tela Geral (menu principal): "Vendas do Mês" (mesma fonte/valores usados
-// nas comissões), "Lista de Emissão" (todos os pedidos emitidos, qualquer categoria) e
-// "Gráficos" (movida de Comercial pra cá — sempre aberta, sem senha/admin, igual antes).
-// Vendas do Mês é a aba padrão — antes vivia só dentro de Comercial > Vendas do Ano.
+// Sub-abas da tela Visão Comercial (menu principal, renomeado de "Geral" em 2026-07-22):
+// "Vendas do Mês" (mesma fonte/valores usados nas comissões), "Lista de Emissão" (todos
+// os pedidos emitidos, qualquer categoria), "Gráficos" (movida de Comercial pra cá —
+// sempre aberta, sem senha/admin) e "Metas e Comissões" (2026-07-22, também movida de
+// dentro da categoria própria "Comercial" do sidebar pra virar aba aqui, ao lado de Lista
+// de Emissão — continua admin-only, ver bloco abaixo e buildSidebarCats()). Vendas do Mês
+// é a aba padrão — antes vivia só dentro de Comercial > Vendas do Ano.
 function geralTab(tab,btn){
   document.querySelectorAll('#sec-geral .dash-tab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
   const elVendas=document.getElementById('geral-tab-vendas');
   const elEmissao=document.getElementById('geral-tab-emissao');
   const elGraficos=document.getElementById('geral-tab-graficos');
+  const elMetas=document.getElementById('geral-tab-metas');
   if(elVendas)elVendas.style.display=tab==='vendas'?'':'none';
   if(elEmissao)elEmissao.style.display=tab==='emissao'?'':'none';
   if(elGraficos)elGraficos.style.display=tab==='graficos'?'':'none';
+  if(elMetas)elMetas.style.display=tab==='metas'?'':'none';
   const h2=document.getElementById('geral-hdr-h2'),p=document.getElementById('geral-hdr-p');
   if(tab==='vendas'){
     if(h2)h2.textContent='Vendas do Mês';
@@ -2867,6 +2856,24 @@ function geralTab(tab,btn){
     if(h2)h2.textContent='Gráficos';
     if(p)p.textContent='Indicadores comerciais e evolução de vendas';
     try{renderDashGraficos();}catch(e){console.error('Erro ao abrir Gráficos',e);}
+  } else if(tab==='metas'){
+    if(h2)h2.textContent='Metas e Comissões';
+    if(p)p.textContent='Acompanhamento de metas e comissões da equipe';
+    // Mesma trava de sempre (admin + PIN) — antes decidida na entrada de setSection('cat:
+    // COMERCIAL'), agora aqui. Defesa em dobro: a aba gtab-metas já fica escondida pra
+    // quem não é admin (buildSidebarCats()), isso aqui cobre quem chamar geralTab('metas')
+    // direto (ex.: console do navegador).
+    const _isAdmDash=_getUserCat().isAdm;
+    const body=document.getElementById('dash-comercial-body');
+    const restr=document.getElementById('dash-comercial-restricted');
+    if(!_isAdmDash){
+      if(body)body.style.display='none';
+      if(restr)restr.style.display='';
+    } else {
+      if(body)body.style.display='';
+      if(restr)restr.style.display='none';
+      try{initDashComercial();}catch(e){console.error('Erro ao abrir Metas e Comissões',e);}
+    }
   } else {
     if(h2)h2.textContent='Lista de Emissão';
     if(p)p.textContent='Todos os pedidos emitidos, de qualquer categoria';
@@ -3115,6 +3122,33 @@ async function editarVendaLista(os,pedidoId){
   await savePedidoFS(pedido);
   editarValoresPedido(pedido.id);
 }
+// Seletor de opções em cartões clicáveis — mesmo estilo visual já usado no Tipo do Pedido
+// da Emissão (classes .rc-row/.rc, ver CSS), só que genérico/reaproveitável em qualquer
+// lugar em vez de acoplado ao objeto `ed` da Emissão (rRC()/selRC() só servem pra isso).
+// Criado em 2026-07-22 a pedido do usuário ("esse menu na edição... tá ruim... arrumar pra
+// ficar melhor de mudar ali quando quiser e já revisar os demais pra deixar igual") —
+// substitui o combo nativo (select ou input+datalist) usado pra escolher Categoria/Tipo do
+// Pedido em Editar Valores e Venda Manual. Guarda o valor de verdade num input escondido
+// (hiddenId) — todo código que já lia esse id continua funcionando sem mais nada mudar.
+function _renderCardPicker(hiddenId,wrapId,opcoes,valorAtual){
+  const wrap=document.getElementById(wrapId),hidden=document.getElementById(hiddenId);
+  if(!wrap||!hidden)return;
+  hidden.value=valorAtual||'';
+  wrap.innerHTML=(opcoes||[]).map(op=>{
+    const sel=op===hidden.value;
+    return`<div class="rc${sel?' sel':''}" data-val="${op.replace(/"/g,'&quot;')}" onclick="_cardPickClick('${hiddenId}','${wrapId}',this)"><input type="radio" ${sel?'checked':''}><span>${op}</span></div>`;
+  }).join('');
+}
+function _cardPickClick(hiddenId,wrapId,el){
+  const hidden=document.getElementById(hiddenId);
+  if(hidden)hidden.value=el.dataset.val;
+  const wrap=document.getElementById(wrapId);
+  if(wrap)wrap.querySelectorAll('.rc').forEach(e=>{
+    const isSel=e===el;
+    e.classList.toggle('sel',isSel);
+    const r=e.querySelector('input[type=radio]');if(r)r.checked=isSel;
+  });
+}
 async function editarValoresPedido(pedidoId){
   const {isAdm}=_getUserCat();
   if(!isAdm){toast('Apenas administradores podem editar valores','terr');return;}
@@ -3199,26 +3233,28 @@ async function editarValoresPedido(pedidoId){
   // Categoria (2026-07-22, separada do Tipo) — antes o único <select> aqui era de Tipo
   // (Venda/Garantia/etc, ver TC) e ao salvar sobrescrevia p.tipoPedido com o MESMO valor,
   // misturando os dois conceitos (ex.: badge "Venda" aparecendo numa coluna que deveria só
-  // ter categoria tipo MANUTENÇÃO/LOJA — ver catCor()/pedidoToVendaRow). Agora é sempre um
-  // campo de texto com sugestões da lista cadastrada (getTiposPedido()), independente da
-  // venda ter vindo da planilha ou sido emitida pelo sistema — nunca mais grava em cima do
-  // Tipo, nem o Tipo grava em cima dela (ver salvarValoresPedido()).
-  const catInp=document.getElementById('ev-categoria');
-  if(catInp)catInp.value=p.tipoPedido||'';
-  const catDl=document.getElementById('ev-categoria-datalist');
-  if(catDl)catDl.innerHTML=getTiposPedido().map(t=>`<option value="${t}">`).join('');
+  // ter categoria tipo MANUTENÇÃO/LOJA — ver catCor()/pedidoToVendaRow). Agora é sempre a
+  // lista cadastrada (getTiposPedido()), independente da venda ter vindo da planilha ou
+  // sido emitida pelo sistema — nunca mais grava em cima do Tipo, nem o Tipo grava em cima
+  // dela (ver salvarValoresPedido()). Widget trocado de input+datalist pra cartões
+  // clicáveis (2026-07-22, a pedido do usuário: "esse menu... tá ruim... arrumar pra ficar
+  // melhor de mudar" — mesmo estilo .rc-row/.rc já usado no Tipo do Pedido da Emissão, ver
+  // _renderCardPicker()). O input#ev-categoria continua existindo (escondido) só pra não
+  // quebrar gi('ev-categoria') em salvarValoresPedido().
+  _renderCardPicker('ev-categoria','ev-categoria-wrap',getTiposPedido(),p.tipoPedido||'');
   // Tipo do Pedido: texto livre se veio da planilha importada/venda manual — aqui "tipo"
   // historicamente guarda a categoria do produto pra esses registros específicos (ver
-  // isComercialPedido()), select fechado (TC) se emitido pelo fluxo normal do sistema.
+  // isComercialPedido()), cartões clicáveis (TC) se emitido pelo fluxo normal do sistema —
+  // mesma troca de widget de cima, pelo mesmo motivo (select nativo sem estilo "feio").
   const tipoWrap=document.getElementById('ev-tipo-wrap');
   if(tipoWrap){
     if(p.importadoPlanilha){
       tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Tipo do Pedido</label>`+
         `<input id="ev-tipo" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box" value="${(p.tipo||'').replace(/"/g,'&quot;')}">`;
     }else{
-      const opts=Object.keys(TC).map(k=>`<option value="${k}" ${p.tipo===k?'selected':''}>${k}</option>`).join('');
       tipoWrap.innerHTML=`<label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Tipo do Pedido</label>`+
-        `<select id="ev-tipo" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;background:#fff">${opts}</select>`;
+        `<input type="hidden" id="ev-tipo"><div id="ev-tipo-cards" class="rc-row"></div>`;
+      _renderCardPicker('ev-tipo','ev-tipo-cards',Object.keys(TC),p.tipo||'');
     }
   }
   _updEvLiq();
@@ -3433,8 +3469,7 @@ function abrirVendaManual(){
   }
   const dlVend=document.getElementById('vm-vend-list');
   if(dlVend)dlVend.innerHTML=getVendedores().map(v=>`<option value="${v}">`).join('');
-  const dlCat=document.getElementById('vm-cat-list');
-  if(dlCat)dlCat.innerHTML=getTiposPedido().map(t=>`<option value="${t}">`).join('');
+  _renderCardPicker('vm-cat','vm-cat-wrap',getTiposPedido(),'');
   _updVendaManualLiq();
   openM('mo-venda-manual');
 }
@@ -9364,6 +9399,9 @@ function renderContasUnificado(){
       tipoBadge:'<span style="background:#dbeafe;color:#1e40af;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">📥 Receber</span>',
       quem:i.cliente||'—',quemSub:pedidoDisplay(i.pedidoOs)||i.mesPedido||'',
       detalhe:(i.nomeVend||'—')+(i.label?' · '+i.label:''),
+      // Contas a Receber não tem conceito de categoria (isso é só de Contas a Pagar,
+      // ver plano de contas em getPlanoContasDespesas()) — fica vazio de propósito.
+      categoria:'<span style="color:#94a3b8">—</span>',
       valor:i.valorBruto||0,valorTitle:'',
       statusLbl,
       obsCol:i.diasAtraso>0?`<span style="font-weight:700;color:#dc2626">${i.diasAtraso} dia${i.diasAtraso>1?'s':''} de atraso</span>`:(i.motivoAtraso?`<span style="font-size:.74rem;color:#7c3aed;cursor:help" title="${i.motivoAtraso.replace(/"/g,'&quot;')}">${i.motivoAtraso}</span>`:'—'),
@@ -9388,7 +9426,12 @@ function renderContasUnificado(){
       iso,dataLabel:fmtD(c.vencimento)||'—',
       tipoBadge:'<span style="background:#ffedd5;color:#c2410c;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">📤 Pagar</span>',
       quem:c.fornecedor||'—',quemSub:_capLabel(c.empresa),
-      detalhe:`<select onchange="_cpMudarCategoria('${c.id}',this.value)" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid var(--border)">${getPlanoContasDespesas().map(k=>`<option value="${k.id}" ${k.id===c.categoria?'selected':''}>${k.nome}</option>`).join('')}</select>${c.despesaDesc?`<div title="${c.despesaDesc.replace(/"/g,'&quot;')}" style="font-size:.7rem;color:#94a3b8;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">${c.despesaDesc}</div>`:''}`,
+      // Categoria volta a ter coluna própria e editável (2026-07-22, a pedido do usuário:
+      // "tem que ter categoria aparecendo e o usuario poder mudar a categoria ali na lista
+      // mesmo como era antes") — antes estava escondida junto com a Despesa dentro de
+      // "Detalhe", igual já era em renderContasPagar() (tela original escondida por baixo).
+      categoria:`<select onchange="_cpMudarCategoria('${c.id}',this.value)" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid var(--border)">${getPlanoContasDespesas().map(k=>`<option value="${k.id}" ${k.id===c.categoria?'selected':''}>${k.nome}</option>`).join('')}</select>`,
+      detalhe:c.despesaDesc?`<span title="${c.despesaDesc.replace(/"/g,'&quot;')}" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${c.despesaDesc}</span>`:'<span style="color:#94a3b8">—</span>',
       valor:valorAdj,
       valorTitle:(c.juros||c.multa||c.desconto)?`Base: ${fmtR(c.valor)}${c.juros?' + juros '+fmtR(c.juros):''}${c.multa?' + multa '+fmtR(c.multa):''}${c.desconto?' - desconto '+fmtR(c.desconto):''}`:'',
       statusLbl,
@@ -9407,12 +9450,13 @@ function renderContasUnificado(){
   if(!linhas.length){body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhum lançamento encontrado com esses filtros.</div>';return;}
 
   body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
-    <thead><tr><th>Data</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Detalhe</th><th>Valor</th><th>Status</th><th>Atraso/Obs.</th><th>Ação</th></tr></thead>
+    <thead><tr><th>Data</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Categoria</th><th>Detalhe</th><th>Valor</th><th>Status</th><th>Atraso/Obs.</th><th>Ação</th></tr></thead>
     <tbody>${linhas.map(l=>`
       <tr>
         <td style="white-space:nowrap;font-size:.78rem">${l.dataLabel}</td>
         <td>${l.tipoBadge}</td>
         <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${l.quem}${l.quemSub?`<div style="font-size:.68rem;color:#94a3b8;font-weight:500">${l.quemSub}</div>`:''}</td>
+        <td style="font-size:.78rem;white-space:nowrap">${l.categoria}</td>
         <td style="font-size:.78rem">${l.detalhe}</td>
         <td style="font-weight:700;white-space:nowrap"${l.valorTitle?` title="${l.valorTitle.replace(/"/g,'&quot;')}"`:''}>${fmtR(l.valor)}${l.valorTitle?' <span style="color:#d97706;font-size:.62rem" title="Valor ajustado por juros/multa/desconto">⚠️</span>':''}</td>
         <td>${l.statusLbl}</td>
