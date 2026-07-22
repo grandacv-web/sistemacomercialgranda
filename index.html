@@ -858,75 +858,90 @@ select.fc{cursor:pointer}
     <div id="sec-cat-FINANCEIRO" style="display:none">
       <div id="dash-financeiro">
         <div class="dash-tabs" style="margin-bottom:14px" id="fin-main-tabs">
-          <button class="dash-tab active fin-main-tab" onclick="finMainSetTab('receber',this)">📥 Contas a Receber</button>
-          <button class="dash-tab fin-main-tab" onclick="finMainSetTab('pagar',this)">📤 Contas a Pagar</button>
+          <button class="dash-tab active fin-main-tab" onclick="finMainSetTab('contas',this)">💰 Contas a Pagar/Receber</button>
           <button class="dash-tab fin-main-tab" onclick="finMainSetTab('dre',this)">📊 DRE</button>
         </div>
-        <div id="fin-sec-receber">
-        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
-          💰 Contas a Receber — todas as parcelas de vendas (do sistema ou da planilha) que ainda não foram confirmadas como recebidas. Confirmar aqui já libera a comissão do vendedor na quinzena correta.
-        </div>
-        <div id="fin-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-          <input id="fin-fil-busca" placeholder="Buscar cliente, pedido, OS..." oninput="renderFinanceiro()" style="flex:1;min-width:200px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
-          <select id="fin-fil-mes-venda" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-            <option value="">📅 Todos os meses (venda)</option>
-            <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
-            <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
-            <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
-          </select>
-          <select id="fin-fil-vend" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-            <option value="">Todos os vendedores</option>
-          </select>
-          <select id="fin-fil-status" onchange="renderFinanceiro()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-            <option value="">Todos os status</option>
-            <option value="pendente" selected>⏳ Pendente</option>
-            <option value="atrasado">⚠️ Em atraso</option>
-            <option value="confirmado">✅ Recebido</option>
-          </select>
-          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Pagamento de</span>
-          <input id="fin-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
-          <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Pagamento até</span>
-          <input id="fin-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderFinanceiro()">
-          <button onclick="gerarPDFFinanceiro()" class="dash-btn-conf" style="white-space:nowrap">📄 Gerar PDF</button>
-          <button onclick="exportarExcelFinanceiro()" class="dash-btn-conf" style="white-space:nowrap;background:#16a34a">📊 Exportar Excel</button>
-        </div>
-        <div class="dash-tabs" style="margin-bottom:14px">
-          <button class="dash-tab active fin-view-tab" onclick="finSetView('lista',this)">📋 Lista de Parcelas</button>
-          <button class="dash-tab fin-view-tab" onclick="finSetView('fluxo',this)">📊 Fluxo de Caixa</button>
-        </div>
-        <div id="fin-view-lista">
-          <div id="fin-body"></div>
-        </div>
-        <div id="fin-view-fluxo" style="display:none"></div>
-        </div>
-        <div id="fin-sec-pagar" style="display:none">
+        <!-- Lista unificada (2026-07-22, a pedido do usuário) — substitui as antigas abas
+             separadas "Contas a Receber"/"Contas a Pagar" por uma lista só, com filtro de
+             Tipo e ordenação por data (ver renderContasUnificado()). -->
+        <div id="fin-sec-contas">
           <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
-            📤 Contas a Pagar — despesas do grupo (Granda, Gnove, GRND Soluções), importadas do PDF do sistema de contas a pagar ou lançadas manualmente. Toda importação passa por uma tela de revisão antes de gravar.
+            💰 Contas a Pagar e a Receber numa lista só — use o filtro <strong>Tipo</strong> pra ver só Pagar, só Receber, ou os dois juntos ordenados por data. Confirmar recebimento já libera a comissão do vendedor; marcar uma despesa como paga é só controle interno.
           </div>
-          <div id="cp-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-            <input id="cp-fil-busca" placeholder="Buscar fornecedor, despesa..." oninput="renderContasPagar()" style="flex:1;min-width:200px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
-            <select id="cp-fil-empresa" onchange="renderContasPagar()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-              <option value="">🏢 Todas as empresas</option>
+          <div id="fc-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+            <input id="fc-fil-busca" placeholder="Buscar cliente, fornecedor, pedido, despesa..." oninput="fcAplicarFiltros()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+            <select id="fc-fil-tipo" onchange="fcSetTipo(this.value)" style="padding:9px 12px;border-radius:8px;border:1.5px solid #1d4ed8;font-weight:700;color:#1d4ed8;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">🔀 Ambos (Pagar + Receber)</option>
+              <option value="receber">📥 Contas a Receber</option>
+              <option value="pagar">📤 Contas a Pagar</option>
             </select>
-            <select id="cp-fil-categoria" onchange="renderContasPagar()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-              <option value="">Todas as categorias</option>
-            </select>
-            <select id="cp-fil-status" onchange="renderContasPagar()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+            <select id="fc-fil-status" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
               <option value="">Todos os status</option>
               <option value="pendente">⏳ Pendente</option>
               <option value="atrasado">⚠️ Atrasado</option>
-              <option value="pago">✅ Pago</option>
+              <option value="concluido">✅ Recebido/Pago</option>
             </select>
-            <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Vencimento de</span>
-            <input id="cp-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderContasPagar()">
-            <span style="font-size:.75rem;color:#94a3b8;font-weight:600">até</span>
-            <input id="cp-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="renderContasPagar()">
-            <button onclick="abrirImportarContasPagarPDF()" class="dash-btn-conf" style="white-space:nowrap">📥 Importar PDF</button>
-            <button onclick="abrirNovaContaPagar()" class="dash-btn-conf" style="white-space:nowrap;background:#1d4ed8">+ Nova despesa</button>
+            <select id="fc-fil-ordem" onchange="fcSetOrdem(this.value)" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="asc">📅 Data crescente</option>
+              <option value="desc">📅 Data decrescente</option>
+            </select>
+            <button onclick="reclassificarNaoClassificados()" class="dash-btn-conf" style="white-space:nowrap;background:#7c3aed" title="Reaplica as regras de categoria mais atuais em toda despesa ainda 'Não Classificado'">🔄 Reclassificar Não Classificado</button>
           </div>
-          <div id="cp-body"></div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+            <select id="fc-fil-mes-venda" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">📅 Mês da venda (Receber)</option>
+              <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
+              <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
+              <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
+            </select>
+            <select id="fc-fil-vend" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">Todos os vendedores (Receber)</option>
+            </select>
+            <select id="fc-fil-empresa" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">🏢 Todas as empresas (Pagar)</option>
+            </select>
+            <select id="fc-fil-categoria" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+              <option value="">Todas as categorias (Pagar)</option>
+            </select>
+            <span style="font-size:.75rem;color:#94a3b8;font-weight:600">Data de</span>
+            <input id="fc-fil-data-ini" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="fcAplicarFiltros()">
+            <span style="font-size:.75rem;color:#94a3b8;font-weight:600">até</span>
+            <input id="fc-fil-data-fim" type="date" style="width:150px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit" onchange="fcAplicarFiltros()">
+            <button onclick="abrirImportarContasPagarPDF()" class="dash-btn-conf" style="white-space:nowrap">📥 Importar PDF (Pagar)</button>
+            <button onclick="abrirNovaContaPagar()" class="dash-btn-conf" style="white-space:nowrap;background:#1d4ed8">+ Nova despesa</button>
+            <button onclick="gerarPDFFinanceiro()" class="dash-btn-conf" style="white-space:nowrap">📄 PDF (Receber)</button>
+            <button onclick="exportarExcelFinanceiro()" class="dash-btn-conf" style="white-space:nowrap;background:#16a34a">📊 Excel (Receber)</button>
+          </div>
+          <div class="dash-tabs" style="margin-bottom:14px">
+            <button id="fc-tab-lista" class="dash-tab active fin-view-tab" onclick="finSetView('lista',this)">📋 Lista</button>
+            <button id="fc-tab-fluxo" class="dash-tab fin-view-tab" onclick="finSetView('fluxo',this)">📊 Fluxo de Caixa (Contas a Receber)</button>
+          </div>
+          <div id="fin-view-lista">
+            <div id="fc-body"></div>
+          </div>
+          <div id="fin-view-fluxo" style="display:none"></div>
+          <!-- Telas originais de Contas a Receber/Pagar — nunca mostradas ao usuário; ficam
+               escondidas só pra alimentar renderContasUnificado() com a lógica de filtro e
+               cálculo já testada (ver comentário grande acima da função). Não remover. -->
+          <div style="display:none" aria-hidden="true">
+            <div id="fin-cards"></div>
+            <input id="fin-fil-busca">
+            <select id="fin-fil-mes-venda"><option value=""></option></select>
+            <select id="fin-fil-vend"><option value=""></option></select>
+            <select id="fin-fil-status"><option value=""></option></select>
+            <input id="fin-fil-data-ini" type="date">
+            <input id="fin-fil-data-fim" type="date">
+            <div id="fin-body"></div>
+            <div id="cp-cards"></div>
+            <input id="cp-fil-busca">
+            <select id="cp-fil-empresa"><option value=""></option></select>
+            <select id="cp-fil-categoria"><option value=""></option></select>
+            <select id="cp-fil-status"><option value=""></option></select>
+            <input id="cp-fil-data-ini" type="date">
+            <input id="cp-fil-data-fim" type="date">
+            <div id="cp-body"></div>
+          </div>
         </div>
         <div id="fin-sec-dre" style="display:none">
           <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
@@ -2446,7 +2461,10 @@ function setupRealtimeSync(){
       const elV=document.getElementById('geral-tab-vendas');
       if(typeof renderDashVendas==='function'&&elV&&elV.style.display!=='none')renderDashVendas();
       const elFin=document.getElementById('sec-cat-FINANCEIRO');
-      if(typeof renderFinanceiro==='function'&&elFin&&elFin.style.display!=='none')renderFinanceiro();
+      if(elFin&&elFin.style.display!=='none'){
+        if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();
+        else if(typeof renderFinanceiro==='function')renderFinanceiro();
+      }
       // Checa se a meta da semana/mês/empresa acabou de ser batida com essa atualização de
       // pedidos — cobre tanto o login (primeira carga) quanto uma venda nova fechada com o
       // sistema já aberto por alguém da equipe.
@@ -2461,7 +2479,10 @@ function setupContasPagarSync(){
   window._fbWatchContasPagar(function(snapshot){
     contasPagar=snapshot.docs.map(d=>d.data());
     const elFin=document.getElementById('sec-cat-FINANCEIRO');
-    if(typeof renderContasPagar==='function'&&elFin&&elFin.style.display!=='none')renderContasPagar();
+    if(elFin&&elFin.style.display!=='none'){
+      if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();
+      else if(typeof renderContasPagar==='function')renderContasPagar();
+    }
   });
 }
 async function saveContaPagarFS(c){
@@ -2764,12 +2785,12 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
         }
       },120);
     }
-    if(isFin&&typeof renderFinanceiro==='function')setTimeout(()=>{
+    if(isFin&&typeof fcAplicarFiltros==='function')setTimeout(()=>{
       document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
       document.getElementById('fin-main-tabs')?.querySelector('.fin-main-tab')?.classList.add('active');
-      const sr=document.getElementById('fin-sec-receber'),sp=document.getElementById('fin-sec-pagar');
-      if(sr)sr.style.display='';if(sp)sp.style.display='none';
-      renderFinanceiro();
+      const sc=document.getElementById('fin-sec-contas'),sd=document.getElementById('fin-sec-dre');
+      if(sc)sc.style.display='';if(sd)sd.style.display='none';
+      fcAplicarFiltros();
     },120);
     // Ferramentas Comerciais é aberto pra qualquer usuário logado — sempre reabre na
     // ferramenta padrão (Tarefas) ao entrar na seção, igual comportamento antigo de
@@ -6357,7 +6378,7 @@ async function corrigirLiquidoUm(pedidoId){
   _invalidateDashCache();
   auditarLiquidosMes();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
-  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else if(typeof renderFinanceiro==='function')renderFinanceiro();
 }
 async function corrigirLiquidosMes(){
   const {y,m}=dashMesAtual;
@@ -6386,7 +6407,7 @@ async function corrigirLiquidosMes(){
   _invalidateDashCache();
   auditarLiquidosMes();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
-  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else if(typeof renderFinanceiro==='function')renderFinanceiro();
 }
 
 function parseDataBR(s){
@@ -7428,11 +7449,18 @@ function getPlanoContasDespesas(){
     {id:'emprestimos',nome:'Empréstimos e Financiamentos',grupo:'FINANCEIRA'},
     {id:'juros_tarifas',nome:'Juros e Tarifas Bancárias',grupo:'FINANCEIRA'},
     {id:'impostos',nome:'Impostos e Parcelamentos Fiscais',grupo:'IMPOSTOS'},
+    // IMOBILIZADO (2026-07-22, a pedido do usuário) — bem financiado (máquina, veículo,
+    // imóvel/terreno, leasing/arrendamento) até então entrava misturado em "Empréstimos e
+    // Financiamentos" (FINANCEIRA) ou ficava em Não Classificado quando o texto não batia com
+    // nenhuma regra. Agora tem categoria e grupo PRÓPRIOS, linha separada no DRE (ver
+    // calcularDRE()/renderDRE()) — reverte a decisão anterior de 2026-07-21 de deixar tudo
+    // dentro de despesa financeira normal.
+    {id:'imobilizado',nome:'Imobilizado (Bem Financiado)',grupo:'IMOBILIZADO'},
     {id:'nao_classificado',nome:'Não Classificado',grupo:'NAO_CLASSIFICADO'}
   ];
 }
 function getCategoriaDespesa(id){return getPlanoContasDespesas().find(c=>c.id===id)||null;}
-const GRUPO_DRE_LABEL={CMV:'Custo de Produção (CMV)',OPERACIONAL:'Despesas Operacionais',FINANCEIRA:'Despesas Financeiras',IMPOSTOS:'Impostos',NAO_CLASSIFICADO:'Não Classificado'};
+const GRUPO_DRE_LABEL={CMV:'Custo de Produção (CMV)',OPERACIONAL:'Despesas Operacionais',FINANCEIRA:'Despesas Financeiras',IMPOSTOS:'Impostos',IMOBILIZADO:'Imobilizado (Bem Financiado)',NAO_CLASSIFICADO:'Não Classificado'};
 function _normSemAcento(s){
   return (s||'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
 }
@@ -7443,7 +7471,13 @@ function _normSemAcento(s){
 // majoritário dos fornecedores desse PDF — alumínio, acrílico, aço, tintas, ferragens), mas
 // sempre revisável antes de confirmar.
 const _REGRAS_CLASSIFICACAO=[
-  {cat:'impostos',re:/\bINSS\b|\bFGTS\b|\bISS\b|\bCBRC\b|\bREFIS\b|RECEITA FEDERAL|PARCELAMENTO FEDERAL|SECRETARIA DE ESTADO DA FAZENDA|MINISTERIO DA FAZENDA|PREFEITURA|\bFGRPS\b/},
+  {cat:'impostos',re:/\bINSS\b|\bFGTS\b|\bISS\b|\bCBRC\b|\bREFIS\b|RECEITA FEDERAL|PARCELAMENTO FEDERAL|SECRETARIA DE ESTADO DA FAZENDA|MINISTERIO DA FAZENDA|PREFEITURA|\bFGRPS\b|\bICMS\b|\bPIS\b|\bCOFINS\b|SIMPLES NACIONAL|\bDAS\b|\bDARF\b|\bIRPJ\b|\bCSLL\b/},
+  // IMOBILIZADO (2026-07-22) — checado ANTES da regra genérica de Empréstimos/Financiamento
+  // (ordem importa, primeira regra que bater vence): financiamento/leasing especificamente de
+  // um BEM (máquina, veículo, imóvel, equipamento, terreno) vira Imobilizado; empréstimo
+  // genérico de capital de giro (PRONAMPE, consórcio sem bem associado) continua em
+  // Empréstimos e Financiamentos normal, mais abaixo.
+  {cat:'imobilizado',re:/LEASING|ARRENDAMENTO MERCANTIL|\bCDC\b|FINANCIAMENTO DE (MAQUINA|VEICULO|IMOVEL|EQUIPAMENTO|TERRENO|IMOBILIZADO)|FINANCIAMENTO IMOBILIARIO|AQUISI[CÇ][AÃ]O DE (MAQUINA|VEICULO|EQUIPAMENTO|IMOVEL|TERRENO)|COMPRA DE (IMOVEL|TERRENO|MAQUINA|VEICULO|EQUIPAMENTO)/},
   {cat:'emprestimos',re:/EMPRESTIM|FINANCIAMENT|PRONAMPE|GIRO PRONAMPE|CONSORCIO/},
   {cat:'juros_tarifas',re:/\bJUROS\b|TARIFA|RENEGOCIA|PARCELAMENTO CART|CONTA GARANTIDA/},
   {cat:'folha_beneficios',re:/SEGURO DE VIDA|UNIMED|CONVENIO|ODONTOL|\bCURSO\b|TREINAMENTO|ADIANTAMENTO COLABORADORES|MEDICINA OCUPACIONAL|MEDICINA DO TRABALHO|ASSESSORIA DOS LIDERES|BUSCA EPI|\bEPIS?\b|CALLFARMA|NISSEI|DENTAL/},
@@ -7458,6 +7492,30 @@ function _classificarDespesaAuto(despesaRaw,fornecedor){
   for(const r of _REGRAS_CLASSIFICACAO){if(r.re.test(txt))return r.cat;}
   if(/PAGAMENTO.*ORDEM DE COMPRA|DESPESA NOTA FISCAL/i.test(_normSemAcento(despesaRaw)))return'materia_prima';
   return'nao_classificado';
+}
+// Reclassificação em massa (2026-07-22, a pedido do usuário) — "Não Classificado" acumula
+// lançamentos que a importação de PDF não conseguiu identificar na hora (ou que foram
+// importados ANTES de uma regra existir, ex.: tudo que hoje cairia em IMOBILIZADO mas foi
+// importado antes dessa categoria existir). Em vez de reclassificar um por um na tabela,
+// esse botão reaplica _classificarDespesaAuto() (as regras MAIS ATUAIS) em cada lançamento
+// que hoje está sem categoria reconhecida, e só grava o que realmente mudou.
+async function reclassificarNaoClassificados(){
+  if(!_isFinanceiroUser()){toast('Apenas Financeiro/Admin podem reclassificar despesas','terr');return;}
+  const alvo=contasPagar.filter(c=>!getCategoriaDespesa(c.categoria)||c.categoria==='nao_classificado');
+  if(!alvo.length){toast('Nenhum lançamento em "Não Classificado" no momento 🎉','tok');return;}
+  if(!confirm(`Reclassificar automaticamente ${alvo.length} lançamento(s) de "Não Classificado", aplicando as regras de palavra-chave mais atuais (fornecedor + descrição da despesa)?\n\nO que não bater com nenhuma regra continua Não Classificado, pra revisão manual.`))return;
+  let mudou=0;
+  for(const c of alvo){
+    const nova=_classificarDespesaAuto(c.despesaDesc,c.fornecedor);
+    if(nova&&nova!=='nao_classificado'&&nova!==c.categoria){
+      c.categoria=nova;
+      await saveContaPagarFS(c);
+      mudou++;
+    }
+  }
+  toast(mudou?`✅ ${mudou} de ${alvo.length} lançamento(s) reclassificado(s) automaticamente.`:'Nenhuma regra bateu com os lançamentos pendentes — revise manualmente na coluna Categoria.','tok');
+  if(typeof renderContasUnificado==='function')renderContasUnificado();
+  else if(typeof renderContasPagar==='function')renderContasPagar();
 }
 // Empresa a partir do texto bruto da coluna "Para" do PDF (ou já normalizado no import).
 function _empresaFromParaTexto(txt){
@@ -7491,6 +7549,12 @@ function novaContaPagar(dados){
     criadoPor:usuarioLogado?.nomeExibicao||''
   };
 }
+// Valor efetivamente devido/pago de um lançamento (2026-07-22) — antes só c.valor (base) era
+// somado em qualquer lugar (cards, tabela, DRE), ignorando juros/multa/desconto que já eram
+// capturados na importação do PDF mas nunca usados em nenhum total. Um lançamento pago com
+// atraso (juros/multa reais) fazia o DRE e os cards SUBESTIMAREM a despesa de verdade — bug
+// silencioso, sem nenhum aviso na tela. Agora todo total usa esta função, nunca c.valor sozinho.
+function _cpValorAjustado(c){return (c.valor||0)+(c.juros||0)+(c.multa||0)-(c.desconto||0);}
 function _cpAtrasada(c){
   if(c.status==='pago')return false;
   const v=new Date((c.vencimento||'')+'T23:59:59');
@@ -7515,15 +7579,17 @@ async function excluirContaPagar(id){
 }
 
 // ── UI: alterna entre Contas a Receber / Contas a Pagar dentro de Financeiro ──────────────
+// (2026-07-22) fin-sec-receber e fin-sec-pagar deixaram de ser abas próprias — viraram uma
+// lista só (fin-sec-contas, ver renderContasUnificado()). As duas continuam existindo no
+// DOM, sempre escondidas, só como fonte de dados pra lista unificada (ver comentário grande
+// acima de renderContasUnificado()).
 function finMainSetTab(tab,btn){
   document.querySelectorAll('.fin-main-tab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  const sr=document.getElementById('fin-sec-receber'),sp=document.getElementById('fin-sec-pagar'),sd=document.getElementById('fin-sec-dre');
-  if(sr)sr.style.display=tab==='receber'?'':'none';
-  if(sp)sp.style.display=tab==='pagar'?'':'none';
+  const sc=document.getElementById('fin-sec-contas'),sd=document.getElementById('fin-sec-dre');
+  if(sc)sc.style.display=tab==='contas'?'':'none';
   if(sd)sd.style.display=tab==='dre'?'':'none';
-  if(tab==='receber'){if(typeof renderFinanceiro==='function')renderFinanceiro();}
-  else if(tab==='pagar'){if(typeof renderContasPagar==='function')renderContasPagar();}
+  if(tab==='contas'){if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();}
   else{if(typeof renderDRE==='function')renderDRE();}
 }
 let _cpItemsAtuais=[];
@@ -7546,6 +7612,26 @@ function _cpFilteredItems(){
   items.sort((a,b)=>(a.vencimento||'').localeCompare(b.vencimento||''));
   return items;
 }
+// Mesmo filtro de _cpFilteredItems(), mas ignorando o dropdown de Status — usado pelos
+// cards resumo da lista unificada, no mesmo padrão já usado em Contas a Receber
+// (_finItemsTodosStatus()): sem isso, filtrar Status="Pendente" na tela zeraria os cards de
+// "Pago"/"Em atraso", que passariam a mostrar R$0,00 mesmo tendo lançamentos de verdade.
+function _cpItemsTodosStatus(){
+  let items=contasPagar.map(c=>({...c,statusCalc:c.status==='pago'?'pago':(_cpAtrasada(c)?'atrasado':'pendente')}));
+  const q=(document.getElementById('cp-fil-busca')?.value||'').toLowerCase().trim();
+  const femp=document.getElementById('cp-fil-empresa')?.value||'';
+  const fcat=document.getElementById('cp-fil-categoria')?.value||'';
+  const di=document.getElementById('cp-fil-data-ini')?.value||'';
+  const df=document.getElementById('cp-fil-data-fim')?.value||'';
+  items=items.filter(c=>
+    (!q||(c.fornecedor||'').toLowerCase().includes(q)||(c.despesaDesc||'').toLowerCase().includes(q))
+    &&(!femp||c.empresa===femp)
+    &&(!fcat||c.categoria===fcat)
+    &&(!di||(c.vencimento&&c.vencimento>=di))
+    &&(!df||(c.vencimento&&c.vencimento<=df))
+  );
+  return items;
+}
 function renderContasPagar(){
   const body=document.getElementById('cp-body');if(!body)return;
   if(!_isFinanceiroUser()){
@@ -7561,9 +7647,9 @@ function renderContasPagar(){
   const items=_cpFilteredItems();
   const cardsEl=document.getElementById('cp-cards');
   if(cardsEl){
-    const totPendente=items.filter(c=>c.statusCalc!=='pago').reduce((s,c)=>s+c.valor,0);
-    const totAtrasado=items.filter(c=>c.statusCalc==='atrasado').reduce((s,c)=>s+c.valor,0);
-    const totPago=items.filter(c=>c.statusCalc==='pago').reduce((s,c)=>s+c.valor,0);
+    const totPendente=items.filter(c=>c.statusCalc!=='pago').reduce((s,c)=>s+_cpValorAjustado(c),0);
+    const totAtrasado=items.filter(c=>c.statusCalc==='atrasado').reduce((s,c)=>s+_cpValorAjustado(c),0);
+    const totPago=items.filter(c=>c.statusCalc==='pago').reduce((s,c)=>s+_cpValorAjustado(c),0);
     const cards=[
       {label:'A pagar',val:totPendente,color:'#dbeafe',text:'#1e40af'},
       {label:'Em atraso',val:totAtrasado,color:'#fee2e2',text:'#b91c1c'},
@@ -7596,7 +7682,7 @@ function renderContasPagar(){
           </select>
         </td>
         <td>${c.parcela||'—'}</td>
-        <td style="font-weight:700;white-space:nowrap">${fmtR(c.valor)}</td>
+        <td style="font-weight:700;white-space:nowrap"${(c.juros||c.multa||c.desconto)?` title="Base: ${fmtR(c.valor)}${c.juros?' + juros '+fmtR(c.juros):''}${c.multa?' + multa '+fmtR(c.multa):''}${c.desconto?' - desconto '+fmtR(c.desconto):''}"`:''}>${fmtR(_cpValorAjustado(c))}${(c.juros||c.multa||c.desconto)?' <span style="color:#d97706;font-size:.62rem;font-weight:700" title="Valor ajustado por juros/multa/desconto">⚠️</span>':''}</td>
         <td>${statusBadge(c)}</td>
         <td style="white-space:nowrap">
           ${c.statusCalc==='pago'
@@ -8017,19 +8103,24 @@ function calcularDRE(y,m,empresaFiltro){
   });
   // cat==null cobre tanto 'nao_classificado' quanto qualquer categoria antiga/inválida que
   // não exista mais no plano de contas — nunca deve "sumir" do DRE sem aparecer em algum
-  // grupo, então cai em NAO_CLASSIFICADO por segurança.
-  const somaGrupo=grupo=>cpMes.filter(c=>{const cat=getCategoriaDespesa(c.categoria);return cat?cat.grupo===grupo:grupo==='NAO_CLASSIFICADO';}).reduce((s,c)=>s+c.valor,0);
+  // grupo, então cai em NAO_CLASSIFICADO por segurança. Usa _cpValorAjustado (2026-07-22) —
+  // antes somava só c.valor (base), ignorando juros/multa/desconto de lançamentos pagos com
+  // atraso, o que subestimava a despesa real do mês.
+  const somaGrupo=grupo=>cpMes.filter(c=>{const cat=getCategoriaDespesa(c.categoria);return cat?cat.grupo===grupo:grupo==='NAO_CLASSIFICADO';}).reduce((s,c)=>s+_cpValorAjustado(c),0);
   const cmvExterno=somaGrupo('CMV');
   const despOperacionais=somaGrupo('OPERACIONAL');
   const despFinanceiras=somaGrupo('FINANCEIRA');
   const impostos=somaGrupo('IMPOSTOS');
+  // IMOBILIZADO (2026-07-22) — bem financiado (máquina/veículo/imóvel/leasing), linha própria
+  // no DRE, separada de Despesas Financeiras (decisão nova do usuário, reverte a de 2026-07-21).
+  const imobilizado=somaGrupo('IMOBILIZADO');
   const naoClassificado=somaGrupo('NAO_CLASSIFICADO');
 
   const custoProducaoTotal=custoProducaoInterno+cmvExterno;
   const lucroBruto=receitaBruta-custoProducaoTotal;
   const resultadoOperacional=lucroBruto-totalComissoes-despOperacionais;
-  const lucroLiquido=resultadoOperacional-despFinanceiras-impostos-naoClassificado;
-  const foraPlanejadoTotal=cpMes.filter(c=>c.origem==='fora_planejado').reduce((s,c)=>s+c.valor,0);
+  const lucroLiquido=resultadoOperacional-despFinanceiras-impostos-imobilizado-naoClassificado;
+  const foraPlanejadoTotal=cpMes.filter(c=>c.origem==='fora_planejado').reduce((s,c)=>s+_cpValorAjustado(c),0);
   const qtdNaoClassificado=cpMes.filter(c=>c.categoria==='nao_classificado').length;
 
   // Detalhe por categoria (pra abrir o "porquê" de cada grupo na tela)
@@ -8040,14 +8131,14 @@ function calcularDRE(y,m,empresaFiltro){
     const grupo=cat?cat.grupo:'NAO_CLASSIFICADO';
     const key=grupo+'::'+nome;
     if(!porCategoria[key])porCategoria[key]={grupo,nome,total:0};
-    porCategoria[key].total+=c.valor;
+    porCategoria[key].total+=_cpValorAjustado(c);
   });
 
   return{y,m,empresaFiltro,incluirReceita,
     receitaBruta,custoProducaoInterno,cmvExterno,custoProducaoTotal,lucroBruto,
     comissaoVendedores,comissaoGerente,totalComissoes,
     despOperacionais,resultadoOperacional,
-    despFinanceiras,impostos,naoClassificado,lucroLiquido,
+    despFinanceiras,impostos,imobilizado,naoClassificado,lucroLiquido,
     foraPlanejadoTotal,qtdNaoClassificado,
     porCategoria:Object.values(porCategoria).sort((a,b)=>b.total-a.total)
   };
@@ -8115,6 +8206,8 @@ function renderDRE(){
           ${catBlock('FINANCEIRA')}
           ${linha('(–) Impostos',-d.impostos,{bold:true,cor:'#dc2626'})}
           ${catBlock('IMPOSTOS')}
+          ${d.imobilizado>0.005?linha('(–) Imobilizado (Bem Financiado)',-d.imobilizado,{bold:true,cor:'#dc2626'}):''}
+          ${d.imobilizado>0.005?catBlock('IMOBILIZADO'):''}
           ${d.naoClassificado>0.005?linha('(–) Não Classificado',-d.naoClassificado,{bold:true,cor:'#dc2626'}):''}
           ${linha('= LUCRO LÍQUIDO',d.lucroLiquido,{bold:true,cor:pctCor(d.lucroLiquido),pct:'margem '+pctOf(d.lucroLiquido,d.receitaBruta)})}
         </tbody>
@@ -8142,6 +8235,10 @@ function _dreLinhasExport(d){
   d.porCategoria.filter(c=>c.grupo==='FINANCEIRA').forEach(c=>linhas.push(L(c.nome,-c.total,{indent:true})));
   linhas.push(L('(–) Impostos',-d.impostos,{bold:true}));
   d.porCategoria.filter(c=>c.grupo==='IMPOSTOS').forEach(c=>linhas.push(L(c.nome,-c.total,{indent:true})));
+  if(d.imobilizado>0.005){
+    linhas.push(L('(–) Imobilizado (Bem Financiado)',-d.imobilizado,{bold:true}));
+    d.porCategoria.filter(c=>c.grupo==='IMOBILIZADO').forEach(c=>linhas.push(L(c.nome,-c.total,{indent:true})));
+  }
   if(d.naoClassificado>0.005)linhas.push(L('(–) Não Classificado',-d.naoClassificado,{bold:true}));
   linhas.push(L('= LUCRO LÍQUIDO',d.lucroLiquido,{bold:true}));
   return linhas;
@@ -8369,7 +8466,7 @@ function salvarNaoRecebido(){
   closeM('mo-motivo-nr');
   toast('Marcado como não recebido — adiado para '+novaDataBR,'tok');
   const row=document.querySelector(`tr[data-ck="${CSS.escape(_mnrConfKey)}"]`);if(row)row.remove();
-  renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else renderFinanceiro();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
 }
 function confirmarRecebimento(confKey,dataStr){
@@ -8377,7 +8474,7 @@ function confirmarRecebimento(confKey,dataStr){
   // Limpa qualquer motivo de atraso registrado antes — o pagamento chegou.
   setPagConf(confKey,{status:'confirmado',novaData:dataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:''});
   toast('Recebimento confirmado! Comissão liberada na quinzena. ✅','tok');
-  renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else renderFinanceiro();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
 }
@@ -8470,7 +8567,7 @@ function salvarConfirmarRecebimento(){
   closeM('mo-confirmar-receb');
   toast(saldoDevedor>0.005?`Recebimento parcial confirmado (${fmtR(valorBrutoFinal)}) — saldo de ${fmtR(saldoDevedor)} lançado pra ${saldoDataBR} ✅`:(_cfrNegociado?`Recebimento confirmado com valor negociado (${fmtR(valorBrutoFinal)})! Comissão ajustada e liberada. ✅`:'Recebimento confirmado! Comissão liberada na quinzena. ✅'),'tok');
   const row=document.querySelector(`tr[data-ck="${CSS.escape(_cfrConfKey)}"]`);if(row)row.remove();
-  renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else renderFinanceiro();
   if(typeof renderDashComissoes==='function')renderDashComissoes();
   if(typeof renderDashCards==='function')renderDashCards();
 }
@@ -8653,6 +8750,236 @@ function renderFinanceiro(){
   // sem isso, mudar o filtro de vendedor/período na Lista não atualizaria o Fluxo até
   // o usuário clicar na aba de novo, parecendo dado desatualizado.
   if(finView==='fluxo')renderFinFluxo();
+}
+
+// ════════════════════════════════════════════════════════════════════════════════════
+// LISTA UNIFICADA — Contas a Pagar + Contas a Receber (2026-07-22, a pedido do usuário:
+// "vamos deixar tudo numa coisa so... clicou no contas a pagar vai aparecer todas as
+// contas a pagar..., e receber mesma coisa, se tirar filtro aparece tudo junto organizado
+// por ordem crescente por datas... poe filtro tbm pra alterar a ordem pra decrescente").
+// Substitui as DUAS abas antigas (fin-sec-receber/fin-sec-pagar) por UMA só (fin-sec-
+// contas), com um filtro de Tipo (Ambos/Receber/Pagar) e um toggle de ordenação por data
+// (crescente por padrão, com opção decrescente).
+//
+// Decisão de implementação: em vez de reescrever a lógica de filtro/soma que já existe e
+// já foi testada (_finFilteredItems()/getContasReceber() pra Receber, _cpFilteredItems()
+// pra Pagar), essa lista unificada REAPROVEITA as duas telas originais por baixo — elas
+// continuam existindo escondidas no DOM (fin-body/cp-body, nunca mostradas ao usuário) só
+// pra popular _finItemsAtuais/_cpItemsAtuais, que são então normalizados aqui num formato
+// comum, ordenados e desenhados na tabela nova (fc-body). Os inputs de filtro originais
+// (fin-fil-*/cp-fil-*) também continuam escondidos no DOM — a barra de filtro NOVA e
+// visível (fc-fil-*) só espelha os valores pra eles antes de cada render (fcAplicarFiltros())
+// e nunca duplica a lógica de filtragem em si. Isso garante que a lista unificada nunca
+// desalinha do que já era validado (ex.: cards que ignoram Status, regime de datas etc.).
+// ════════════════════════════════════════════════════════════════════════════════════
+let _fcOrdem='asc';
+// Filtro de Data padrão = mês vigente (2026-07-22, a pedido do usuário: "já venha filtrado
+// o mês vigente... depois sucessivamente" — ou seja, sempre o mês em que o sistema é aberto,
+// sem precisar mexer em nada). Só é aplicado UMA vez por carregamento de página (flag abaixo)
+// — se o usuário limpar as datas pra ver o ano todo, isso não é desfeito sozinho depois; só
+// volta a filtrar pelo mês vigente numa próxima vez que a página for recarregada (e aí já vai
+// ser o mês vigente daquele momento, atualizando sozinho mês a mês).
+let _fcMesVigenteAplicado=false;
+function _fcAplicarFiltroMesVigentePadrao(){
+  if(_fcMesVigenteAplicado)return;
+  _fcMesVigenteAplicado=true;
+  const di=document.getElementById('fc-fil-data-ini'),df=document.getElementById('fc-fil-data-fim');
+  if(!di||!df)return;
+  const hoje=new Date(),y=hoje.getFullYear(),m=hoje.getMonth(),pad=n=>String(n).padStart(2,'0');
+  di.value=`${y}-${pad(m+1)}-01`;
+  df.value=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
+}
+function fcSetOrdem(v){_fcOrdem=v;renderContasUnificado();}
+function fcSetTipo(v){
+  const fluxoBtn=document.getElementById('fc-tab-fluxo');
+  if(fluxoBtn)fluxoBtn.style.display=v==='pagar'?'none':'';
+  if(v==='pagar'&&finView==='fluxo'){
+    finView='lista';
+    document.querySelectorAll('.fin-view-tab').forEach(b=>b.classList.remove('active'));
+    const listaBtn=document.getElementById('fc-tab-lista');if(listaBtn)listaBtn.classList.add('active');
+    const elLista=document.getElementById('fin-view-lista'),elFluxo=document.getElementById('fin-view-fluxo');
+    if(elLista)elLista.style.display='';
+    if(elFluxo)elFluxo.style.display='none';
+  }
+  fcAplicarFiltros();
+}
+// Espelha cada filtro visível (fc-fil-*) pro input escondido correspondente da tela
+// original (fin-fil-*/cp-fil-*) — cada filtro só afeta o TIPO ao qual ele já pertencia
+// antes (ex.: Vendedor só filtra Receber, Categoria só filtra Pagar), exatamente como
+// pedido: "clicou no contas a pagar vai aparecer todas as contas a pagar" com seus
+// próprios filtros, e "receber mesma coisa" com os dela.
+function fcAplicarFiltros(){
+  _fcAplicarFiltroMesVigentePadrao();
+  const busca=document.getElementById('fc-fil-busca')?.value||'';
+  const finBusca=document.getElementById('fin-fil-busca');if(finBusca)finBusca.value=busca;
+  const cpBusca=document.getElementById('cp-fil-busca');if(cpBusca)cpBusca.value=busca;
+
+  const statusV=document.getElementById('fc-fil-status')?.value||'';
+  const finStatus=document.getElementById('fin-fil-status');if(finStatus)finStatus.value=statusV==='concluido'?'confirmado':statusV;
+  const cpStatus=document.getElementById('cp-fil-status');if(cpStatus)cpStatus.value=statusV==='concluido'?'pago':statusV;
+
+  const di=document.getElementById('fc-fil-data-ini')?.value||'';
+  const df=document.getElementById('fc-fil-data-fim')?.value||'';
+  const finDi=document.getElementById('fin-fil-data-ini');if(finDi)finDi.value=di;
+  const cpDi=document.getElementById('cp-fil-data-ini');if(cpDi)cpDi.value=di;
+  const finDf=document.getElementById('fin-fil-data-fim');if(finDf)finDf.value=df;
+  const cpDf=document.getElementById('cp-fil-data-fim');if(cpDf)cpDf.value=df;
+
+  const mv=document.getElementById('fc-fil-mes-venda')?.value||'';
+  const finMv=document.getElementById('fin-fil-mes-venda');if(finMv)finMv.value=mv;
+
+  const vend=document.getElementById('fc-fil-vend')?.value||'';
+  const finVend=document.getElementById('fin-fil-vend');if(finVend)finVend.value=vend;
+
+  const emp=document.getElementById('fc-fil-empresa')?.value||'';
+  const cpEmp=document.getElementById('cp-fil-empresa');if(cpEmp)cpEmp.value=emp;
+
+  const cat=document.getElementById('fc-fil-categoria')?.value||'';
+  const cpCat=document.getElementById('cp-fil-categoria');if(cpCat)cpCat.value=cat;
+
+  renderContasUnificado();
+}
+function renderContasUnificado(){
+  const body=document.getElementById('fc-body');if(!body)return;
+  if(!_isFinanceiroUser()){
+    const cardsEl=document.getElementById('fc-cards');if(cardsEl)cardsEl.innerHTML='';
+    body.innerHTML='<div style="padding:24px 4px;color:#dc2626;font-weight:700;font-size:.85rem">🔒 ACESSO NÃO PERMITIDO — apenas Financeiro ou Administrador podem ver Contas a Pagar/Receber.</div>';
+    return;
+  }
+  // Popula os dropdowns auxiliares (Vendedor/Empresa/Categoria) tanto no select visível
+  // novo quanto no escondido antigo (que é o que as funções de filtro originais leem).
+  const selVendHid=document.getElementById('fin-fil-vend');
+  const selVendVis=document.getElementById('fc-fil-vend');
+  if(selVendHid&&selVendVis&&selVendVis.dataset.built!=='1'){
+    const vends=[...new Set(getContasReceber().map(i=>(i.nomeVend||'').trim()).filter(Boolean))].sort();
+    const opts='<option value="">Todos os vendedores</option>'+vends.map(v=>`<option>${v}</option>`).join('');
+    selVendHid.innerHTML=opts;selVendVis.innerHTML=opts;selVendVis.dataset.built='1';
+  }
+  const selEmpHid=document.getElementById('cp-fil-empresa');
+  const selEmpVis=document.getElementById('fc-fil-empresa');
+  if(selEmpHid&&selEmpVis&&selEmpVis.options.length<=1){
+    const opts='<option value="">🏢 Todas as empresas</option>'+EMPRESAS_CONTAS_PAGAR.map(e=>`<option value="${e.id}">${e.label}</option>`).join('');
+    selEmpHid.innerHTML=opts;selEmpVis.innerHTML=opts;
+  }
+  const selCatHid=document.getElementById('cp-fil-categoria');
+  const selCatVis=document.getElementById('fc-fil-categoria');
+  if(selCatHid&&selCatVis&&selCatVis.options.length<=1){
+    const opts='<option value="">Todas as categorias</option>'+getPlanoContasDespesas().map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+    selCatHid.innerHTML=opts;selCatVis.innerHTML=opts;
+  }
+
+  const tipo=document.getElementById('fc-fil-tipo')?.value||'';
+
+  // Chama as duas telas originais inteiras por baixo dos panos — populam
+  // _finItemsAtuais/_cpItemsAtuais (e os cards/corpo escondidos, sem efeito visual) usando
+  // exatamente a mesma lógica de sempre. Isso é o que garante zero divergência.
+  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  if(typeof renderContasPagar==='function')renderContasPagar();
+
+  const receberItems=tipo==='pagar'?[]:(_finItemsAtuais||[]);
+  const pagarItems=tipo==='receber'?[]:(_cpItemsAtuais||[]);
+
+  // Cards resumo — ignoram Status (mesmo padrão já usado nas duas telas originais),
+  // respeitam os outros filtros ativos (busca/mês/vendedor/empresa/categoria/período/tipo).
+  const cardsEl=document.getElementById('fc-cards');
+  if(cardsEl){
+    const cards=[];
+    if(tipo!=='pagar'){
+      const rc=_finItemsTodosStatus();
+      const totPend=rc.filter(i=>i.statusCalc!=='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+      const totAtraso=rc.filter(i=>i.statusCalc==='atrasado').reduce((s,i)=>s+i.valorBruto,0);
+      const totConf=rc.filter(i=>i.statusCalc==='confirmado').reduce((s,i)=>s+i.valorBruto,0);
+      cards.push({label:'A Receber',val:totPend,color:'#dbeafe',text:'#1e40af'});
+      cards.push({label:'Recebido',val:totConf,color:'#dcfce7',text:'#16a34a'});
+      if(totAtraso>0.005)cards.push({label:'Receber em atraso',val:totAtraso,color:'#fee2e2',text:'#b91c1c'});
+    }
+    if(tipo!=='receber'){
+      const cp=_cpItemsTodosStatus();
+      const totPend=cp.filter(c=>c.statusCalc!=='pago').reduce((s,c)=>s+_cpValorAjustado(c),0);
+      const totAtraso=cp.filter(c=>c.statusCalc==='atrasado').reduce((s,c)=>s+_cpValorAjustado(c),0);
+      const totPago=cp.filter(c=>c.statusCalc==='pago').reduce((s,c)=>s+_cpValorAjustado(c),0);
+      cards.push({label:'A Pagar',val:totPend,color:'#ffedd5',text:'#c2410c'});
+      cards.push({label:'Pago',val:totPago,color:'#f1f5f9',text:'#475569'});
+      if(totAtraso>0.005)cards.push({label:'Pagar em atraso',val:totAtraso,color:'#fee2e2',text:'#b91c1c'});
+    }
+    cardsEl.style.gridTemplateColumns=`repeat(${cards.length||1},1fr)`;
+    cardsEl.innerHTML=cards.map(c=>`<div style="background:${c.color};border-radius:10px;padding:12px"><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:${c.text}">${c.label}</div><div style="font-size:1.1rem;font-weight:800;color:${c.text}">${fmtR(c.val)}</div></div>`).join('');
+  }
+
+  const isFinAdm=_isFinanceiroUser();
+  // Normaliza os dois tipos de item num formato comum, só pra desenhar a linha e ordenar
+  // por data — o dado/lógica de cada um continua vindo 100% das funções originais.
+  const linhasReceber=receberItems.map(i=>{
+    const iso=_finToIso(i.dataAtiva);
+    const ck=i.confKey.replace(/'/g,"\\'");
+    const da=(i.dataAtiva||'').replace(/'/g,"\\'");
+    const cl=(i.cliente||'').replace(/'/g,"\\'");
+    const statusLbl=i.statusCalc==='confirmado'?'<span class="dash-badge ok">✅ Recebido</span>':i.statusCalc==='atrasado'?'<span class="dash-badge no">⚠️ Atrasado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
+    const acoes=i.statusCalc==='confirmado'
+      ?(isFinAdm?`<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span> <button onclick="if(confirm('Reabrir este recebimento? Ele volta a aparecer como pendente e a comissão correspondente deixa de estar liberada.'))reabrirPag('${ck}')" style="background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 8px;font-size:.68rem;color:#64748b;cursor:pointer;margin-left:6px" title="Reabrir">↩ Reabrir</button>`:'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>')
+      :(isFinAdm?`<button class="dash-btn-conf" onclick="abrirConfirmarRecebimento('${ck}','${da}','${cl}',${i.valorBruto})">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valorBruto})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
+    return{
+      iso,dataLabel:i.dataAtiva||'—',
+      tipoBadge:'<span style="background:#dbeafe;color:#1e40af;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">📥 Receber</span>',
+      quem:i.cliente||'—',quemSub:pedidoDisplay(i.pedidoOs)||i.mesPedido||'',
+      detalhe:(i.nomeVend||'—')+(i.label?' · '+i.label:''),
+      valor:i.valorBruto||0,valorTitle:'',
+      statusLbl,
+      obsCol:i.diasAtraso>0?`<span style="font-weight:700;color:#dc2626">${i.diasAtraso} dia${i.diasAtraso>1?'s':''} de atraso</span>`:(i.motivoAtraso?`<span style="font-size:.74rem;color:#7c3aed;cursor:help" title="${i.motivoAtraso.replace(/"/g,'&quot;')}">${i.motivoAtraso}</span>`:'—'),
+      acoes
+    };
+  });
+  const linhasPagar=pagarItems.map(c=>{
+    const iso=c.vencimento||'';
+    const valorAdj=_cpValorAjustado(c);
+    const statusLbl=c.statusCalc==='pago'?'<span class="dash-badge ok">✅ Pago</span>':c.statusCalc==='atrasado'?'<span class="dash-badge no">⚠️ Atrasado</span>':'<span class="dash-badge pend">⏳ Pendente</span>';
+    let diasAtraso=0;
+    if(c.statusCalc==='atrasado'){
+      const v=new Date(iso+'T23:59:59');
+      if(!isNaN(v))diasAtraso=Math.max(0,Math.floor((new Date()-v)/86400000));
+    }
+    const acoes=`${c.statusCalc==='pago'
+        ?`<button onclick="marcarContaPagarPaga('${c.id}',false)" title="Reabrir" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">↩️</button>`
+        :`<button onclick="marcarContaPagarPaga('${c.id}',true)" title="Marcar como pago" style="background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">✅</button>`}
+      <button onclick="abrirEditarContaPagar('${c.id}')" title="Editar" style="background:#fff;color:#1d4ed8;border:1.5px solid #bfdbfe;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">✏️</button>
+      <button onclick="excluirContaPagar('${c.id}')" title="Excluir" style="background:#fff;color:#dc2626;border:1.5px solid #fecaca;border-radius:6px;padding:5px 9px;font-size:.7rem;font-weight:700;cursor:pointer">🗑️</button>`;
+    return{
+      iso,dataLabel:fmtD(c.vencimento)||'—',
+      tipoBadge:'<span style="background:#ffedd5;color:#c2410c;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">📤 Pagar</span>',
+      quem:c.fornecedor||'—',quemSub:_capLabel(c.empresa),
+      detalhe:`<select onchange="_cpMudarCategoria('${c.id}',this.value)" style="font-size:.72rem;padding:3px 6px;border-radius:6px;border:1px solid var(--border)">${getPlanoContasDespesas().map(k=>`<option value="${k.id}" ${k.id===c.categoria?'selected':''}>${k.nome}</option>`).join('')}</select>${c.despesaDesc?`<div title="${c.despesaDesc.replace(/"/g,'&quot;')}" style="font-size:.7rem;color:#94a3b8;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px">${c.despesaDesc}</div>`:''}`,
+      valor:valorAdj,
+      valorTitle:(c.juros||c.multa||c.desconto)?`Base: ${fmtR(c.valor)}${c.juros?' + juros '+fmtR(c.juros):''}${c.multa?' + multa '+fmtR(c.multa):''}${c.desconto?' - desconto '+fmtR(c.desconto):''}`:'',
+      statusLbl,
+      obsCol:diasAtraso>0?`<span style="font-weight:700;color:#dc2626">${diasAtraso} dia${diasAtraso>1?'s':''} de atraso</span>`:(c.origem==='fora_planejado'?'<span style="color:#ea580c" title="Despesa fora do planejado">📌 Fora do planejado</span>':'—'),
+      acoes
+    };
+  });
+
+  let linhas=[...linhasReceber,...linhasPagar];
+  linhas.sort((a,b)=>{
+    const A=a.iso||(_fcOrdem==='asc'?'9999-99-99':'0000-00-00');
+    const B=b.iso||(_fcOrdem==='asc'?'9999-99-99':'0000-00-00');
+    return _fcOrdem==='asc'?A.localeCompare(B):B.localeCompare(A);
+  });
+
+  if(!linhas.length){body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhum lançamento encontrado com esses filtros.</div>';return;}
+
+  body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
+    <thead><tr><th>Data</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Detalhe</th><th>Valor</th><th>Status</th><th>Atraso/Obs.</th><th>Ação</th></tr></thead>
+    <tbody>${linhas.map(l=>`
+      <tr>
+        <td style="white-space:nowrap;font-size:.78rem">${l.dataLabel}</td>
+        <td>${l.tipoBadge}</td>
+        <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${l.quem}${l.quemSub?`<div style="font-size:.68rem;color:#94a3b8;font-weight:500">${l.quemSub}</div>`:''}</td>
+        <td style="font-size:.78rem">${l.detalhe}</td>
+        <td style="font-weight:700;white-space:nowrap"${l.valorTitle?` title="${l.valorTitle.replace(/"/g,'&quot;')}"`:''}>${fmtR(l.valor)}${l.valorTitle?' <span style="color:#d97706;font-size:.62rem" title="Valor ajustado por juros/multa/desconto">⚠️</span>':''}</td>
+        <td>${l.statusLbl}</td>
+        <td style="font-size:.75rem;max-width:200px">${l.obsCol}</td>
+        <td style="white-space:nowrap">${l.acoes}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
 }
 
 // Fluxo de Caixa de Recebíveis (2026-07-15) — só recebíveis, sem contas a pagar (não
@@ -10364,7 +10691,7 @@ async function gerarPDFComissao(vend,quinzena){
 async function confPag(confKey,dataStr){
   setPagConf(confKey,{status:'confirmado',novaData:dataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:''});
   renderDashComissoes();renderDashCards();
-  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else if(typeof renderFinanceiro==='function')renderFinanceiro();
   toast('Pagamento confirmado! ✅','tok');
 }
 
@@ -10376,7 +10703,7 @@ async function reabrirPag(confKey){
   // passar por setPagConf), então precisa invalidar o cache na mão também.
   if(typeof _invalidateDashCache==='function')_invalidateDashCache();
   renderDashComissoes();renderDashCards();
-  if(typeof renderFinanceiro==='function')renderFinanceiro();
+  if(typeof fcAplicarFiltros==='function')fcAplicarFiltros();else if(typeof renderFinanceiro==='function')renderFinanceiro();
   toast('Pagamento reaberto','tok');
 }
 
