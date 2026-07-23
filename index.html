@@ -1008,6 +1008,23 @@ select.fc{cursor:pointer}
         </div>
       </div>
     </div>
+    <!-- PLANEJAMENTO — Finalização de Obra (2026-07-22). Lista TODAS as obras emitidas
+         (qualquer Tipo de pedido, não só Venda), sem filtro por vendedor — quem preenche
+         aqui é o gestor de planejamento ou equipe dele, precisa ver tudo. -->
+    <div id="sec-cat-PLANEJAMENTO" style="display:none">
+      <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+        🏗️ Selecione uma obra emitida para preencher a Finalização de Obra — Tipo de pedido, cliente, OS, cidade/UF e e-mails de contato já vêm automáticos da emissão. Depois de salvar, um resumo é enviado por e-mail aos contatos do pedido e para pedidos@granda.ind.br.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <input id="pl-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderPlanejamentoObras()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+        <select id="pl-fil-status" onchange="renderPlanejamentoObras()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+          <option value="">Todas as obras</option>
+          <option value="pendentes">⏳ Pendentes</option>
+          <option value="concluidas">✅ Concluídas</option>
+        </select>
+      </div>
+      <div id="pl-body"></div>
+    </div>
     <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
     <div id="sec-cat-generic" style="display:none">
       <div style="background:var(--surface);border:1.5px dashed var(--border);border-radius:14px;padding:48px;text-align:center;color:var(--ink4)">
@@ -1256,6 +1273,71 @@ select.fc{cursor:pointer}
   <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--border-lt);background:#fafbfc;flex-shrink:0">
     <button class="btn-mv" onclick="closeM('mo-ev')">Cancelar</button>
     <button class="btn-ed" onclick="salvarValoresPedido()">💾 Salvar Alterações</button>
+  </div>
+</div>
+</div>
+
+<!-- FINALIZAÇÃO DE OBRA (menu Planejamento, 2026-07-22) — quem preenche não é o
+     instalador, é o gestor de planejamento (Roberson) ou alguém da equipe dele, logado
+     com usuário próprio. Tipo de pedido/responsável pelo preenchimento/cliente/OS/
+     cidade-UF/e-mails vêm todos automáticos da emissão do pedido selecionado — só os
+     campos abaixo são preenchidos manualmente aqui. -->
+<div class="mov" id="mo-finalizacao" onclick="if(event.target.id==='mo-finalizacao')closeM('mo-finalizacao')">
+<div class="mvmod" style="width:560px;max-width:98vw;max-height:90vh;display:flex;flex-direction:column;padding:0">
+  <div style="padding:24px 24px 0;flex-shrink:0">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <h3 style="margin-bottom:0">🏗️ Finalização de Obra</h3>
+      <button onclick="closeM('mo-finalizacao')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div id="pl-info" style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+  </div>
+
+  <div style="overflow-y:auto;flex:1;padding:0 24px 18px">
+    <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📋 Dados do Pedido (automático)</div>
+    <div id="pl-dados-auto" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-bottom:16px;background:#fafbfc;border:1.5px solid var(--border-lt);border-radius:10px;padding:12px 14px;font-size:.8rem"></div>
+
+    <div style="font-size:.68rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✏️ Preenchimento</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Data de Finalização do Pedido</label>
+        <input id="pl-data-finalizacao" type="date" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Líder que Realizou o Trabalho</label>
+        <input id="pl-lider" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="grid-column:span 2">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nome de Quem Acompanhou (Cliente)</label>
+        <input id="pl-acompanhante" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="grid-column:span 2">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Documento de Finalização Assinado</label>
+        <div class="upload-zone" id="pl-doc-zone" onclick="document.getElementById('pl-doc-file').click()" style="padding:9px 11px;min-height:auto">
+          <span class="uz-icon" style="font-size:.95rem">📄</span>
+          <div class="uz-title" style="font-size:.8rem">Clique para selecionar a foto do documento assinado</div>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="pl-doc-file" style="display:none" onchange="uploadFinalizacaoDoc(this)">
+        </div>
+      </div>
+      <div style="grid-column:span 2">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Fotos de Finalização</label>
+        <div class="upload-zone" onclick="document.getElementById('pl-fotos-file').click()" style="padding:16px 11px">
+          <span class="uz-icon">📸</span>
+          <div class="uz-title">Clique para selecionar as fotos (pode escolher várias)</div>
+          <div class="uz-sub">As fotos são comprimidas com moderação antes do envio, sem perder muita qualidade — este é um registro importante</div>
+          <input type="file" accept="image/*" multiple id="pl-fotos-file" style="display:none" onchange="uploadFinalizacaoFotos(this)">
+        </div>
+        <div id="pl-fotos-status" style="display:none;font-size:.74rem;font-weight:600;color:var(--ink3);margin-top:6px"></div>
+        <div id="pl-fotos-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px"></div>
+      </div>
+      <div style="grid-column:span 2">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pendências e Observação</label>
+        <textarea id="pl-pendencias" class="no-upper" rows="3" placeholder="O que deu errado, ficou pendente ou precisa ser finalizado depois (opcional)..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.86rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--border-lt);background:#fafbfc;flex-shrink:0">
+    <button class="btn-mv" onclick="closeM('mo-finalizacao')">Cancelar</button>
+    <button class="btn-ed" onclick="salvarFinalizacaoObra()">💾 Salvar e Enviar E-mail</button>
   </div>
 </div>
 </div>
@@ -1718,6 +1800,7 @@ select.fc{cursor:pointer}
         <div class="fg"><label>Public Key</label><input class="fc no-upper" id="ck" placeholder="xxxxxxxxxxxxxxx"></div>
         <div class="fg"><label>E-mails internos Granda (separados por vírgula)</label><input class="fc no-upper" id="ce" placeholder="nome@empresa.com.br"></div>
         <div class="fg"><label>Template ID (notificação de tarefa pro responsável)</label><input class="fc no-upper" id="ctt" placeholder="template_xxxxxxx"></div>
+        <div class="fg"><label>Template ID (e-mail de finalização de obra)</label><input class="fc no-upper" id="ctf" placeholder="template_xxxxxxx"></div>
       </div>
       <!-- CLOUDINARY -->
       <div class="cfg-sec" id="cfg-sec-cloud" style="display:none">
@@ -2749,8 +2832,10 @@ function buildSidebarCats(){
   // configurável de cadastro como COMERCIAL/FINANCEIRO) — fica logo depois de Visão
   // Comercial, ver pedido do usuário de 2026-07-16 de tirar isso de dentro da tela Geral e
   // virar item próprio do sidebar. Sempre primeiro na lista.
-  const cats=['FERRAMENTAS',...(_isFinanceiroUser()?['FINANCEIRO']:[])];
-  const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
+  // PLANEJAMENTO (2026-07-22, novo menu de Finalização de Obra) — mesmo padrão de
+  // Financeiro: só aparece pra admin ou pra quem tem essa categoria de cadastro.
+  const cats=['FERRAMENTAS',...(_isFinanceiroUser()?['FINANCEIRO']:[]),...(_isPlanejamentoUser()?['PLANEJAMENTO']:[])];
+  const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐'};
   const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS'};
   container.innerHTML=cats.map(cat=>`
     <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${catLabelsSidebar[cat]||cat}" style="font-size:.7rem">
@@ -2775,6 +2860,11 @@ function setSection(sec){
     toast('ACESSO NÃO PERMITIDO','terr');
     return;
   }
+  // Mesma trava de acesso do Financeiro, agora pro novo menu Planejamento (2026-07-22).
+  if(sec==='cat:PLANEJAMENTO'&&!_isPlanejamentoUser()){
+    toast('ACESSO NÃO PERMITIDO','terr');
+    return;
+  }
   currentSection=sec;
   const isGeral=sec==='geral';
 
@@ -2792,17 +2882,19 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     const cat=sec.replace('cat:','');
     const isFerr=cat==='FERRAMENTAS';
     // Atualiza header da seção
-    const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'📅','PROJETOS':'📐'};
-    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais'};
-    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Planejamento estratégico','PROJETOS':'Gestão de projetos'};
+    const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐'};
+    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais','PLANEJAMENTO':'Planejamento'};
+    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Finalização de obra','PROJETOS':'Gestão de projetos'};
     const nameEl=document.getElementById('cat-hdr-name');
     const descEl=document.getElementById('cat-hdr-desc');
     if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+(catLabelsHeader[cat]||(cat.charAt(0)+cat.slice(1).toLowerCase()));
     if(descEl)descEl.textContent=catDescs[cat]||'';
     const isFin=cat==='FINANCEIRO';
+    const isPlan=cat==='PLANEJAMENTO';
     document.getElementById('sec-cat-FERRAMENTAS').style.display=isFerr?'':'none';
     document.getElementById('sec-cat-FINANCEIRO').style.display=isFin?'':'none';
-    document.getElementById('sec-cat-generic').style.display=(isFin||isFerr)?'none':'';
+    document.getElementById('sec-cat-PLANEJAMENTO').style.display=isPlan?'':'none';
+    document.getElementById('sec-cat-generic').style.display=(isFin||isFerr||isPlan)?'none':'';
     // "Novo Pedido" do cabeçalho de categoria não tem mais seção COMERCIAL pra aparecer
     // (virou aba dentro de Visão Comercial, que já tem seu próprio botão duplicado —
     // btn-novo-pedido-vendas) — fica sempre escondido aqui.
@@ -2819,6 +2911,8 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     // ferramenta padrão (Tarefas) ao entrar na seção, igual comportamento antigo de
     // geralTab('tarefas') antes de virar item próprio do sidebar (2026-07-16).
     if(isFerr){try{ferramentaTool('tarefas',document.getElementById('ferr-tool-tarefas'));}catch(e){console.error('Erro ao abrir Ferramentas Comerciais',e);}}
+    // Planejamento sempre reabre com a lista de obras atualizada (2026-07-22).
+    if(isPlan&&typeof renderPlanejamentoObras==='function')setTimeout(()=>{try{renderPlanejamentoObras();}catch(e){console.error('Erro ao abrir Planejamento',e);}},120);
   }
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
   if(isGeral){
@@ -5395,6 +5489,7 @@ function saveCfg(){
   cfg.k=document.getElementById('ck')?.value||cfg.k;
   cfg.e=document.getElementById('ce')?.value||cfg.e;
   cfg.tTarefa=document.getElementById('ctt')?.value||cfg.tTarefa;
+  cfg.tFinalizacao=document.getElementById('ctf')?.value||cfg.tFinalizacao;
   cfg.freteOrigem=document.getElementById('cfg-frete-origem')?.value||cfg.freteOrigem;
   cfg.cld_cloud=document.getElementById('cfg-cld')?.value||cfg.cld_cloud;
   cfg.cld_preset=document.getElementById('cfg-pre')?.value||cfg.cld_preset;
@@ -5713,6 +5808,7 @@ function openSettings(){
   document.getElementById('ck').value=c.k||'';
   document.getElementById('ce').value=c.e||'';
   const ctt=document.getElementById('ctt');if(ctt)ctt.value=c.tTarefa||'';
+  const ctf=document.getElementById('ctf');if(ctf)ctf.value=c.tFinalizacao||'';
   const cfo=document.getElementById('cfg-frete-origem');if(cfo)cfo.value=c.freteOrigem||'PONTA GROSSA/PR';
   document.getElementById('cc').value=c.cld_cloud||'';
   document.getElementById('cp').value=c.cld_preset||'';
@@ -8862,6 +8958,396 @@ function _isFinanceiroUser(){
   const {cat,isAdm}=_getUserCat();
   return isAdm||cat==='FINANCEIRO';
 }
+// Mesmo padrão de _isFinanceiroUser() — categoria PLANEJAMENTO já existe em
+// CATEGORIAS_USUARIOS (cadastro de usuário), só faltava o gate de tela (2026-07-22, novo
+// menu Planejamento → Finalização de Obra).
+function _isPlanejamentoUser(){
+  const {cat,isAdm}=_getUserCat();
+  return isAdm||cat==='PLANEJAMENTO';
+}
+
+// ===================== PLANEJAMENTO — FINALIZAÇÃO DE OBRA (2026-07-22) =====================
+// Substitui o Google Forms que o Roberson (gestor de planejamento) usava pra registrar a
+// finalização de cada obra. Quem preenche não é o instalador — é o Roberson ou alguém da
+// equipe dele, logado com usuário próprio; tipo de pedido/cliente/OS/cidade-UF/e-mails vêm
+// automáticos da emissão do pedido escolhido, só os campos abaixo do form são manuais.
+
+// Mesma base "todo pedido emitido pelo sistema" do pedidosKanban() — mas SEM o filtro por
+// vendedor, porque quem finaliza obra precisa ver as obras de todos os vendedores, não só
+// as próprias (pedidosKanban() é usado pelo vendedor pra ver só as dele).
+function _plPedidosElegiveis(){
+  return pedidos.filter(p=>p.origemComercial&&!p.importadoPlanilha);
+}
+
+function renderPlanejamentoObras(){
+  const busca=(document.getElementById('pl-fil-busca')?.value||'').toUpperCase().trim();
+  const filStatus=document.getElementById('pl-fil-status')?.value||'';
+  let lista=_plPedidosElegiveis();
+  if(busca){
+    lista=lista.filter(p=>String(p.os||'').toUpperCase().includes(busca)||(p.cliente||'').toUpperCase().includes(busca)||(p.job||'').toUpperCase().includes(busca));
+  }
+  let rows=lista.map(p=>({p,concl:!!(p.finalizacao&&p.finalizacao.dataFinalizacao)}));
+  if(filStatus==='pendentes')rows=rows.filter(x=>!x.concl);
+  else if(filStatus==='concluidas')rows=rows.filter(x=>x.concl);
+  rows.sort((a,b)=>{
+    if(a.concl!==b.concl)return a.concl?1:-1; // pendentes sempre primeiro
+    if(!a.concl)return new Date(a.p.prazo||'2100-01-01')-new Date(b.p.prazo||'2100-01-01'); // mais urgente primeiro
+    return new Date(b.p.finalizacao?.preenchidoEm||0)-new Date(a.p.finalizacao?.preenchidoEm||0); // mais recente primeiro
+  });
+  const body=document.getElementById('pl-body');
+  if(!body)return;
+  if(!rows.length){
+    body.innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink4);font-size:.85rem">Nenhuma obra encontrada.</div>`;
+    return;
+  }
+  body.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+    <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
+      <th style="padding:8px 10px">OS</th><th style="padding:8px 10px">Cliente</th><th style="padding:8px 10px">Tipo</th>
+      <th style="padding:8px 10px">Vendedor</th><th style="padding:8px 10px">Prazo de Finalização</th>
+      <th style="padding:8px 10px">Cidade/UF</th><th style="padding:8px 10px">Status</th><th style="padding:8px 10px"></th>
+    </tr></thead>
+    <tbody>
+    ${rows.map(({p,concl})=>{
+      const cid=(p.locCidade||'').toUpperCase(),uf=(p.locUf||'').toUpperCase();
+      const loc=cid&&uf?`${cid}/${uf}`:(cid||uf||'—');
+      return`<tr style="border-bottom:1px solid var(--border-lt)">
+        <td style="padding:8px 10px;font-weight:700">${p.os||'—'}</td>
+        <td style="padding:8px 10px" title="${(p.cliente||'').replace(/"/g,'&quot;')}">${p.cliente||'—'}</td>
+        <td style="padding:8px 10px">${p.tipo||'—'}</td>
+        <td style="padding:8px 10px">${p.responsavel||'—'}</td>
+        <td style="padding:8px 10px">${fmtD(p.prazo)||'—'}</td>
+        <td style="padding:8px 10px">${loc}</td>
+        <td style="padding:8px 10px">${concl?'<span style="color:var(--success);font-weight:700">✅ Concluída</span>':'<span style="color:#d97706;font-weight:700">⏳ Pendente</span>'}</td>
+        <td style="padding:8px 10px;text-align:right"><button onclick="abrirFinalizacaoObra('${p.id}')" class="dash-btn-conf" style="white-space:nowrap">${concl?'👁️ Ver / Editar':'🏗️ Finalizar Obra'}</button></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+let _plFinalizandoId='';
+let _plDocUrl='';
+let _plFotosUrls=[]; // [{url,nome}]
+
+function abrirFinalizacaoObra(pedidoId){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  _plFinalizandoId=pedidoId;
+  const fin=p.finalizacao||{};
+  _plDocUrl=fin.documentoUrl||'';
+  _plFotosUrls=Array.isArray(fin.fotos)?fin.fotos.slice():[];
+
+  const cid=(p.locCidade||'').toUpperCase(),uf=(p.locUf||'').toUpperCase();
+  const loc=cid&&uf?`${cid}/${uf}`:(cid||uf||'—');
+  const infoEl=document.getElementById('pl-info');
+  if(infoEl)infoEl.innerHTML=`OS Nº <strong>${p.os||'—'}</strong> · ${p.cliente||'—'}${fin.dataFinalizacao?' · <span style="color:var(--success);font-weight:700">✅ já finalizada — editando registro</span>':''}`;
+
+  const dadosEl=document.getElementById('pl-dados-auto');
+  if(dadosEl){
+    const linha=(lbl,val)=>`<div><div style="font-size:.66rem;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.5px">${lbl}</div><div style="font-weight:600;color:var(--ink2)">${val||'—'}</div></div>`;
+    dadosEl.innerHTML=linha('Tipo de Pedido',p.tipo)+linha('Responsável pelo Preenchimento',usuarioLogado?.nomeExibicao||usuarioLogado?.email||'—')
+      +linha('Cliente',p.cliente)+linha('Nº do Pedido Granda (OS)',p.os)
+      +linha('Cidade e Estado da Instalação',loc)
+      +linha('E-mail Comprador(a)',p.email_comprador)+linha('E-mail Engenheiro',p.email_engenheiro)+linha('E-mail Financeiro',p.email_financeiro);
+  }
+
+  const dEl=document.getElementById('pl-data-finalizacao');if(dEl)dEl.value=fin.dataFinalizacao||'';
+  const lEl=document.getElementById('pl-lider');if(lEl)lEl.value=fin.liderTrabalho||'';
+  const aEl=document.getElementById('pl-acompanhante');if(aEl)aEl.value=fin.acompanhanteCliente||'';
+  const pEl=document.getElementById('pl-pendencias');if(pEl)pEl.value=fin.pendenciasObs||'';
+
+  const docZone=document.getElementById('pl-doc-zone');
+  if(docZone){
+    docZone.classList.toggle('has-file',!!_plDocUrl);
+    const icon=docZone.querySelector('.uz-icon');if(icon)icon.textContent=_plDocUrl?'✅':'📄';
+    const title=docZone.querySelector('.uz-title');if(title)title.textContent=_plDocUrl?'Documento já enviado (clique para trocar)':'Clique para selecionar a foto do documento assinado';
+    let nm=docZone.querySelector('.uz-file');if(nm)nm.remove();
+  }
+  const statusEl=document.getElementById('pl-fotos-status');if(statusEl){statusEl.style.display='none';statusEl.textContent='';}
+  const fotoInput=document.getElementById('pl-fotos-file');if(fotoInput)fotoInput.value='';
+  _plRenderFotosGrid();
+
+  openM('mo-finalizacao');
+}
+
+async function uploadFinalizacaoDoc(input){
+  const f=input.files[0];if(!f)return;
+  const z=document.getElementById('pl-doc-zone');
+  if(z)z.classList.add('has-file');
+  const icon=z?.querySelector('.uz-icon');if(icon)icon.textContent='⏳';
+  const title=z?.querySelector('.uz-title');if(title)title.textContent='Enviando para a nuvem...';
+  let url='';
+  if(cfg.cld_cloud&&cfg.cld_preset){
+    try{
+      const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
+      const d=await r.json();
+      url=d.secure_url||'';
+    }catch(e){console.error('Cloudinary upload error',e);}
+  }
+  _plDocUrl=url;
+  if(icon)icon.textContent=url?'✅':'📄';
+  if(title)title.textContent=url?'Documento enviado com sucesso':'Arquivo selecionado (sem Cloudinary configurado)';
+  if(z){
+    let nm=z.querySelector('.uz-file');
+    if(!nm){nm=document.createElement('div');nm.className='uz-file';z.appendChild(nm);}
+    nm.textContent='✓ '+f.name;
+    nm.style.display='flex';
+  }
+}
+
+// Compressão MODERADA (não agressiva) — a pedido explícito do usuário, porque essas fotos
+// são registro/prova de que a obra foi entregue OK: reduz dimensão máxima e usa qualidade
+// alta o bastante pra não perder detalhe visual, só evita mandar o arquivo bruto de 12+MB
+// direto da câmera do celular. Fotos que já não são imagem (não deveria acontecer, o input
+// já filtra accept="image/*") passam direto sem comprimir.
+function _plComprimirImagem(file,maxDim=2000,quality=0.85){
+  return new Promise(resolve=>{
+    if(!file.type||!file.type.startsWith('image/')){resolve(file);return;}
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){
+        if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}
+        else{w=Math.round(w*maxDim/h);h=maxDim;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob=>{
+        if(blob&&blob.size<file.size)resolve(new File([blob],file.name.replace(/\.[^.]+$/,'')+'.jpg',{type:'image/jpeg'}));
+        else resolve(file);
+      },'image/jpeg',quality);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
+
+function _plRenderFotosGrid(){
+  const wrap=document.getElementById('pl-fotos-grid');
+  if(!wrap)return;
+  wrap.innerHTML=_plFotosUrls.map((f,i)=>`
+    <div style="position:relative;border-radius:8px;overflow:hidden;border:1.5px solid var(--border-lt);aspect-ratio:1">
+      <img src="${f.url}" style="width:100%;height:100%;object-fit:cover;display:block">
+      <button onclick="_plRemoverFoto(${i})" title="Remover" style="position:absolute;top:4px;right:4px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:6px;width:22px;height:22px;font-size:.75rem;cursor:pointer;line-height:1">✕</button>
+    </div>`).join('');
+}
+function _plRemoverFoto(i){
+  _plFotosUrls.splice(i,1);
+  _plRenderFotosGrid();
+}
+
+// Upload de várias fotos (as vezes 20+ por obra) com concorrência limitada (3 por vez) —
+// evita travar o navegador subindo tudo de uma vez só. Cada foto é comprimida (ver
+// _plComprimirImagem) antes de ir pro Cloudinary.
+async function uploadFinalizacaoFotos(input){
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  input.value='';
+  const statusEl=document.getElementById('pl-fotos-status');
+  let enviados=0;
+  if(statusEl){statusEl.style.display='';statusEl.textContent=`⏳ Enviando 0 de ${files.length} foto(s)...`;}
+  const fila=[...files];
+  const nWorkers=Math.min(3,fila.length);
+  const workers=Array.from({length:nWorkers},()=>(async function worker(){
+    while(fila.length){
+      const f=fila.shift();
+      if(!f)break;
+      try{
+        const comprimido=await _plComprimirImagem(f);
+        if(cfg.cld_cloud&&cfg.cld_preset){
+          const fd=new FormData();fd.append('file',comprimido);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+          const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/image/upload`,{method:'POST',body:fd});
+          const d=await r.json();
+          if(d.secure_url){
+            _plFotosUrls.push({url:d.secure_url,nome:f.name});
+            _plRenderFotosGrid();
+          }
+        }
+      }catch(e){console.error('Erro ao enviar foto de finalização',e);}
+      enviados++;
+      if(statusEl)statusEl.textContent=`⏳ Enviando ${enviados} de ${files.length} foto(s)...`;
+    }
+  })());
+  await Promise.all(workers);
+  if(statusEl)statusEl.textContent=`✅ ${_plFotosUrls.length} foto(s) enviada(s) no total`;
+}
+
+async function salvarFinalizacaoObra(){
+  const p=pedidos.find(x=>x.id===_plFinalizandoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  const dataFinalizacao=document.getElementById('pl-data-finalizacao')?.value||'';
+  const liderTrabalho=(document.getElementById('pl-lider')?.value||'').trim();
+  const acompanhanteCliente=(document.getElementById('pl-acompanhante')?.value||'').trim();
+  const pendenciasObs=(document.getElementById('pl-pendencias')?.value||'').trim();
+  if(!dataFinalizacao){toast('Informe a data de finalização do pedido','terr');return;}
+  if(!liderTrabalho){toast('Informe o líder que realizou o trabalho','terr');return;}
+  if(!acompanhanteCliente){toast('Informe quem acompanhou pelo cliente','terr');return;}
+  if(!_plDocUrl){toast('Envie a foto do documento de finalização assinado','terr');return;}
+  if(!_plFotosUrls.length){toast('Envie ao menos uma foto de finalização','terr');return;}
+
+  p.finalizacao={
+    dataFinalizacao,liderTrabalho,acompanhanteCliente,pendenciasObs,
+    documentoUrl:_plDocUrl,
+    fotos:_plFotosUrls.slice(),
+    preenchidoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
+    preenchidoEm:new Date().toISOString()
+  };
+  await savePedidoFS(p);
+  toast('Finalização de obra salva com sucesso!','tok');
+  closeM('mo-finalizacao');
+  renderPlanejamentoObras();
+
+  const envio=await _enviarEmailFinalizacao(p);
+  if(envio.ok)toast('E-mail de finalização enviado para: '+envio.destinatarios.join(', '),'tok');
+  else toast('Finalização salva, mas o e-mail não foi enviado: '+envio.erro,'terr');
+}
+
+// Visual idêntico ao buildEmissaoEmailContent() (mesmo header escuro, barra rosa, seções
+// com fmtSec) — a pedido explícito do usuário: "o layout desse resumo (...) eu quero o
+// mesmo padrão visual do emissao de pedido".
+function buildFinalizacaoEmailContent(p){
+  const fin=p.finalizacao||{};
+  const cid=(p.locCidade||'').toUpperCase(),uf=(p.locUf||'').toUpperCase();
+  const loc=cid&&uf?`${cid}/${uf}`:(cid||uf||'—');
+  const fmtSec=(titulo,obj)=>{
+    if(!Object.keys(obj).length)return'';
+    const rows=Object.entries(obj).map(([k,v],i)=>`
+      <tr style="background:${i%2===0?'#ffffff':'#fafafa'}">
+        <td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;vertical-align:top;width:40%">${k}</td>
+        <td style="padding:10px 0;color:#111827;font-size:13px;font-weight:600;vertical-align:top">${v}</td>
+      </tr>`).join('');
+    return`
+      <tr><td colspan="2" style="padding:20px 0 0"></td></tr>
+      <tr><td colspan="2" style="padding:0 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">${titulo}</span>
+      </td></tr>
+      <tr><td colspan="2" style="padding:0">${rows?`<table width="100%" cellpadding="0" cellspacing="0">${rows}</table>`:''}</td></tr>`;
+  };
+  const fotosRows=[];
+  const fArr=fin.fotos||[];
+  for(let i=0;i<fArr.length;i+=4){
+    fotosRows.push(`<tr>${fArr.slice(i,i+4).map(f=>`<td style="padding:4px"><a href="${cldDownload(f.url)}" target="_blank"><img src="${f.url}" width="130" height="130" style="width:130px;height:130px;object-fit:cover;border-radius:8px;display:block;border:1px solid #e5e7eb"></a></td>`).join('')}</tr>`);
+  }
+  const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:40px 16px">
+<tr><td align="center">
+<table width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+  <!-- HEADER -->
+  <tr><td style="background:#111827;padding:0">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td align="center" style="padding:32px 40px 24px">
+        <img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
+      </td></tr>
+      <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
+      <tr><td style="padding:24px 40px 28px;background:#111827">
+        <p style="margin:0 0 4px;color:#9ca3af;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase">FINALIZAÇÃO DE OBRA</p>
+        <p style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:700;line-height:1.2">${p.cliente}</p>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="background:#1f2937;border-radius:20px;padding:5px 14px">
+            <span style="color:#e91e63;font-size:12px;font-weight:700">OS Nº ${p.os}</span>
+            <span style="color:#6b7280;font-size:12px">&nbsp;·&nbsp;${p.tipo}</span>
+          </td>
+        </tr></table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- INFO BAR -->
+  <tr><td style="background:#f8f9fa;border-bottom:1px solid #e9ecef;padding:16px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:12px;color:#6b7280">Responsável &nbsp;<strong style="color:#111827">${p.responsavel||'—'}</strong></td>
+      <td align="center" style="font-size:12px;color:#dee2e6">|</td>
+      <td style="font-size:12px;color:#6b7280">JOB &nbsp;<strong style="color:#111827">${p.job||'—'}</strong></td>
+      <td align="right" style="font-size:12px;color:#6b7280">Data de Finalização &nbsp;<strong style="color:#e91e63">${fmtD(fin.dataFinalizacao)||'—'}</strong></td>
+    </tr></table>
+  </td></tr>
+
+  <!-- BODY -->
+  <tr><td style="padding:32px 40px;background:#ffffff">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${fmtSec('Dados da Finalização',{
+        'Cidade e Estado da Instalação':loc,
+        'Líder que Realizou o Trabalho':fin.liderTrabalho||'—',
+        'Nome de Quem Acompanhou (Cliente)':fin.acompanhanteCliente||'—',
+        'Responsável pelo Preenchimento':fin.preenchidoPor||'—'
+      })}
+      ${fin.documentoUrl?`
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Documento de Finalização Assinado</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(fin.documentoUrl)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td>
+      </tr>`:''}
+      ${fin.pendenciasObs?`
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Pendências e Observação</span>
+      </td></tr>
+      <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7">${fin.pendenciasObs}</td></tr>`:''}
+
+      <!-- FOTOS DE FINALIZAÇÃO -->
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Fotos de Finalização (${fArr.length})</span>
+      </td></tr>
+      <tr><td colspan="2" style="padding:10px 0 0"><table cellpadding="0" cellspacing="0">${fotosRows.join('')}</table></td></tr>
+    </table>
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#111827;padding:20px 40px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font-size:11px;color:#6b7280">Comercial Granda · E-mail automático</td>
+      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+    </tr></table>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body></html>`;
+  const _locStr=cid&&uf?` - ${cid}/${uf}`:cid?` - ${cid}`:uf?` - ${uf}`:'';
+  const subject=`FINALIZAÇÃO DE OBRA - OS Nº ${p.os} · ${p.cliente} - ${p.job||''}${_locStr}`.replace(/\s+-\s*$/,'').replace(/\s{2,}/g,' ').replace(/\//g,'-');
+  return{html_content,subject};
+}
+
+// Usa um Template ID PRÓPRIO (cfg.tFinalizacao, configurável em Configurações → E-mail),
+// separado do template de emissão de pedido (cfg.t) — mesmo padrão do template de tarefa
+// (cfg.tTarefa/_enviarEmailTarefa): cada função nova de e-mail tem seu próprio template no
+// EmailJS, pra não arriscar bagunçar os outros já em uso. O VISUAL (html_content) que é
+// idêntico ao de emissão — ver buildFinalizacaoEmailContent() — não o template do EmailJS.
+// Destinatários: os 3 e-mails de contato da emissão (comprador/engenheiro/financeiro) +
+// pedidos@granda.ind.br, exatamente como pedido pelo usuário.
+async function _enviarEmailFinalizacao(p){
+  const destEmails=[p.email_comprador,p.email_engenheiro,p.email_financeiro,'pedidos@granda.ind.br'].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
+  if(!destEmails.length){
+    return{ok:false,destinatarios:[],erro:'Nenhum e-mail de destino cadastrado neste pedido.'};
+  }
+  // Fallback hardcoded (mesmo padrão de cfg.t/cfg.s/cfg.k) — template criado no EmailJS em
+  // 2026-07-23 (duplicado do "Contact Us", com os campos To Email/From Name/Reply To/Cc/
+  // Content configurados igual ao de emissão). Configurações → E-mail continua podendo
+  // sobrescrever, caso o usuário troque de template no futuro.
+  const tid=cfg.tFinalizacao||'template_lzow9ef';
+  try{
+    emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
+    const sid=cfg.s||'service_t99xeta';
+    const{html_content,subject}=buildFinalizacaoEmailContent(p);
+    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
+    p.finalizacao=p.finalizacao||{};
+    p.finalizacao.emailStatus='enviado';p.finalizacao.emailEnviadoEm=new Date().toISOString();p.finalizacao.emailDestinatarios=destEmails;p.finalizacao.emailErro='';
+    savePedidoFS(p).catch(e=>console.error('Erro ao gravar status de e-mail de finalização:',e));
+    return{ok:true,destinatarios:destEmails,erro:''};
+  }catch(e){
+    const msg=(e&&(e.text||e.message))||'Erro desconhecido no envio';
+    p.finalizacao=p.finalizacao||{};
+    p.finalizacao.emailStatus='erro';p.finalizacao.emailErro=String(msg);p.finalizacao.emailErroEm=new Date().toISOString();
+    savePedidoFS(p).catch(e2=>console.error('Erro ao gravar status de e-mail de finalização:',e2));
+    console.error('Erro ao enviar e-mail de finalização',e);
+    return{ok:false,destinatarios:destEmails,erro:String(msg)};
+  }
+}
+// ===================== FIM PLANEJAMENTO — FINALIZAÇÃO DE OBRA =====================
 function _diasAtraso(dataAtivaStr){
   const d=parseDataBR(dataAtivaStr);
   if(!d||isNaN(d))return 0;
