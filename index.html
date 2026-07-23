@@ -9257,6 +9257,7 @@ function renderPlanejamentoObras(){
     return;
   }
   const podeEditarPrazo=_isPlanejamentoUser();
+  const {isAdm}=_getUserCat();
   body.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
     <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
       <th style="padding:8px 10px">OS</th><th style="padding:8px 10px">Cliente</th><th style="padding:8px 10px">Tipo</th>
@@ -9288,10 +9289,41 @@ function renderPlanejamentoObras(){
         <td style="padding:8px 10px;${corLinha}">${fmtD(p.prazo)||'—'}${prazoOrigTag}${editPrazoBtn}</td>
         <td style="padding:8px 10px;${corLinha}">${loc}</td>
         <td style="padding:8px 10px">${statusHtml}</td>
-        <td style="padding:8px 10px;text-align:right"><button onclick="abrirFinalizacaoObra('${p.id}')" class="dash-btn-conf" style="white-space:nowrap">${concl?'👁️ Ver / Editar':'🏗️ Finalizar Obra'}</button></td>
+        <td style="padding:8px 10px;text-align:right;white-space:nowrap">${(!concl&&isAdm)?`<button onclick="finalizarObraSemFormulario('${p.id}')" title="Finalizar sem preencher o formulário (admin, com senha)" style="background:none;border:1px solid var(--border);cursor:pointer;color:var(--ink3);font-size:.7rem;padding:5px 8px;border-radius:6px;margin-right:6px">⚡ Finalizar Rápido</button>`:''}<button onclick="abrirFinalizacaoObra('${p.id}')" class="dash-btn-conf" style="white-space:nowrap">${concl?'👁️ Ver / Editar':'🏗️ Finalizar Obra'}</button></td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
+}
+
+// Finalização "rápida" sem preencher o formulário completo — só admin, com senha, pra obra
+// que já foi finalizada por fora do fluxo normal (ou sem como coletar as infos do
+// formulário) e só precisa constar como concluída na lista (2026-07-23, a pedido do
+// usuário). Marca finalizadoSemFormulario:true (ver aviso em verFormularioFinalizacao) e
+// NÃO envia e-mail de finalização, já que não tem resumo real pra mandar.
+async function finalizarObraSemFormulario(pedidoId){
+  const {isAdm}=_getUserCat();
+  if(!isAdm){toast('Apenas administradores podem finalizar sem o formulário','terr');return;}
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  if(p.finalizacao&&p.finalizacao.dataFinalizacao){toast('Este pedido já está finalizado','terr');return;}
+  if(!confirm(`Finalizar a obra OS ${p.os||'—'} (${p.cliente||''}) SEM preencher o formulário de finalização? Ela vai direto pra lista de concluídas, sem e-mail de resumo.`))return;
+  const senha=await pedirSenhaAdmin('Finalizar sem Formulário','Digite sua senha de administrador para finalizar esta obra sem o formulário completo:');
+  if(!senha){toast('Finalização cancelada','tinf');return;}
+  if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');return;}
+  p.finalizacao={
+    dataFinalizacao:new Date().toISOString().slice(0,10),
+    liderTrabalho:'',acompanhanteCliente:'',pendenciasObs:'',
+    documentoUrl:'',fotos:[],
+    temArt:p.projetos?.art||'',artUrl:'',
+    temLaudo:'',laudoUrl:'',
+    finalizadoSemFormulario:true,
+    preenchidoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
+    preenchidoEm:new Date().toISOString()
+  };
+  p.finalizacaoDraft=null;
+  await savePedidoFS(p);
+  toast('Obra finalizada sem formulário','tok');
+  renderPlanejamentoObras();
 }
 
 // Visualização somente-leitura de uma finalização já preenchida — link "Ver Formulário de
@@ -9313,10 +9345,11 @@ function verFormularioFinalizacao(pedidoId){
       <button onclick="document.getElementById('vf-obra-modal').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
     </div>
     <div style="font-size:.84rem;line-height:1.9;color:var(--ink2)">
+      ${fin.finalizadoSemFormulario?`<div style="background:#fef3c7;color:#92400e;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:.78rem;font-weight:700">⚡ Finalizada sem formulário completo, por um administrador.</div>`:''}
       <div><strong>Cliente:</strong> ${p.cliente||'—'}</div>
       <div><strong>Data de Finalização:</strong> ${fmtD(fin.dataFinalizacao)||'—'}</div>
-      <div><strong>Líder que Realizou o Trabalho:</strong> ${fin.liderTrabalho||'—'}</div>
-      <div><strong>Acompanhante (Cliente):</strong> ${fin.acompanhanteCliente||'—'}</div>
+      ${fin.liderTrabalho?`<div><strong>Líder que Realizou o Trabalho:</strong> ${fin.liderTrabalho}</div>`:''}
+      ${fin.acompanhanteCliente?`<div><strong>Acompanhante (Cliente):</strong> ${fin.acompanhanteCliente}</div>`:''}
       <div><strong>Preenchido por:</strong> ${fin.preenchidoPor||'—'}${fin.preenchidoEm?' em '+new Date(fin.preenchidoEm).toLocaleString('pt-BR'):''}</div>
       ${fin.pendenciasObs?`<div style="margin-top:8px"><strong>Pendências/Observação:</strong><br>${fin.pendenciasObs}</div>`:''}
       <div style="margin-top:10px"><strong>Documento assinado:</strong> ${fin.documentoUrl?`<a href="${cldDownload(fin.documentoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'—'}</div>
