@@ -1019,19 +1019,48 @@ select.fc{cursor:pointer}
          (qualquer Tipo de pedido, não só Venda), sem filtro por vendedor — quem preenche
          aqui é o gestor de planejamento ou equipe dele, precisa ver tudo. -->
     <div id="sec-cat-PLANEJAMENTO" style="display:none">
+      <div class="dash-tabs" style="margin-bottom:14px" id="plan-main-tabs">
+        <button class="dash-tab active plan-main-tab" onclick="planMainSetTab('obras',this)">🏗️ Finalização de Obra</button>
+        <button class="dash-tab plan-main-tab" onclick="planMainSetTab('pendencias',this)">⚠️ Finalizados com Pendências</button>
+      </div>
+      <div id="pl-sec-obras">
+        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+          🏗️ Selecione uma obra emitida para preencher a Finalização de Obra — Tipo de pedido, cliente, OS, cidade/UF e e-mails de contato já vêm automáticos da emissão. Depois de salvar, um resumo é enviado por e-mail aos contatos do pedido e para pedidos@granda.ind.br.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <input id="pl-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderPlanejamentoObras()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+          <select id="pl-fil-status" onchange="renderPlanejamentoObras()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+            <option value="">Todas (pendentes + atrasadas)</option>
+            <option value="pendentes">⏳ Pendentes</option>
+            <option value="atrasadas">🔴 Atrasadas</option>
+            <option value="concluidas">✅ Concluídas</option>
+          </select>
+        </div>
+        <div id="pl-body"></div>
+      </div>
+      <div id="pl-sec-pendencias" style="display:none">
+        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
+          ⚠️ Obras finalizadas em que o usuário marcou alguma pendência no formulário de Finalização de Obra. Defina uma Data de Resolução Definitiva pra cada uma e acompanhe aqui até dar baixa (com fotos comprovando a resolução) — nada disso é enviado por e-mail, fica só registrado no sistema.
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <input id="pf-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderPendenciasFinalizacao()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
+          <select id="pf-fil-status" onchange="renderPendenciasFinalizacao()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
+            <option value="">Todas (em aberto)</option>
+            <option value="semdata">📅 Sem data definida</option>
+            <option value="atrasadas">🔴 Atrasadas</option>
+            <option value="resolvidas">✅ Resolvidas</option>
+          </select>
+        </div>
+        <div id="pf-body"></div>
+      </div>
+    </div>
+    <!-- HISTÓRICO DE PEDIDOS (consulta, aberto pra qualquer usuário logado) -->
+    <div id="sec-cat-HISTORICO" style="display:none">
       <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
-        🏗️ Selecione uma obra emitida para preencher a Finalização de Obra — Tipo de pedido, cliente, OS, cidade/UF e e-mails de contato já vêm automáticos da emissão. Depois de salvar, um resumo é enviado por e-mail aos contatos do pedido e para pedidos@granda.ind.br.
+        🔍 Consulte tudo que já aconteceu com um pedido — emissão, alterações de prazo, pagamentos confirmados ou adiados (com motivo) e finalização de obra. Só consulta, nada aqui pode ser editado. Pedidos emitidos antes de julho/2026 (fora do fluxo normal do sistema) mostram só o que existe registrado — o resto fica em branco.
       </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-        <input id="pl-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderPlanejamentoObras()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
-        <select id="pl-fil-status" onchange="renderPlanejamentoObras()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-          <option value="">Todas (pendentes + atrasadas)</option>
-          <option value="pendentes">⏳ Pendentes</option>
-          <option value="atrasadas">🔴 Atrasadas</option>
-          <option value="concluidas">✅ Concluídas</option>
-        </select>
-      </div>
-      <div id="pl-body"></div>
+      <input id="hp-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderHistoricoPedidos()" style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;margin-bottom:14px;box-sizing:border-box">
+      <div id="hp-lista"></div>
     </div>
     <!-- OUTRAS CATEGORIAS (placeholder genérico) -->
     <div id="sec-cat-generic" style="display:none">
@@ -1622,6 +1651,33 @@ select.fc{cursor:pointer}
   </div>
   <div id="pz-historico" style="font-size:.74rem;color:var(--ink4);margin-bottom:12px;max-height:160px;overflow-y:auto"></div>
   <button onclick="salvarAlteracaoPrazoObra()" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">💾 Salvar Alteração</button>
+</div>
+</div>
+
+<!-- DAR BAIXA EM PENDÊNCIA DE FINALIZAÇÃO MODAL (2026-07-23) -->
+<div class="mov" id="mo-baixa-pendencia" onclick="cio(event,'mo-baixa-pendencia')">
+<div class="mvmod" style="width:520px;max-width:96vw;max-height:90vh;overflow-y:auto">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">✅ Dar Baixa na Pendência</h3>
+    <button onclick="closeM('mo-baixa-pendencia')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div id="pfb-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+  <input type="hidden" id="pfb-pedido-id">
+  <div class="fg">
+    <label>Observação da resolução (opcional)</label>
+    <textarea id="pfb-obs" class="fc" rows="3" placeholder="O que foi feito pra resolver..." style="text-transform:none"></textarea>
+  </div>
+  <div class="fg">
+    <label>Fotos (ou vídeos) da resolução <span class="r">*</span></label>
+    <div class="upload-zone" id="pfb-fotos-zone" onclick="document.getElementById('pfb-fotos-file').click()" style="padding:9px 11px;min-height:auto">
+      <span class="uz-icon" style="font-size:.95rem">📷</span>
+      <div class="uz-title" style="font-size:.8rem">Clique para selecionar fotos/vídeos</div>
+      <input type="file" accept="image/*,video/*" multiple id="pfb-fotos-file" style="display:none" onchange="uploadBaixaPendenciaFotos(this)">
+    </div>
+    <div id="pfb-fotos-status" style="display:none;font-size:.72rem;color:var(--ink4);margin-top:6px"></div>
+    <div id="pfb-fotos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px"></div>
+  </div>
+  <button onclick="salvarBaixaPendencia()" style="margin-top:6px;width:100%;background:#16a34a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:.9rem;font-weight:700;cursor:pointer">✅ Confirmar Baixa</button>
 </div>
 </div>
 
@@ -2945,9 +3001,12 @@ function buildSidebarCats(){
   // virar item próprio do sidebar. Sempre primeiro na lista.
   // PLANEJAMENTO (2026-07-22, novo menu de Finalização de Obra) — mesmo padrão de
   // Financeiro: só aparece pra admin ou pra quem tem essa categoria de cadastro.
-  const cats=['FERRAMENTAS',...(_isFinanceiroUser()?['FINANCEIRO']:[]),...(_isPlanejamentoUser()?['PLANEJAMENTO']:[])];
-  const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐'};
-  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS'};
+  // HISTÓRICO é igual FERRAMENTAS: fixo pra qualquer usuário logado, não é categoria de
+  // cadastro — é só consulta (não edita nada), então não faz sentido restringir acesso
+  // (2026-07-23, a pedido do usuário, depois de perguntar se valia a pena ter essa tela).
+  const cats=['FERRAMENTAS','HISTORICO',...(_isFinanceiroUser()?['FINANCEIRO']:[]),...(_isPlanejamentoUser()?['PLANEJAMENTO']:[])];
+  const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐','HISTORICO':'🔍'};
+  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS','HISTORICO':'HISTÓRICO DE PEDIDOS'};
   container.innerHTML=cats.map(cat=>`
     <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${catLabelsSidebar[cat]||cat}" style="font-size:.7rem">
       <span style="font-size:1rem;flex-shrink:0;width:18px;text-align:center">${catIcons[cat]||'📁'}</span>
@@ -2993,19 +3052,22 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     const cat=sec.replace('cat:','');
     const isFerr=cat==='FERRAMENTAS';
     // Atualiza header da seção
-    const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐'};
-    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais','PLANEJAMENTO':'Planejamento'};
-    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Finalização de obra','PROJETOS':'Gestão de projetos'};
+    const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐','HISTORICO':'🔍'};
+    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais','PLANEJAMENTO':'Planejamento','HISTORICO':'Histórico de Pedidos'};
+    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Finalização de obra','PROJETOS':'Gestão de projetos','HISTORICO':'Tudo que já aconteceu com um pedido, num só lugar'};
     const nameEl=document.getElementById('cat-hdr-name');
     const descEl=document.getElementById('cat-hdr-desc');
     if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+(catLabelsHeader[cat]||(cat.charAt(0)+cat.slice(1).toLowerCase()));
     if(descEl)descEl.textContent=catDescs[cat]||'';
     const isFin=cat==='FINANCEIRO';
     const isPlan=cat==='PLANEJAMENTO';
+    const isHist=cat==='HISTORICO';
     document.getElementById('sec-cat-FERRAMENTAS').style.display=isFerr?'':'none';
     document.getElementById('sec-cat-FINANCEIRO').style.display=isFin?'':'none';
     document.getElementById('sec-cat-PLANEJAMENTO').style.display=isPlan?'':'none';
-    document.getElementById('sec-cat-generic').style.display=(isFin||isFerr||isPlan)?'none':'';
+    document.getElementById('sec-cat-HISTORICO').style.display=isHist?'':'none';
+    document.getElementById('sec-cat-generic').style.display=(isFin||isFerr||isPlan||isHist)?'none':'';
+    if(isHist)renderHistoricoPedidos();
     // "Novo Pedido" do cabeçalho de categoria não tem mais seção COMERCIAL pra aparecer
     // (virou aba dentro de Visão Comercial, que já tem seu próprio botão duplicado —
     // btn-novo-pedido-vendas) — fica sempre escondido aqui.
@@ -3022,8 +3084,15 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     // ferramenta padrão (Tarefas) ao entrar na seção, igual comportamento antigo de
     // geralTab('tarefas') antes de virar item próprio do sidebar (2026-07-16).
     if(isFerr){try{ferramentaTool('tarefas',document.getElementById('ferr-tool-tarefas'));}catch(e){console.error('Erro ao abrir Ferramentas Comerciais',e);}}
-    // Planejamento sempre reabre com a lista de obras atualizada (2026-07-22).
-    if(isPlan&&typeof renderPlanejamentoObras==='function')setTimeout(()=>{try{renderPlanejamentoObras();}catch(e){console.error('Erro ao abrir Planejamento',e);}},120);
+    // Planejamento sempre reabre na aba Finalização de Obra, com a lista atualizada
+    // (2026-07-22; 2026-07-23 ganhou a segunda aba Finalizados com Pendências).
+    if(isPlan)setTimeout(()=>{try{
+      document.querySelectorAll('.plan-main-tab').forEach(b=>b.classList.remove('active'));
+      document.getElementById('plan-main-tabs')?.querySelector('.plan-main-tab')?.classList.add('active');
+      const so=document.getElementById('pl-sec-obras'),sp=document.getElementById('pl-sec-pendencias');
+      if(so)so.style.display='';if(sp)sp.style.display='none';
+      if(typeof renderPlanejamentoObras==='function')renderPlanejamentoObras();
+    }catch(e){console.error('Erro ao abrir Planejamento',e);}},120);
   }
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
   if(isGeral){
@@ -9315,6 +9384,17 @@ function _isPlanejamentoUser(){
 // Mesma base "todo pedido emitido pelo sistema" do pedidosKanban() — mas SEM o filtro por
 // vendedor, porque quem finaliza obra precisa ver as obras de todos os vendedores, não só
 // as próprias (pedidosKanban() é usado pelo vendedor pra ver só as dele).
+// Alterna entre as duas abas de Planejamento — Finalização de Obra (lista original) e
+// Finalizados com Pendências (nova, 2026-07-23) — mesmo padrão de finMainSetTab().
+function planMainSetTab(tab,btn){
+  document.querySelectorAll('.plan-main-tab').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const so=document.getElementById('pl-sec-obras'),sp=document.getElementById('pl-sec-pendencias');
+  if(so)so.style.display=tab==='obras'?'':'none';
+  if(sp)sp.style.display=tab==='pendencias'?'':'none';
+  if(tab==='obras'){if(typeof renderPlanejamentoObras==='function')renderPlanejamentoObras();}
+  else{if(typeof renderPendenciasFinalizacao==='function')renderPendenciasFinalizacao();}
+}
 // Pedidos sem Valor de Instalação E sem Valor de Frete não têm obra física pra acompanhar
 // (ex.: só material enviado, sem equipe indo até o cliente) — fora da lista de Planejamento
 // (2026-07-23, a pedido do usuário). Mesmos campos usados em pedidoToVendaRow()/Operacionais
@@ -9404,6 +9484,204 @@ function renderPlanejamentoObras(){
     </tbody></table>`;
 }
 
+// ── FINALIZADOS COM PENDÊNCIAS (2026-07-23) ─────────────────────────────────────────────
+// Obra já finalizada (p.finalizacao.dataFinalizacao) em que o usuário escreveu alguma
+// pendência no campo "Pendências/Observação" do formulário — vira item de acompanhamento
+// à parte, com Data de Resolução Definitiva (definida aqui, não vem de lugar nenhum) e baixa
+// só com foto, tudo ficando registrado no sistema, sem gerar e-mail nenhum.
+function _pfPedidosElegiveis(){
+  return pedidos.filter(p=>p.finalizacao&&p.finalizacao.dataFinalizacao&&(p.finalizacao.pendenciasObs||'').trim());
+}
+function renderPendenciasFinalizacao(){
+  const busca=(document.getElementById('pf-fil-busca')?.value||'').toUpperCase().trim();
+  const filStatus=document.getElementById('pf-fil-status')?.value||'';
+  let lista=_pfPedidosElegiveis();
+  if(busca)lista=lista.filter(p=>String(p.os||'').toUpperCase().includes(busca)||(p.cliente||'').toUpperCase().includes(busca)||(p.job||'').toUpperCase().includes(busca));
+  const hojeISO=new Date().toISOString().slice(0,10);
+  let rows=lista.map(p=>{
+    const pf=p.pendenciaFin||{};
+    const resolvido=!!pf.resolvido;
+    const semData=!resolvido&&!pf.dataResolucaoPrevista;
+    const atrasado=!resolvido&&!!pf.dataResolucaoPrevista&&pf.dataResolucaoPrevista<hojeISO;
+    return{p,pf,resolvido,semData,atrasado};
+  });
+  if(filStatus==='semdata')rows=rows.filter(x=>x.semData);
+  else if(filStatus==='atrasadas')rows=rows.filter(x=>x.atrasado);
+  else if(filStatus==='resolvidas')rows=rows.filter(x=>x.resolvido);
+  else rows=rows.filter(x=>!x.resolvido); // "Todas (em aberto)" — resolvida só aparece filtrando
+
+  rows.sort((a,b)=>{
+    if(a.resolvido!==b.resolvido)return a.resolvido?1:-1;
+    if(!a.resolvido){
+      if(a.semData!==b.semData)return a.semData?-1:1; // sem data primeiro — precisa de ação
+      if(a.atrasado!==b.atrasado)return a.atrasado?-1:1; // atrasada em seguida
+      return (a.pf.dataResolucaoPrevista||'9999-99-99').localeCompare(b.pf.dataResolucaoPrevista||'9999-99-99');
+    }
+    return new Date(b.pf.resolvidoEm||0)-new Date(a.pf.resolvidoEm||0);
+  });
+
+  const body=document.getElementById('pf-body');
+  if(!body)return;
+  if(!rows.length){
+    body.innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink4);font-size:.85rem">Nenhuma pendência encontrada.</div>`;
+    return;
+  }
+  body.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
+    <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
+      <th style="padding:8px 10px">OS</th><th style="padding:8px 10px">Cliente</th><th style="padding:8px 10px">Tipo</th>
+      <th style="padding:8px 10px">Pendência</th><th style="padding:8px 10px">Data de Resolução Definitiva</th>
+      <th style="padding:8px 10px">Status</th><th style="padding:8px 10px"></th>
+    </tr></thead>
+    <tbody>
+    ${rows.map(({p,pf,resolvido,atrasado})=>{
+      const corLinha=atrasado?'color:#dc2626':'';
+      const diasAtraso=atrasado?Math.floor((new Date(hojeISO)-new Date(pf.dataResolucaoPrevista))/86400000):0;
+      const statusHtml=resolvido?'<span style="color:var(--success);font-weight:700">✅ Resolvida</span>'
+        :atrasado?`<span style="color:#dc2626;font-weight:700">🔴 Atrasada · ${diasAtraso}d</span>`
+        :pf.dataResolucaoPrevista?'<span style="color:#d97706;font-weight:700">⏳ Pendente</span>'
+        :'<span style="color:#7c3aed;font-weight:700">📅 Sem data definida</span>';
+      const pendTxt=(p.finalizacao.pendenciasObs||'').replace(/"/g,'&quot;');
+      const dataInput=resolvido
+        ?fmtD(pf.dataResolucaoPrevista)||'—'
+        :`<input type="date" value="${pf.dataResolucaoPrevista||''}" onchange="salvarDataResolucaoPendencia('${p.id}',this.value)" style="padding:6px 8px;border-radius:6px;border:1.5px solid ${atrasado?'#dc2626':'#e5e7eb'};font-size:.78rem;font-family:inherit">`;
+      const acaoBtn=resolvido
+        ?`<button onclick="verResumoPendenciaResolvida('${p.id}')" class="dash-btn-conf" style="white-space:nowrap;background:var(--ink4)">👁️ Ver Resumo</button>`
+        :`<button onclick="abrirBaixaPendencia('${p.id}')" class="dash-btn-conf" style="white-space:nowrap">✅ Dar Baixa</button>`;
+      return`<tr style="border-bottom:1px solid var(--border-lt);${corLinha}">
+        <td style="padding:8px 10px;font-weight:700;${corLinha}">${p.os||'—'}</td>
+        <td style="padding:8px 10px;${corLinha}" title="${(p.cliente||'').replace(/"/g,'&quot;')}">${p.cliente||'—'}</td>
+        <td style="padding:8px 10px;${corLinha}">${p.tipo||'—'}</td>
+        <td style="padding:8px 10px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${corLinha}" title="${pendTxt}">${p.finalizacao.pendenciasObs||'—'}</td>
+        <td style="padding:8px 10px">${dataInput}</td>
+        <td style="padding:8px 10px">${statusHtml}</td>
+        <td style="padding:8px 10px;text-align:right">${acaoBtn}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+// Salva a Data de Resolução Definitiva assim que o usuário escolhe no input da própria
+// linha — sem modal, sem confirmação, é só um dado de acompanhamento (não trava nada).
+async function salvarDataResolucaoPendencia(pedidoId,valor){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  if(!p.pendenciaFin)p.pendenciaFin={};
+  p.pendenciaFin.dataResolucaoPrevista=valor||'';
+  await savePedidoFS(p);
+  toast(valor?'Data de resolução definida':'Data removida','tok');
+  renderPendenciasFinalizacao();
+}
+let _pfbPedidoId='';
+let _pfbFotosUrls=[]; // [{url,nome,tipo}]
+function abrirBaixaPendencia(pedidoId){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  _pfbPedidoId=pedidoId;
+  _pfbFotosUrls=[];
+  const infoEl=document.getElementById('pfb-info');
+  if(infoEl)infoEl.innerHTML=`OS Nº <strong>${p.os||'—'}</strong> · ${p.cliente||'—'}<br><span style="color:var(--ink4)">Pendência registrada:</span> ${p.finalizacao?.pendenciasObs||'—'}`;
+  const idEl=document.getElementById('pfb-pedido-id');if(idEl)idEl.value=pedidoId;
+  const obsEl=document.getElementById('pfb-obs');if(obsEl)obsEl.value='';
+  const statusEl=document.getElementById('pfb-fotos-status');if(statusEl){statusEl.style.display='none';statusEl.textContent='';}
+  const fileEl=document.getElementById('pfb-fotos-file');if(fileEl)fileEl.value='';
+  _pfbRenderFotosGrid();
+  openM('mo-baixa-pendencia');
+}
+function _pfbRenderFotosGrid(){
+  const wrap=document.getElementById('pfb-fotos-grid');
+  if(!wrap)return;
+  wrap.innerHTML=_pfbFotosUrls.map((f,i)=>{
+    const isVideo=f.tipo==='video';
+    return`<div style="position:relative;border-radius:8px;overflow:hidden;border:1.5px solid var(--border-lt);aspect-ratio:1">
+      ${isVideo?`<video src="${f.url}" muted style="width:100%;height:100%;object-fit:cover;display:block"></video>`:`<img src="${f.url}" style="width:100%;height:100%;object-fit:cover;display:block">`}
+      <button onclick="_pfbRemoverFoto(${i})" title="Remover" style="position:absolute;top:4px;right:4px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:6px;width:22px;height:22px;font-size:.75rem;cursor:pointer;line-height:1">✕</button>
+    </div>`;
+  }).join('');
+}
+function _pfbRemoverFoto(i){_pfbFotosUrls.splice(i,1);_pfbRenderFotosGrid();}
+// Mesmo padrão de uploadFinalizacaoFotos: compressão só pra imagem, vídeo direto pro
+// endpoint /video/upload, concorrência limitada (3 por vez), registra no medidor de uso do
+// Cloudinary (_cldRegistrarUpload).
+async function uploadBaixaPendenciaFotos(input){
+  const files=Array.from(input.files||[]);
+  if(!files.length)return;
+  input.value='';
+  const statusEl=document.getElementById('pfb-fotos-status');
+  let enviados=0;
+  if(statusEl){statusEl.style.display='';statusEl.textContent=`⏳ Enviando 0 de ${files.length} arquivo(s)...`;}
+  const fila=[...files];
+  const nWorkers=Math.min(3,fila.length);
+  const workers=Array.from({length:nWorkers},()=>(async function worker(){
+    while(fila.length){
+      const f=fila.shift();
+      if(!f)break;
+      const isVideo=f.type&&f.type.startsWith('video/');
+      try{
+        const arquivo=isVideo?f:await _plComprimirImagem(f);
+        if(cfg.cld_cloud&&cfg.cld_preset){
+          const fd=new FormData();fd.append('file',arquivo);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+          const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isVideo?'video':'image'}/upload`,{method:'POST',body:fd});
+          const d=await r.json();
+          if(d.secure_url){
+            _cldRegistrarUpload(arquivo.size);
+            _pfbFotosUrls.push({url:d.secure_url,nome:f.name,tipo:isVideo?'video':'foto'});
+            _pfbRenderFotosGrid();
+          }
+        }
+      }catch(e){console.error('Erro ao enviar foto/vídeo de baixa de pendência',e);}
+      enviados++;
+      if(statusEl)statusEl.textContent=`⏳ Enviando ${enviados} de ${files.length} arquivo(s)...`;
+    }
+  })());
+  await Promise.all(workers);
+  if(statusEl)statusEl.textContent=`✅ ${_pfbFotosUrls.length} arquivo(s) enviado(s) no total`;
+}
+// Baixa definitiva — exige pelo menos 1 foto/vídeo, NUNCA envia e-mail (a pedido do
+// usuário: "este não precisa enviar por email dai. fica no sistema").
+async function salvarBaixaPendencia(){
+  const p=pedidos.find(x=>x.id===_pfbPedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  if(!_pfbFotosUrls.length){toast('Envie ao menos uma foto (ou vídeo) da resolução','terr');return;}
+  const obs=(document.getElementById('pfb-obs')?.value||'').trim();
+  if(!p.pendenciaFin)p.pendenciaFin={};
+  p.pendenciaFin.resolvido=true;
+  p.pendenciaFin.resolvidoEm=new Date().toISOString();
+  p.pendenciaFin.resolvidoPor=usuarioLogado?.nomeExibicao||usuarioLogado?.email||'';
+  p.pendenciaFin.fotos=_pfbFotosUrls.slice();
+  p.pendenciaFin.obsResolucao=obs;
+  await savePedidoFS(p);
+  toast('Pendência marcada como resolvida','tok');
+  closeM('mo-baixa-pendencia');
+  renderPendenciasFinalizacao();
+}
+// Resumo só-leitura de uma pendência já resolvida — fotos como link de download
+// (Cloudinary), mesmo estilo de verFormularioFinalizacao().
+function verResumoPendenciaResolvida(pedidoId){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p||!p.pendenciaFin||!p.pendenciaFin.resolvido){toast('Pendência ainda não resolvida','terr');return;}
+  const pf=p.pendenciaFin;
+  const old=document.getElementById('pfr-modal');if(old)old.remove();
+  const modal=document.createElement('div');
+  modal.id='pfr-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  const fotosHtml=(pf.fotos||[]).length?(pf.fotos||[]).map((f,i)=>`<a href="${cldDownload(f.url)}" target="_blank" style="color:var(--brand);text-decoration:underline;display:block;margin-bottom:3px">${f.tipo==='video'?'🎥 Vídeo':'📷 Foto'} ${i+1}${f.nome?' — '+f.nome:''} ↗</a>`).join(''):'<span style="color:var(--ink4)">Nenhuma foto</span>';
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px 24px;max-width:520px;width:92%;max-height:82vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px">
+      <div style="font-size:1rem;font-weight:800;color:#1a1f36">✅ Pendência Resolvida — OS ${p.os||'—'}</div>
+      <button onclick="document.getElementById('pfr-modal').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div style="font-size:.84rem;line-height:1.9;color:var(--ink2)">
+      <div><strong>Cliente:</strong> ${p.cliente||'—'}</div>
+      <div><strong>Pendência original:</strong> ${p.finalizacao?.pendenciasObs||'—'}</div>
+      <div><strong>Data de Resolução Definitiva:</strong> ${fmtD(pf.dataResolucaoPrevista)||'—'}</div>
+      <div><strong>Resolvido por:</strong> ${pf.resolvidoPor||'—'}${pf.resolvidoEm?' em '+new Date(pf.resolvidoEm).toLocaleString('pt-BR'):''}</div>
+      ${pf.obsResolucao?`<div style="margin-top:8px"><strong>Observação:</strong><br>${pf.obsResolucao}</div>`:''}
+      <div style="margin-top:10px"><strong>Fotos/vídeos (${(pf.fotos||[]).length}):</strong><div style="margin-top:4px">${fotosHtml}</div></div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
 // Finalização "rápida" sem preencher o formulário completo — só admin, com senha, pra obra
 // que já foi finalizada por fora do fluxo normal (ou sem como coletar as infos do
 // formulário) e só precisa constar como concluída na lista (2026-07-23, a pedido do
@@ -9466,6 +9744,135 @@ function verFormularioFinalizacao(pedidoId){
       ${fin.temLaudo?`<div style="margin-top:10px"><strong>Laudo Técnico:</strong> ${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</div>`:''}
       <div style="margin-top:10px"><strong>Fotos (${(fin.fotos||[]).length}):</strong><div style="margin-top:4px">${fotosHtml}</div></div>
     </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+// ── HISTÓRICO DE PEDIDOS (consulta, 2026-07-23) ─────────────────────────────────────────
+// Junta tudo que já aconteceu com um pedido — emissão, alteração de prazo (adiamento de
+// instalação/finalização, com motivo), pagamentos confirmados ou adiados (com motivo, mesma
+// fonte de Financeiro/Comissões) e finalização de obra — numa timeline só de leitura.
+// Reaproveita getParcelas/getPagConf, p.historicoPrazo e p.finalizacao (nenhum dado novo,
+// nenhuma lógica duplicada). Pedido de antes de julho/2026 ou não emitido pelo fluxo normal
+// do sistema (_plEmitidoPeloSistema) simplesmente não gera o evento de "emissão" — o resto
+// (prazo/pagamento/finalização) aparece normalmente se existir, e some se não existir, sem
+// inventar informação que o pedido nunca teve.
+function _histParseTs(str){
+  if(!str)return 0;
+  if(/^\d{4}-\d{2}-\d{2}T/.test(str))return new Date(str).getTime()||0;
+  const mBR=String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(mBR)return new Date(+mBR[3],+mBR[2]-1,+mBR[1]).getTime()||0;
+  const mISO=String(str).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(mISO)return new Date(str).getTime()||0;
+  return 0;
+}
+function _histFmtQuando(str){
+  if(!str)return'';
+  if(/^\d{4}-\d{2}-\d{2}T/.test(str))return new Date(str).toLocaleDateString('pt-BR');
+  return fmtD(str)||str;
+}
+function _histPedidoEventos(p){
+  const eventos=[];
+  const add=(icone,titulo,quando,detalhe,cor)=>{
+    eventos.push({icone,titulo,quandoTxt:_histFmtQuando(quando),detalhe:detalhe||'',cor:cor||'#1a2b5e',ts:_histParseTs(quando)});
+  };
+
+  // 1. Emissão — só existe evento se realmente passou pelo fluxo normal do sistema.
+  if(_plEmitidoPeloSistema(p)&&p.emissaoEm){
+    add('📝','Pedido emitido',p.emissaoEm,`${p.tipo||'—'} · Responsável: ${p.responsavel||'—'}`,'#1a2b5e');
+  }
+
+  // 2. Alterações de prazo — cobre "adiamento de instalação", sempre com motivo.
+  (p.historicoPrazo||[]).forEach(h=>{
+    add('📅','Prazo de instalação/finalização alterado',h.alteradoEm,`De ${fmtD(h.de)||'—'} para ${fmtD(h.para)||'—'} — motivo: ${h.motivo||'—'} (${h.alteradoPor||'—'})`,'#d97706');
+  });
+
+  // 3. Pagamentos — só entra o que já ACONTECEU (confirmado ou adiado com motivo); parcela
+  // ainda no prazo original, sem nada marcado, não é evento de histórico ainda.
+  (getParcelas(p)||[]).forEach(item=>{
+    const conf=getPagConf(item.confKey);
+    if(!conf)return;
+    if(conf.status==='confirmado'){
+      add('💰',`Pagamento confirmado — ${item.label}`,conf.confirmedAt||item.dataStr,`${fmtR(conf.valorBrutoConfirmado||item.valorBruto||item.valor||0)} recebido em ${fmtD(conf.novaData)||item.dataStr}`,'#16a34a');
+    }else if(conf.motivoAtraso){
+      add('⏳',`Pagamento adiado — ${item.label}`,conf.motivoAtrasoEm||item.dataStr,`Previsto pra ${fmtD(conf.dataPrevistaAnterior)||item.dataStr}, adiado pra ${fmtD(conf.novaData)||'—'} — motivo: ${conf.motivoAtraso}`,'#dc2626');
+    }
+  });
+
+  // 4. Finalização de obra.
+  if(p.finalizacao&&p.finalizacao.dataFinalizacao){
+    const fin=p.finalizacao;
+    const detalheFin=fin.finalizadoSemFormulario
+      ?'Finalizada sem formulário completo, por um administrador.'
+      :`Líder: ${fin.liderTrabalho||'—'} · Acompanhante: ${fin.acompanhanteCliente||'—'}`;
+    add('🏗️','Obra finalizada',fin.preenchidoEm||fin.dataFinalizacao,detalheFin,'#7c3aed');
+  }
+
+  eventos.sort((a,b)=>a.ts-b.ts);
+  return eventos;
+}
+
+// Lista/busca de Histórico de Pedidos — mesma fonte de dados da Lista de Vendas
+// (getVendaRowsMerged), pra achar qualquer pedido já vendido, mesmo o que só existe na
+// planilha (esse último clicado mostra aviso, não timeline — nunca teve evento registrado
+// no sistema). Sem busca digitada, mostra os 20 mais recentes; com busca, até 100 resultados.
+function renderHistoricoPedidos(){
+  const busca=(document.getElementById('hp-fil-busca')?.value||'').toUpperCase().trim();
+  let rows=getVendaRowsMerged().slice().sort((a,b)=>(b.m-a.m)||String(b.p).localeCompare(String(a.p)));
+  if(busca)rows=rows.filter(r=>String(r.p||'').toUpperCase().includes(busca)||(r.cl||'').toUpperCase().includes(busca)||(r.job||'').toUpperCase().includes(busca));
+  const body=document.getElementById('hp-lista');
+  if(!body)return;
+  if(!rows.length){
+    body.innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink4);font-size:.85rem">Nenhum pedido encontrado.</div>`;
+    return;
+  }
+  const limite=busca?100:20;
+  const limitados=rows.slice(0,limite);
+  body.innerHTML=(busca?'':`<div style="font-size:.72rem;color:var(--ink4);margin-bottom:8px">Mostrando os ${limitados.length} pedidos mais recentes — busque por OS, cliente ou JOB pra achar outro.</div>`)
+    +limitados.map(r=>`
+    <div onclick="abrirHistoricoPedido('${r._pid||''}','${String(r.p).replace(/'/g,"\\'")}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1.5px solid var(--border-lt);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border-lt)'">
+      <div style="min-width:0">
+        <div style="font-weight:700;color:var(--ink);font-size:.86rem">${pedidoDisplay(r.p)} <span style="font-weight:400;color:var(--ink4)">· ${r.mes||'—'}</span></div>
+        <div style="color:var(--ink3);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.cl||'').replace(/"/g,'&quot;')}">${r.cl||'—'}</div>
+      </div>
+      <div style="font-size:.72rem;color:var(--ink4);white-space:nowrap;flex-shrink:0">${r.cat||'—'} →</div>
+    </div>`).join('')
+    +(rows.length>limitados.length?`<div style="text-align:center;padding:10px;color:var(--ink4);font-size:.75rem">Mostrando ${limitados.length} de ${rows.length} — refine a busca pra ver mais.</div>`:'');
+}
+// Abre a timeline de um pedido — só existe histórico de verdade pra quem tem registro no
+// Firestore (pedidoId preenchido); linha que só existe na planilha nunca gerou nenhum evento
+// rastreável (não passou por Emissão/Finalização/confirmação de pagamento no sistema).
+function abrirHistoricoPedido(pedidoId,os){
+  if(!pedidoId){toast(`OS ${os} nunca teve nenhum evento registrado no sistema — existe só na planilha de vendas colada.`,'tinf');return;}
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  const eventos=_histPedidoEventos(p);
+  const old=document.getElementById('hp-modal');if(old)old.remove();
+  const modal=document.createElement('div');
+  modal.id='hp-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  const timelineHtml=eventos.length?eventos.map(ev=>`
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <div style="flex-shrink:0;width:30px;height:30px;border-radius:50%;background:${ev.cor}18;display:flex;align-items:center;justify-content:center;font-size:.95rem">${ev.icone}</div>
+      <div style="min-width:0;flex:1;padding-bottom:2px;border-bottom:1px solid var(--border-lt)">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline">
+          <div style="font-weight:700;color:var(--ink);font-size:.82rem">${ev.titulo}</div>
+          <div style="font-size:.7rem;color:var(--ink4);white-space:nowrap">${ev.quandoTxt||'—'}</div>
+        </div>
+        <div style="font-size:.76rem;color:var(--ink3);margin-top:2px;padding-bottom:10px">${ev.detalhe}</div>
+      </div>
+    </div>`).join('')
+    :'<div style="text-align:center;padding:30px;color:var(--ink4);font-size:.82rem">Nenhum evento registrado ainda para este pedido.</div>';
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px 24px;max-width:560px;width:92%;max-height:85vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:10px">
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:#1a1f36">🔍 Histórico — OS ${p.os||'—'}</div>
+        <div style="font-size:.8rem;color:var(--ink3);margin-top:2px">${p.cliente||'—'}</div>
+      </div>
+      <button onclick="document.getElementById('hp-modal').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div>${timelineHtml}</div>
   </div>`;
   document.body.appendChild(modal);
 }
