@@ -3296,6 +3296,48 @@ async function editarVendaLista(os,pedidoId){
   await savePedidoFS(pedido);
   editarValoresPedido(pedido.id);
 }
+// Inclui manualmente uma venda antiga na lista de Planejamento → Finalização de Obra, mesmo
+// que ela não passe pelos critérios normais (origemComercial + instalação/frete emitidos),
+// porque é um pedido de antes desse fluxo existir e não tem como preencher tudo (2026-07-23,
+// a pedido do usuário: "se não tiver todas as infos... ignorar o que falta e seguir com o
+// que tem"). Reaproveita a mesma criação pontual de pedido a partir da planilha usada em
+// editarVendaLista — só que aqui não abre o modal de editar valores, só marca
+// forcarFinalizacao:true, que é o único jeito de _plPedidosElegiveis() aceitar um pedido
+// sem os critérios normais.
+async function incluirVendaNaFinalizacao(os,pedidoId){
+  const {isAdm}=_getUserCat();
+  if(!isAdm){toast('Apenas administradores podem incluir vendas antigas na Finalização de Obra','terr');return;}
+  let p=pedidoId?pedidos.find(x=>x.id===pedidoId):null;
+  if(p&&p.forcarFinalizacao){toast('Este pedido já está na lista de Finalização de Obra','tinf');return;}
+  const senha=await pedirSenhaAdmin('Incluir na Finalização de Obra','Digite sua senha de administrador para incluir esta venda na lista de Finalização de Obra (Planejamento):');
+  if(!senha){toast('Cancelado','tinf');return;}
+  if(senha!==(cfg.senhaAdmin||cfg.senhaExclusao||cfg.dashMetasPin||'2024')){toast('Senha incorreta','terr');return;}
+  if(!p){
+    const x=XLSX_VENDAS_BY_OS[String(os)];
+    if(!x){toast('Venda não encontrada','terr');return;}
+    const fmtBR=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const emissaoEm=`2026-${String(x.m).padStart(2,'0')}-01`;
+    const valores={'Valor Bruto':fmtBR(x.br),'Valor Líquido do Pedido':fmtBR(x.lq),...(x.el>0?{'Valor das Elevações':fmtBR(x.el)}:{})};
+    const frete=x.ft>0?{'Valor do Frete':fmtBR(x.ft)}:{};
+    const instalacao={
+      ...(x.vi>0?{'Valor da Mobilização':fmtBR(x.vi)}:{}),
+      ...(x.mo>0?{'Valor da Instalação':fmtBR(x.mo)}:{}),
+      ...(x.rem>0?{'Valor da Remoção':fmtBR(x.rem)}:{}),
+      ...(x.med>0?{'Valor da Medição':fmtBR(x.med)}:{})
+    };
+    const projetos=x.art>0?{'Valor da ART':fmtBR(x.art)}:{};
+    p={id:uid(),os:String(x.p),tipo:x.cat,tipoPedido:x.cat,responsavel:mapVendedorName(x.v),
+      cliente:x.cl,emails:[],job:x.cl,prazo:x.entrega||'',etapa:'Pedido Entregue',
+      emissaoEm,obs:'Incluído na Finalização de Obra a partir da Lista de Vendas',importadoPlanilha:true,
+      origPlanilhaOs:String(x.p),
+      valores,pagamento:{},instalacao,frete,bases:'',elevacoes:[],remocoes:[],projetos};
+    pedidos.push(p);
+  }
+  p.forcarFinalizacao=true;
+  await savePedidoFS(p);
+  toast('Venda incluída na lista de Finalização de Obra (Planejamento)','tok');
+  if(typeof renderDashVendas==='function')renderDashVendas();
+}
 // Seletor de opções em cartões clicáveis — mesmo estilo visual já usado no Tipo do Pedido
 // da Emissão (classes .rc-row/.rc, ver CSS), só que genérico/reaproveitável em qualquer
 // lugar em vez de acoplado ao objeto `ed` da Emissão (rRC()/selRC() só servem pra isso).
@@ -9213,6 +9255,7 @@ function _isPlanejamentoUser(){
 // Pedidos (inst['Valor da Instalação'] / fr['Valor do Frete']).
 function _plPedidosElegiveis(){
   return pedidos.filter(p=>{
+    if(p.forcarFinalizacao)return true; // incluído manualmente por admin (venda antiga sem os critérios normais)
     if(!p.origemComercial||p.importadoPlanilha)return false;
     const temInst=moneyToNum((p.instalacao&&p.instalacao['Valor da Instalação'])||'0')>0.005;
     const temFrete=moneyToNum((p.frete&&p.frete['Valor do Frete'])||'0')>0.005;
@@ -12934,6 +12977,13 @@ function renderDashVendas(){
     const catCorV=catCor(r.cat);
     const clSafe=String(r.cl||'').replace(/"/g,'&quot;');
     const verDet=`verVendaDetalhe('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')`;
+    const pedFin=r._pid?pedidos.find(x=>x.id===r._pid):null;
+    const _tI=pedFin&&moneyToNum((pedFin.instalacao&&pedFin.instalacao['Valor da Instalação'])||'0')>0.005;
+    const _tF=pedFin&&moneyToNum((pedFin.frete&&pedFin.frete['Valor do Frete'])||'0')>0.005;
+    const jaElegivelFin=!!(pedFin&&pedFin.origemComercial&&!pedFin.importadoPlanilha&&(_tI||_tF));
+    const jaForcadoFin=!!(pedFin&&pedFin.forcarFinalizacao);
+    const btnFinalizacao=jaForcadoFin?`<span class="btn-mini" style="background:#dcfce7;color:#166534;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;margin-right:4px" title="Incluída manualmente — já aparece em Planejamento → Finalização de Obra">✅ Na Finalização</span>`
+      :jaElegivelFin?'':`<button class="btn-mini" style="background:#fef3c7;color:#92400e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="incluirVendaNaFinalizacao('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">🏗️ Incluir na Finalização</button>`;
     return header+`<tr${zebra}>
       <td class="dt-mes-mini">${r.mes.slice(0,3)}${r.mesAjustado?` <span title="Mês da venda ajustado manualmente — diferente do mês real de emissão">✏️</span>`:''}</td>
       <td>
@@ -12954,7 +13004,7 @@ function renderDashVendas(){
         ${r.opAdj>0?`<a href="javascript:void(0)" onclick="${verDet}" class="dt-ver-detalhes">ver detalhes</a>`:''}
       </td>
       <td class="dt-num dt-fin" style="font-weight:800;color:#e0245e">${fmtR(r.lqAdj)}</td>
-      <td style="white-space:nowrap">${isAdm?`<button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button>`:''}${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1a2b5e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="reenviarEmailPedido('${r._pid}')">🔁 Reenviar Email</button>`:''}</td>
+      <td style="white-space:nowrap">${isAdm?`<button class="btn-mini" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="editarVendaLista('${String(r.p).replace(/'/g,"\\'")}','${r._pid||''}')">✏️ Editar</button><button class="btn-mini" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:4px" onclick="cancelarVenda('${String(r.p).replace(/'/g,"\\'")}')">Cancelar</button>${btnFinalizacao}`:''}${r._pid?`<button class="btn-mini" style="background:#dbeafe;color:#1a2b5e;border:none;border-radius:6px;padding:3px 8px;font-size:.65rem;font-weight:700;cursor:pointer" onclick="reenviarEmailPedido('${r._pid}')">🔁 Reenviar Email</button>`:''}</td>
     </tr>`;
   }).join('');
 
