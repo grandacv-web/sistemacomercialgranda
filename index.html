@@ -9459,6 +9459,19 @@ let _plFotosUrls=[]; // [{url,nome}]
 let _plArtUrl='';
 let _plLaudoUrl='';
 
+// ART: vendas de julho/2026 em diante, emitidas pelo fluxo normal do sistema (Emissão),
+// já respondem isso lá (p.projetos.art) — a Finalização só herda. Vendas de antes de julho
+// nunca tiveram essa pergunta na Emissão (o recurso não existia ainda), então não dá pra
+// confiar em p.projetos.art; pedido que não veio do fluxo normal (incluído manualmente/
+// planilha, ver incluirVendaNaFinalizacao) também não tem resposta pra herdar. Nesses dois
+// casos, pergunta na própria Finalização — igual ao Laudo Técnico (2026-07-23, a pedido do
+// usuário: "toda venda antes de julho perguntar... julho em diante emitidas no sistema já
+// pegar automático").
+function _plPerguntarArtManual(p){
+  const emitidoNormal=!!(p.origemComercial&&!p.importadoPlanilha);
+  return !(emitidoNormal&&_opMesVenda(p)>=7);
+}
+
 function abrirFinalizacaoObra(pedidoId){
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!p){toast('Pedido não encontrado','terr');return;}
@@ -9521,7 +9534,7 @@ function abrirFinalizacaoObra(pedidoId){
   // pedido do usuário).
   const infoField=document.getElementById('pl-tem-art-info-field');
   const perguntaField=document.getElementById('pl-tem-art-pergunta-field');
-  if(p.forcarFinalizacao){
+  if(_plPerguntarArtManual(p)){
     if(infoField)infoField.style.display='none';
     if(perguntaField)perguntaField.style.display='';
     _plSetTogGroup('pl-tem-art-pergunta-field','pl-tem-art','pl-art-wrap',fin.temArt||'');
@@ -9594,19 +9607,19 @@ async function _plSalvarRascunhoAgora(){
     pendenciasObs:(document.getElementById('pl-pendencias')?.value||'').trim(),
     documentoUrl:_plDocUrl,
     fotos:_plFotosUrls.slice(),
-    // ART vem da Emissão (p.projetos.art) pro pedido normal; pro incluído manualmente
-    // (p.forcarFinalizacao) é pergunta desta tela, igual Laudo Técnico.
-    temArt:p.forcarFinalizacao?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||''),
+    // ART vem da Emissão (p.projetos.art) pro pedido normal de julho/2026+; senão é
+    // pergunta desta tela, igual Laudo Técnico (ver _plPerguntarArtManual).
+    temArt:_plPerguntarArtManual(p)?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||''),
     artUrl:_plArtUrl,
     temLaudo:document.getElementById('pl-tem-laudo')?.value||'',
     laudoUrl:_plLaudoUrl,
     atualizadoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
     atualizadoEm:new Date().toISOString()
   };
-  // Em pedido normal, temArt vem sempre da Emissão (não é preenchimento do usuário nesta
-  // tela) então não conta pro "está vazio"; em pedido manual (forcarFinalizacao) conta, já
-  // que ali é uma pergunta real que também pode ficar sem resposta ainda.
-  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!p.forcarFinalizacao||!draft.temArt);
+  // Em pedido com ART automática (herdada da Emissão), temArt não conta pro "está vazio";
+  // em pedido com ART como pergunta desta tela conta, já que ali é uma resposta real que
+  // também pode ficar em aberto ainda.
+  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!_plPerguntarArtManual(p)||!draft.temArt);
   if(vazio&&!p.finalizacaoDraft)return; // nada preenchido ainda e nunca teve rascunho — não grava à toa
   p.finalizacaoDraft=vazio?null:draft;
   try{
@@ -9786,14 +9799,16 @@ async function salvarFinalizacaoObra(){
   const liderTrabalho=(document.getElementById('pl-lider')?.value||'').trim();
   const acompanhanteCliente=(document.getElementById('pl-acompanhante')?.value||'').trim();
   const pendenciasObs=(document.getElementById('pl-pendencias')?.value||'').trim();
-  // ART: pedido normal herda da Emissão (p.projetos.art); pedido incluído manualmente
-  // (p.forcarFinalizacao) é pergunta obrigatória desta própria tela, igual Laudo Técnico.
-  const temArt=p.forcarFinalizacao?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||'');
+  // ART: pedido normal de julho/2026+ herda da Emissão (p.projetos.art); os demais casos
+  // (venda antes de julho, ou não emitida pelo fluxo normal) é pergunta obrigatória desta
+  // própria tela, igual Laudo Técnico (ver _plPerguntarArtManual).
+  const perguntarArt=_plPerguntarArtManual(p);
+  const temArt=perguntarArt?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||'');
   const temLaudo=document.getElementById('pl-tem-laudo')?.value||'';
   if(!dataFinalizacao){toast('Informe a data de finalização do pedido','terr');return;}
   if(!liderTrabalho){toast('Informe o líder que realizou o trabalho','terr');return;}
   if(!acompanhanteCliente){toast('Informe quem acompanhou pelo cliente','terr');return;}
-  if(p.forcarFinalizacao&&!temArt){toast('Informe se esta obra tem ART','terr');return;}
+  if(perguntarArt&&!temArt){toast('Informe se esta obra tem ART','terr');return;}
   if(temArt==='Sim'&&!_plArtUrl){toast('Envie o arquivo da ART','terr');return;}
   if(!temLaudo){toast('Informe se esta obra tem Laudo Técnico','terr');return;}
   if(temLaudo==='Sim'&&!_plLaudoUrl){toast('Envie o arquivo do Laudo Técnico','terr');return;}
