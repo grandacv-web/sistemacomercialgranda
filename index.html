@@ -797,6 +797,7 @@ select.fc{cursor:pointer}
       <div class="dash-tabs" style="margin-bottom:14px" id="ferr-tools-nav">
         <button class="dash-tab active" id="ferr-tool-tarefas" onclick="ferramentaTool('tarefas',this)">📌 Tarefas</button>
         <button class="dash-tab" id="ferr-tool-orcamento-link" onclick="window.open('https://grandacv-web.github.io/or-amentosgranda/','_blank','noopener')" title="Abre o Sistema de Orçamentação (letras caixa, fachadas e custos) em outra aba">🧮 Sistema de Orçamentação ↗</button>
+        <button class="dash-tab" id="ferr-tool-rnc-link" onclick="window.open('https://gquali-granda.vercel.app/','_blank','noopener')" title="Abre o sistema de Qualidade (Gquali) em outra aba">🛡️ Abertura de RNC ↗</button>
       </div>
 
       <div id="ferramenta-tarefas">
@@ -827,10 +828,14 @@ select.fc{cursor:pointer}
           </div>
           <textarea id="tf-novo-desc" class="no-upper" placeholder="Descrição da tarefa (opcional) — detalhe o que precisa ser feito..." rows="2" style="width:100%;padding:8px 10px;border:1.5px solid #bfdbfe;border-radius:7px;font-size:.8rem;font-family:inherit;box-sizing:border-box;background:#fff;resize:vertical"></textarea>
         </div>
-        <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div id="tf-fil-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
           <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">👤 Filtrar por responsável</label>
           <select id="tf-fil-responsavel" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
             <option value="">Todos</option>
+          </select>
+          <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap;margin-left:6px">🏷️ Filtrar por categoria</label>
+          <select id="tf-fil-categoria" onchange="renderTarefasComerciais()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)">
+            <option value="">Todas</option>
           </select>
         </div>
         <!-- Exportação em PDF — independe da aba Pendentes/Concluídas em tela: monta a lista
@@ -3011,7 +3016,7 @@ function buildSidebarCats(){
   // (2026-07-23, a pedido do usuário, depois de perguntar se valia a pena ter essa tela).
   const cats=['FERRAMENTAS','HISTORICO',...(_isFinanceiroUser()?['FINANCEIRO']:[]),...(_isPlanejamentoUser()?['PLANEJAMENTO']:[])];
   const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐','HISTORICO':'🔍'};
-  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS COMERCIAIS','HISTORICO':'HISTÓRICO DE PEDIDOS'};
+  const catLabelsSidebar={'FERRAMENTAS':'FERRAMENTAS','HISTORICO':'HISTÓRICO DE PEDIDOS'};
   container.innerHTML=cats.map(cat=>`
     <button class="sb-btn" id="sb-cat-${cat.replace(/\s/g,'_')}" onclick="setSection('cat:${cat}')" title="${catLabelsSidebar[cat]||cat}" style="font-size:.7rem">
       <span style="font-size:1rem;flex-shrink:0;width:18px;text-align:center">${catIcons[cat]||'📁'}</span>
@@ -3058,8 +3063,8 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     const isFerr=cat==='FERRAMENTAS';
     // Atualiza header da seção
     const catIcons={'FERRAMENTAS':'🧰','RH':'👥','FINANCEIRO':'💰','COMPRAS':'🛒','PCP':'📋','PRODUÇÃO':'🏭','QUALIDADE':'✅','PLANEJAMENTO':'🏗️','PROJETOS':'📐','HISTORICO':'🔍'};
-    const catLabelsHeader={'FERRAMENTAS':'Ferramentas Comerciais','PLANEJAMENTO':'Planejamento','HISTORICO':'Histórico de Pedidos'};
-    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time comercial','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Finalização de obra','PROJETOS':'Gestão de projetos','HISTORICO':'Tudo que já aconteceu com um pedido, num só lugar'};
+    const catLabelsHeader={'FERRAMENTAS':'Ferramentas','PLANEJAMENTO':'Planejamento','HISTORICO':'Histórico de Pedidos'};
+    const catDescs={'FERRAMENTAS':'Tarefas, prazos e outras ferramentas do time','RH':'Recursos Humanos','FINANCEIRO':'Financeiro e contabilidade','COMPRAS':'Compras e suprimentos','PCP':'Planejamento e controle da produção','PRODUÇÃO':'Acompanhamento de produção','QUALIDADE':'Controle de qualidade','PLANEJAMENTO':'Finalização de obra','PROJETOS':'Gestão de projetos','HISTORICO':'Tudo que já aconteceu com um pedido, num só lugar'};
     const nameEl=document.getElementById('cat-hdr-name');
     const descEl=document.getElementById('cat-hdr-desc');
     if(nameEl)nameEl.textContent=(catIcons[cat]||'📁')+' '+(catLabelsHeader[cat]||(cat.charAt(0)+cat.slice(1).toLowerCase()));
@@ -5393,12 +5398,17 @@ async function _enviarEmailEmissao(p,destEmailsOverride){
   try{
     emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
     const sid=cfg.s||'service_t99xeta';
-    // Fallback atualizado 2026-07-23 — o template antigo (template_8ymz4j4) sumiu/foi
-    // recriado no EmailJS com outro ID, causando erro "template not found" numa emissão
-    // real. Novo ID confirmado pelo usuário direto no dashboard do EmailJS: template
-    // "Contact Us" com Subject={{subject}}, Content={{{html_content}}}, To Email=
-    // {{to_email}}, From Name={{name}}, Reply To={{reply_to}}.
-    const tid=cfg.t||'template_7rz15hy';
+    // Fallback atualizado 2026-07-23 (3ª correção no mesmo dia) — os 2 IDs anteriores
+    // (template_8ymz4j4, depois g8ozal3 — que era o slug da URL, não o campo real) estavam
+    // errados. ID confirmado na aba Settings→Template ID do próprio template "Contact Us"
+    // no dashboard do EmailJS (não confiar na URL, só no campo "Template ID" mesmo):
+    // template_lzow9ef, com Subject={{subject}}, Content={{{html_content}}}, To Email=
+    // {{to_email}}, From Name={{name}}, Reply To={{reply_to}}. O template de notificação de
+    // tarefa (cfg.ctt) foi excluído pelo usuário — envio de e-mail de tarefa fica
+    // temporariamente sem funcionar, decisão consciente (2026-07-23), não é bug. Se voltar a
+    // dar "template not found" aqui, o campo cfg.t salvo em Configurações → E-mail está com
+    // prioridade sobre esse fallback — checar lá primeiro.
+    const tid=cfg.t||'template_lzow9ef';
     const{html_content,subject}=buildEmissaoEmailContent(p);
     await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Granda Comunicação Visual',reply_to:'pedidos@granda.ind.br'});
     p.emailStatus='enviado';p.emailEnviadoEm=new Date().toISOString();p.emailDestinatarios=destEmails;p.emailErro='';
@@ -5849,8 +5859,13 @@ async function submit(){
 }
 
 // CONFIGURAÇÕES
-function openCfg(){openM('mo-cfg');renderUserList()}
-function closeCfg(){closeM('mo-cfg')}
+// Corrigido 2026-07-23: as duas funções abaixo abriam/fechavam um modal "mo-cfg" que não
+// existe (sobrou de algum refactor antigo — o modal real de Configurações é "mo-set",
+// aberto direto por openSettings()). closeCfg() é chamada no fim de saveCfg(); como
+// closeM() é null-safe, não dava erro nenhum — só silenciosamente não fechava nada, dando
+// a impressão de que o botão "Salvar Configurações" não tinha feito nada.
+function openCfg(){openM('mo-set');renderUserList()}
+function closeCfg(){closeM('mo-set')}
 function saveCfg(){
   // (Corrigido 2026-07-16) Os 3 campos abaixo liam de ids 'cfg-s'/'cfg-t'/'cfg-k', que não
   // existem no HTML (os inputs reais são 'cs'/'ct'/'ck') — o valor digitado nunca era
@@ -6671,6 +6686,24 @@ function getNomesUsuarios(){
   const set=new Set(Object.values(nomes).map(n=>(n||'').trim()).filter(Boolean));
   set.add('GUILHERME CLABONDE'); // admin dono do sistema — não passa pelo cadastro normal de usuários
   return[...set].sort();
+}
+// Categoria(s) de um usuário a partir do NOME (usado no filtro por categoria de Tarefas —
+// lá só se guarda o nome do responsável, não o e-mail). Normalmente é 1 categoria só
+// (cfg.usuarioCats é 1-pra-1 por e-mail), mas o Guilherme (dono do sistema, ADMINISTRADOR
+// fixo via _ADMINS, não passa pelo cadastro normal em cfg.usuarioCats) também atua no
+// comercial — então entra manualmente com as duas categorias aqui, sem mexer no cadastro
+// normal de usuários nem tirar nenhuma função de admin dele.
+function _nomeParaCategorias(nome){
+  const alvo=(nome||'').trim().toUpperCase();
+  if(!alvo)return[];
+  const result=new Set();
+  const nomes=cfg.usuarioNomes||{};
+  const cats=cfg.usuarioCats||{};
+  Object.keys(nomes).forEach(email=>{
+    if((nomes[email]||'').trim().toUpperCase()===alvo&&cats[email])result.add(cats[email]);
+  });
+  if(alvo==='GUILHERME CLABONDE'){result.add('ADMINISTRADOR');result.add('COMERCIAL');}
+  return[...result];
 }
 function renderRegrasTarefasAuto(){
   const selTipo=document.getElementById('cfg-regra-tipo');
@@ -12207,6 +12240,8 @@ function abrirTarefasComerciais(){
     if(selResp)selResp.innerHTML='<option value="">Sem responsável</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
     const selFilResp=document.getElementById('tf-fil-responsavel');
     if(selFilResp)selFilResp.innerHTML='<option value="">Todos</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
+    const selFilCat=document.getElementById('tf-fil-categoria');
+    if(selFilCat)selFilCat.innerHTML='<option value="">Todas</option>'+CATEGORIAS_USUARIOS.map(c=>`<option value="${c}">${c}</option>`).join('');
   }
   renderTarefasComerciais();
 }
@@ -12245,18 +12280,22 @@ function renderTarefasComerciais(){
   const meuNome=usuarioLogado?.nomeExibicao||'';
   const pendente=_tarefasTabAtual==='pendentes';
   let lista=pendente?getTarefasComerciaisPendentes():getTarefasComerciaisConcluidas();
-  let filResp='';
+  let filResp='',filCat='';
   if(isAdm){
-    // Admin pode filtrar por qualquer responsável (ou ver todo mundo)
+    // Admin pode filtrar por qualquer responsável (ou ver todo mundo), e também por
+    // categoria de usuário (Comercial, Planejamento, Financeiro, Adm etc.) — ver
+    // _nomeParaCategorias().
     filResp=(document.getElementById('tf-fil-responsavel')||{}).value||'';
     if(filResp)lista=lista.filter(t=>t.responsavel===filResp);
+    filCat=(document.getElementById('tf-fil-categoria')||{}).value||'';
+    if(filCat)lista=lista.filter(t=>_nomeParaCategorias(t.responsavel).includes(filCat));
   } else {
     // Todo mundo mais vê só as próprias tarefas atribuídas — é a "caixinha pendente pra
     // mim" que fica assim até eu mesmo marcar como concluída.
     lista=lista.filter(t=>t.responsavel===meuNome);
   }
   if(!lista.length){
-    body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${filResp?'Nenhuma tarefa pra esse responsável.':(pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.')}</div>`;
+    body.innerHTML=`<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">${(filResp||filCat)?'Nenhuma tarefa para esse filtro.':(pendente?'Nenhuma tarefa pendente. 🎉':'Nenhuma tarefa concluída ainda.')}</div>`;
     return;
   }
   // Guarda a lista renderizada (já com os dados de venda mesclados) pra abrirDetalheTarefa()
@@ -12602,7 +12641,7 @@ async function exportarTarefasPDF(){
     doc.text('RELATÓRIO DE TAREFAS',pageW-14,15,{align:'right'});
     doc.setTextColor(...PINK);
     doc.setFontSize(10);
-    doc.text('Ferramentas Comerciais',pageW-14,21,{align:'right'});
+    doc.text('Ferramentas',pageW-14,21,{align:'right'});
     doc.setTextColor(...GRAY);
     doc.setFont('helvetica','normal');
     doc.setFontSize(7.5);
@@ -13977,7 +14016,7 @@ function renderDashGraficos(){
     const bg=restantes<=3?'#fef2f2':restantes<=7?'#fffbeb':'#f0fdf4';
     duEl.innerHTML=`<div style="display:inline-flex;align-items:center;gap:8px;background:${bg};border:1px solid ${cor}33;border-radius:10px;padding:8px 14px">
       <span style="font-size:1.1rem">🗓️</span>
-      <span style="font-size:.85rem;color:#374151">Faltam <strong style="color:${cor};font-size:.95rem">${restantes}</strong> dia${restantes===1?'':'s'} útil${restantes===1?'':'eis'} pra acabar ${MESES_PT[hoje.getMonth()+1].toLowerCase()}</span>
+      <span style="font-size:.85rem;color:#374151">Faltam <strong style="color:${cor};font-size:.95rem">${restantes}</strong> dia${restantes===1?'':'s'} ${restantes===1?'útil':'úteis'} pra acabar ${MESES_PT[hoje.getMonth()+1].toLowerCase()}</span>
     </div>`;
   }
   const lbl=document.getElementById('gc-mes-lbl');
