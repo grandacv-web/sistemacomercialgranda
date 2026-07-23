@@ -11066,10 +11066,19 @@ function renderContasUnificado(){
     const acoes=i.statusCalc==='confirmado'
       ?(isFinAdm?`<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span> <button onclick="if(confirm('Reabrir este recebimento? Ele volta a aparecer como pendente e a comissão correspondente deixa de estar liberada.'))reabrirPag('${ck}')" style="background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 8px;font-size:.68rem;color:#64748b;cursor:pointer;margin-left:6px" title="Reabrir">↩ Reabrir</button>`:'<span style="font-size:.72rem;color:#16a34a">Recebido ✓</span>')
       :(isFinAdm?`<button class="dash-btn-conf" onclick="abrirConfirmarRecebimento('${ck}','${da}','${cl}',${i.valorBruto})">✅ Confirmar</button><button class="dash-btn-adiar" style="background:#fee2e2;color:#dc2626" onclick="abrirMotivoNaoRecebido('${ck}','${da}','${cl}',${i.valorBruto})">❌ Não recebido</button>`:'<span style="font-size:.72rem;color:#94a3b8">Aguardando Financeiro</span>');
+    // i.pedido é o MESMO objeto de `pedidos` (referência, não cópia — ver getParcelas/
+    // getComissaoItemsAll) — então i.pedido.prazo sempre reflete o valor atual, mesmo que
+    // tenha sido alterado em Planejamento depois do cache de comissão ter sido montado.
+    // Sem isso ser um dado à parte pra sincronizar, é literalmente o mesmo campo (2026-07-23,
+    // a pedido do usuário: "a data de finalização de cada pedido... atrelada com a alteração
+    // no planejamento, se a data mudar lá, muda na lista também").
+    const prazoObra=i.pedido?.prazo||'';
+    const prazoObraOrig=i.pedido?.prazoOriginal||'';
     return{
       iso,dataLabel:i.dataAtiva||'—',
       tipoBadge:'<span style="background:#dbeafe;color:#1e40af;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">📥 Receber</span>',
       quem:i.cliente||'—',quemSub:pedidoDisplay(i.pedidoOs)||i.mesPedido||'',
+      prazoObra,prazoObraOrig,
       detalhe:(i.nomeVend||'—')+(i.label?' · '+i.label:''),
       // Contas a Receber não tem conceito de categoria (isso é só de Contas a Pagar,
       // ver plano de contas em getPlanoContasDespesas()) — fica vazio de propósito.
@@ -11098,6 +11107,9 @@ function renderContasUnificado(){
       iso,dataLabel:fmtD(c.vencimento)||'—',
       tipoBadge:'<span style="background:#ffedd5;color:#c2410c;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap">📤 Pagar</span>',
       quem:c.fornecedor||'—',quemSub:_capLabel(c.empresa),
+      // Conta a pagar é despesa/fornecedor — não tem obra/pedido associado, então não tem
+      // Data de Finalização (fica em branco na coluna nova, só faz sentido pra Receber).
+      prazoObra:'',prazoObraOrig:'',
       // Categoria volta a ter coluna própria e editável (2026-07-22, a pedido do usuário:
       // "tem que ter categoria aparecendo e o usuario poder mudar a categoria ali na lista
       // mesmo como era antes") — antes estava escondida junto com a Despesa dentro de
@@ -11122,19 +11134,24 @@ function renderContasUnificado(){
   if(!linhas.length){body.innerHTML='<div style="padding:24px 4px;color:#94a3b8;font-size:.85rem">Nenhum lançamento encontrado com esses filtros.</div>';return;}
 
   body.innerHTML=`<div style="overflow-x:auto"><table class="dash-table">
-    <thead><tr><th>Data</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Categoria</th><th>Detalhe</th><th>Valor</th><th>Status</th><th>Atraso/Obs.</th><th>Ação</th></tr></thead>
-    <tbody>${linhas.map(l=>`
+    <thead><tr><th>Data</th><th>Tipo</th><th>Cliente/Fornecedor</th><th>Data de Finalização</th><th>Categoria</th><th>Detalhe</th><th>Valor</th><th>Status</th><th>Atraso/Obs.</th><th>Ação</th></tr></thead>
+    <tbody>${linhas.map(l=>{
+      const prazoAdiadoTag=l.prazoObraOrig&&l.prazoObraOrig!==l.prazoObra?` <span title="Prazo original: ${fmtD(l.prazoObraOrig)}" style="font-size:.64rem;color:#d97706;cursor:help">(adiado)</span>`:'';
+      const prazoObraHtml=l.prazoObra?`${fmtD(l.prazoObra)}${prazoAdiadoTag}`:'<span style="color:#94a3b8">—</span>';
+      return`
       <tr>
         <td style="white-space:nowrap;font-size:.78rem">${l.dataLabel}</td>
         <td>${l.tipoBadge}</td>
         <td style="font-weight:600;white-space:normal;word-break:break-word;min-width:130px">${l.quem}${l.quemSub?`<div style="font-size:.68rem;color:#94a3b8;font-weight:500">${l.quemSub}</div>`:''}</td>
+        <td style="font-size:.78rem;white-space:nowrap">${prazoObraHtml}</td>
         <td style="font-size:.78rem;white-space:nowrap">${l.categoria}</td>
         <td style="font-size:.78rem">${l.detalhe}</td>
         <td style="font-weight:700;white-space:nowrap"${l.valorTitle?` title="${l.valorTitle.replace(/"/g,'&quot;')}"`:''}>${fmtR(l.valor)}${l.valorTitle?' <span style="color:#d97706;font-size:.62rem" title="Valor ajustado por juros/multa/desconto">⚠️</span>':''}</td>
         <td>${l.statusLbl}</td>
         <td style="font-size:.75rem;max-width:200px">${l.obsCol}</td>
         <td style="white-space:nowrap">${l.acoes}</td>
-      </tr>`).join('')}
+      </tr>`;
+    }).join('')}
     </tbody>
   </table></div>`;
 }
@@ -13174,6 +13191,10 @@ function pedidoToVendaRow(p){
   return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||'',v:vendaVend,
     br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
     numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||'',cidade:p.locCidade||'',
+    // prazoOriginal só existe se o prazo já foi alterado em Planejamento (abrirAlterarPrazoObra)
+    // — usado na Lista de Vendas pra mostrar "(adiado)" quando entrega!==prazoOriginal
+    // (2026-07-23, a pedido do usuário: quer ver aqui também quando o prazo mudou lá).
+    prazoOriginal:p.prazoOriginal||'',
     mesAjustado:!!p.mesVendaOverride};
 }
 
@@ -13539,6 +13560,7 @@ function renderDashVendas(){
       <td class="dt-cat"><span class="dt-cat-pill" style="background:${catCorV.bg};color:${catCorV.fg}">${r.cat}</span></td>
       <td style="white-space:nowrap"><span class="dt-vend-pill" style="background:${vCor.bg};color:${vCor.fg}">${r.v||'—'}</span></td>
       <td class="dt-pag">${fmtProximoPagamento(r.p)}</td>
+      <td style="font-size:.74rem;white-space:nowrap">${r.entrega?`${fmtD(r.entrega)}${r.prazoOriginal&&r.prazoOriginal!==r.entrega?` <span title="Prazo original: ${fmtD(r.prazoOriginal)}" style="font-size:.64rem;color:#d97706;cursor:help">(adiado)</span>`:''}`:'<span style="color:#94a3b8">—</span>'}</td>
       <td class="dt-num dt-fin" style="font-weight:700;color:#1a2b5e">${fmtR(r.br)}</td>
       <td class="dt-num dt-fin">
         <div style="font-weight:700;color:#7c3aed">${fmtOp(r.opAdj)}</div>
@@ -13555,6 +13577,7 @@ function renderDashVendas(){
         <th colspan="2">📄 Pedido / JOB</th>
         <th>👤 Cliente</th><th>🏷️ Categoria</th><th>🧑‍💼 Vendedor</th>
         <th>💳 Pagamento</th>
+        <th>🏗️ Finalização</th>
         <th class="dt-num dt-fin" style="color:#1a2b5e">Valor Bruto</th>
         <th class="dt-num dt-fin" style="color:#7c3aed">Operacionais</th>
         <th class="dt-num dt-fin" style="color:#e0245e">Valor Líquido</th>
@@ -13563,7 +13586,7 @@ function renderDashVendas(){
     </thead>
     <tbody>${tableRows}</tbody>
     <tfoot><tr>
-      <td colspan="6" style="font-weight:700">TOTAL (${nPeds} pedido${nPeds!==1?'s':''})</td>
+      <td colspan="7" style="font-weight:700">TOTAL (${nPeds} pedido${nPeds!==1?'s':''})</td>
       <td class="dt-num" style="font-weight:800;color:#1a2b5e">${fmtR(totBr)}</td>
       <td class="dt-num" style="font-weight:800;color:#7c3aed">${fmtR(totOp)}</td>
       <td class="dt-num" style="font-weight:800;color:#e0245e">${fmtR(totLq)}</td>
