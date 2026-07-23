@@ -74,6 +74,15 @@ body{font-family:'Inter',system-ui,sans-serif;background:#f4f6f8;color:var(--ink
 .cat-hdr{background:#111827;padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e91e63;position:sticky;top:0;z-index:31;width:100%;box-sizing:border-box}
 .cat-content{padding:28px}
 
+/* ── PAINEL DE INFO DO USUÁRIO (faixa entre o header e o conteúdo, 2026-07-23) ──
+   Pensado pra crescer: hoje só tarefas, mas os "pills" (.ui-bar-pill) são genéricos —
+   dá pra empilhar mais indicadores aqui dentro no futuro sem redesenhar nada. */
+.ui-info-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,var(--brand-xlt),#fff);border:1px solid var(--border-lt);border-radius:10px;padding:8px 14px;margin:14px 20px 0;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.ui-info-bar:hover{box-shadow:0 2px 10px rgba(0,0,0,.07);border-color:var(--brand)}
+.ui-bar-pills{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.ui-bar-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:.74rem;font-weight:700;white-space:nowrap}
+.ui-bar-cta{font-size:.72rem;font-weight:700;color:var(--brand-d);white-space:nowrap;flex-shrink:0}
+
 /* ── DASHBOARD COMERCIAL ── */
 .dash-tabs{display:flex;gap:4px;margin-bottom:20px;background:#e5e7eb;padding:4px;border-radius:10px}
 .dash-tab{flex:1;padding:9px;border:none;border-radius:7px;background:transparent;font-size:.78rem;font-weight:600;color:#6b7280;cursor:pointer;font-family:inherit;transition:all .2s}
@@ -480,6 +489,7 @@ select.fc{cursor:pointer}
     </div>
   </div>
 
+  <div class="ui-info-bar" id="ui-bar-geral" onclick="_irParaTarefas()"></div>
   <div class="dash-tabs" style="margin:16px 20px 0">
     <button class="dash-tab" id="gtab-graficos" onclick="geralTab('graficos',this)">📈 Gráficos</button>
     <button class="dash-tab active" id="gtab-vendas" onclick="geralTab('vendas',this)">📊 Vendas do Mês</button>
@@ -786,6 +796,7 @@ select.fc{cursor:pointer}
       </button>
     </div>
   </div>
+  <div class="ui-info-bar" id="ui-bar-cat" onclick="_irParaTarefas()"></div>
   <!-- Conteúdo da categoria -->
   <div class="cat-content">
     <!-- FERRAMENTAS COMERCIAIS — item fixo do sidebar (visível pra todo mundo logado, não
@@ -801,9 +812,6 @@ select.fc{cursor:pointer}
       </div>
 
       <div id="ferramenta-tarefas">
-        <div style="font-size:.78rem;color:var(--ink4);margin-bottom:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)">
-          Pendências operacionais — toda venda emitida ou lançada manualmente já entra aqui com "Lançar no GCore". Dá pra criar qualquer outra tarefa avulsa numa venda específica ou sem venda nenhuma, com prazo opcional. Ao atribuir um responsável, a tarefa fica pendente pra ele até ele mesmo marcar como concluída — quando tem prazo, uma tarefa concluída depois do prazo conta como atrasada no Relatório.
-        </div>
         <div class="dash-tabs" style="margin-bottom:10px" id="tf-subtabs">
           <button class="dash-tab active" id="tf-tab-pend" onclick="tarefasTab('pendentes',this)">⏳ Pendentes</button>
           <button class="dash-tab" id="tf-tab-conc" onclick="tarefasTab('concluidas',this)">✅ Concluídas</button>
@@ -2499,12 +2507,42 @@ async function decidirAdiamentoTarefaGeral(tarefaId,aprovado){
 // antigo botão gtab-tarefas, dentro de Geral, pra o item fixo do sidebar em 2026-07-16.)
 function _refreshTarefasBadge(){
   const badge=document.getElementById('ferr-sidebar-badge');
-  if(!badge)return;
+  if(badge){
+    const {isAdm}=_getUserCat();
+    const pend=getTarefasComerciaisPendentes();
+    const meuNome=usuarioLogado?.nomeExibicao||'';
+    const n=isAdm?pend.length:pend.filter(t=>t.responsavel===meuNome).length;
+    badge.textContent=n?` (${n})`:'';
+  }
+  _renderPainelUsuario();
+}
+function _irParaTarefas(){
+  setSection('cat:FERRAMENTAS');
+}
+// Faixa clicável entre o header e o conteúdo (ui-bar-geral em sec-geral, ui-bar-cat em
+// sec-cat — dois containers porque são dois blocos de header/conteúdo independentes, ver
+// setSection()). Hoje só mostra tarefas do usuário logado, mas os "pills" são genéricos:
+// dá pra empilhar mais indicadores aqui no futuro só adicionando mais <span class="ui-bar-pill">
+// dentro do mesmo template. Reaproveita _refreshTarefasBadge() como hook único (já chamado
+// em toda mutação de tarefa relevante) em vez de espalhar chamadas novas pelo código.
+function _renderPainelUsuario(){
+  const alvos=[document.getElementById('ui-bar-geral'),document.getElementById('ui-bar-cat')].filter(Boolean);
+  if(!alvos.length)return;
   const {isAdm}=_getUserCat();
-  const pend=getTarefasComerciaisPendentes();
   const meuNome=usuarioLogado?.nomeExibicao||'';
-  const n=isAdm?pend.length:pend.filter(t=>t.responsavel===meuNome).length;
-  badge.textContent=n?` (${n})`:'';
+  const minhas=getTarefasComerciaisPendentes().filter(t=>isAdm||t.responsavel===meuNome);
+  const total=minhas.length;
+  const atrasadas=minhas.filter(_tarefaAtrasada).length;
+  let html;
+  if(!total){
+    html=`<div class="ui-bar-pills"><span class="ui-bar-pill" style="background:var(--success-lt);color:var(--success)">✅ Nenhuma tarefa pendente</span></div><span class="ui-bar-cta">Ver tarefas →</span>`;
+  }else{
+    html=`<div class="ui-bar-pills">
+      <span class="ui-bar-pill" style="background:var(--brand-lt);color:var(--brand-d)">📋 ${total} tarefa${total===1?'':'s'} a realizar</span>
+      ${atrasadas?`<span class="ui-bar-pill" style="background:var(--danger-lt);color:var(--danger)">⚠️ ${atrasadas} atrasada${atrasadas===1?'':'s'}</span>`:''}
+    </div><span class="ui-bar-cta">Ver tarefas →</span>`;
+  }
+  alvos.forEach(el=>el.innerHTML=html);
 }
 async function adicionarTarefaComercialAvulsa(pedidoId,tipo,responsavel,prazoTarefa,descricao){
   const p=pedidos.find(x=>x.id===pedidoId);
@@ -6435,6 +6473,7 @@ function initAuth(tries){
           usuarioLogado.categoria=catMap[user.email.toLowerCase()]||catMap[user.email]||'';
           atualizarBotaoNovoPedido();
           buildSidebarCats();
+          _refreshTarefasBadge();
           // Lista de Emissão já abre filtrada no mês atual, sem precisar mexer em filtro nenhum
           const _fMesEl=document.getElementById('f-mes');
           if(_fMesEl){_fMesEl.value=String(new Date().getMonth()+1);}
