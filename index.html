@@ -1787,6 +1787,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="motivosadiamento" onclick="setCfgSec('motivosadiamento',this)">⏭ Motivos de Adiamento</button>
       <button class="cfg-menu-btn admin-only" data-sec="tarefasauto" onclick="setCfgSec('tarefasauto',this)">📌 Tarefas Automáticas</button>
       <button class="cfg-menu-btn admin-only" data-sec="metas" onclick="setCfgSec('metas',this)">🎯 Metas</button>
+      <button class="cfg-menu-btn admin-only" data-sec="saude" onclick="setCfgSec('saude',this)">🩺 Saúde do Sistema</button>
     </div>
     <!-- Content -->
     <div style="flex:1;overflow-y:auto;padding:20px 24px">
@@ -2045,6 +2046,23 @@ select.fc{cursor:pointer}
           <select class="fc" id="cfg-regra-responsavel" style="width:100%;margin-bottom:10px"><option value="">Sem responsável definido</option></select>
           <button class="btn-next" onclick="addRegraTarefaAuto()" style="width:100%">+ Adicionar Regra</button>
         </div>
+      </div>
+      <!-- SAÚDE DO SISTEMA -->
+      <div class="cfg-sec" id="cfg-sec-saude" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🩺 Saúde do Sistema</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:16px">Diagnóstico rápido dos dois pontos que, no longo prazo, são os que mais podem pesar o sistema: quantidade de pedidos carregados na memória e o tamanho da configuração compartilhada (cfg) no Firestore — que tem limite de 1MB por documento. Números calculados na hora, toda vez que você abre esta aba.</p>
+        <div style="background:#fff;border-radius:12px;padding:18px;border:1.5px solid var(--border);margin-bottom:14px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:10px">📦 Pedidos carregados</div>
+          <div id="saude-pedidos-texto" style="font-size:.85rem;color:var(--ink2)">—</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:18px;border:1.5px solid var(--border);margin-bottom:14px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--ink2);margin-bottom:10px">⚙️ Tamanho da configuração compartilhada (cfg)</div>
+          <div id="saude-cfg-uso-bar" style="background:#e5e7eb;border-radius:8px;height:10px;overflow:hidden;margin:2px 0 6px">
+            <div id="saude-cfg-uso-fill" style="height:100%;width:0%;background:#16a34a;transition:width .3s"></div>
+          </div>
+          <div id="saude-cfg-texto" style="font-size:.8rem;font-weight:700;color:var(--ink2)">—</div>
+        </div>
+        <div id="saude-avisos"></div>
       </div>
     </div>
   </div>
@@ -6157,6 +6175,41 @@ function setCfgSec(sec,btn){
   if(sec==='motivosadiamento')renderMotivosAdiamento();
   if(sec==='tarefasauto')renderRegrasTarefasAuto();
   if(sec==='metas')initPagamentosExtrasForm();
+  if(sec==='saude')renderSaudeSistema();
+}
+// Diagnóstico rápido pra acompanhar os dois pontos que mais tendem a pesar o sistema com o
+// tempo (2026-07-23, a pedido do usuário, depois de perguntar se ia "dar bug ou ficar
+// pesado"): quantidade de pedidos carregados em memória a cada abertura do sistema, e o
+// tamanho do documento cfg no Firestore (que é sobrescrito inteiro a cada Salvar e tem
+// limite rígido de 1MB). Calculado sob demanda (não fica rodando em segundo plano) toda
+// vez que a aba é aberta.
+function renderSaudeSistema(){
+  const nPedidos=pedidos.length;
+  const pTxt=document.getElementById('saude-pedidos-texto');
+  if(pTxt){
+    let avisoPed='';
+    if(nPedidos>8000)avisoPed=' — <strong style="color:#dc2626">bem alto; se as listas (Vendas, Financeiro) começarem a demorar pra abrir, é aqui.</strong>';
+    else if(nPedidos>3000)avisoPed=' — <strong style="color:#d97706">crescendo; vale ficar de olho daqui uns meses.</strong>';
+    pTxt.innerHTML=`<strong>${nPedidos.toLocaleString('pt-BR')}</strong> pedido(s) carregado(s) na memória do navegador nesta sessão${avisoPed}`;
+  }
+
+  const LIMITE_CFG=1048576; // 1MB — limite rígido de documento do Firestore
+  let cfgBytes=0;
+  try{cfgBytes=new Blob([JSON.stringify(cfg)]).size;}catch(e){cfgBytes=JSON.stringify(cfg).length;}
+  const pct=Math.min(100,(cfgBytes/LIMITE_CFG)*100);
+  const fill=document.getElementById('saude-cfg-uso-fill');
+  if(fill){fill.style.width=pct+'%';fill.style.background=pct>85?'#dc2626':pct>60?'#d97706':'#16a34a';}
+  const cfgTxt=document.getElementById('saude-cfg-texto');
+  if(cfgTxt)cfgTxt.textContent=`${(cfgBytes/1024).toFixed(1)} KB de ${(LIMITE_CFG/1024).toFixed(0)} KB (${pct.toFixed(1)}%)`;
+
+  const avisosEl=document.getElementById('saude-avisos');
+  if(avisosEl){
+    const avisos=[];
+    if(pct>85)avisos.push('🔴 cfg está perto do limite de 1MB do Firestore — Salvar Configurações vai começar a falhar. Fale comigo pra mover algo grande (ex.: vendasCanceladas, pagConf) pra fora do cfg.');
+    else if(pct>60)avisos.push('🟡 cfg passou de 60% do limite — não é urgente, mas comece a acompanhar todo mês.');
+    if(nPedidos>8000)avisos.push('🔴 muitos pedidos carregados de uma vez — se sentir o sistema mais lento pra abrir listas, esse é o motivo mais provável.');
+    avisosEl.innerHTML=avisos.length?avisos.map(a=>`<div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:8px;padding:10px 12px;font-size:.78rem;color:#92400e;font-weight:600;margin-top:10px">${a}</div>`).join(''):'<div style="background:#f0fdf4;border:1.5px solid #16a34a;border-radius:8px;padding:10px 12px;font-size:.78rem;color:#166534;font-weight:600;margin-top:10px">✅ Tudo dentro do esperado, nada pra se preocupar agora.</div>';
+  }
 }
 
 async function enviarResetSenha(){
