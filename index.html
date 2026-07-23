@@ -12746,6 +12746,16 @@ function renderRelatorioTarefas(){
       <div style="font-size:1.6rem;font-weight:800;color:${pctCor(pctGeral)}">${pctGeral==null?'—':pctGeral.toFixed(1).replace('.',',')+'%'}</div>
       <div style="font-size:.78rem;color:#64748b;margin-top:4px">${totNoPrazo} no prazo · ${totComAtraso} com atraso · sobre ${totResolvido} tarefa(s) já concluída(s) com prazo definido nesse mês${isAdm?'':' (só as suas tarefas)'}</div>
     </div>
+    ${linhas.length?`<div class="dash-card" style="margin-bottom:14px">
+      <div class="dash-sec-title">👤 Aproveitamento por responsável</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px">
+        ${linhas.map(l=>`<div style="background:#f8fafc;border-radius:10px;padding:12px 14px">
+          <div style="font-size:.68rem;font-weight:700;color:#475569;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.resp.replace(/"/g,'&quot;')}">${l.resp}</div>
+          <div style="font-size:1.15rem;font-weight:800;color:${pctCor(l.pct)}">${l.pct==null?'—':l.pct.toFixed(1).replace('.',',')+'%'}</div>
+          <div style="font-size:.66rem;color:#94a3b8;margin-top:2px">${l.noPrazo} no prazo · ${l.comAtraso} atraso</div>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
     <div class="dash-card">
       <div class="dash-sec-title">👤 Por responsável — quem entregou mais no prazo</div>
       <div style="overflow-x:auto"><table class="dash-table">
