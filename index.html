@@ -1042,6 +1042,7 @@ select.fc{cursor:pointer}
         <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
           ⚠️ Obras finalizadas em que o usuário marcou alguma pendência no formulário de Finalização de Obra. Defina uma Data de Resolução Definitiva pra cada uma e acompanhe aqui até dar baixa (com fotos comprovando a resolução) — nada disso é enviado por e-mail, fica só registrado no sistema.
         </div>
+        <div id="pf-cards" style="display:grid;gap:10px;margin-bottom:14px"></div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
           <input id="pf-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderPendenciasFinalizacao()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
           <select id="pf-fil-status" onchange="renderPendenciasFinalizacao()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
@@ -1380,7 +1381,7 @@ select.fc{cursor:pointer}
         <input type="hidden" id="pl-tem-laudo" value="">
         <div class="tg-grp">
           <button type="button" class="tgb yes" data-val="Sim" onclick="_plTogSimNao(this,'pl-tem-laudo','pl-laudo-wrap')">Sim</button>
-          <button type="button" class="tgb no" data-val="Não" onclick="_plTogSimNao(this,'pl-tem-laudo','pl-laudo-wrap')">Não</button>
+          <button type="button" class="tgb no" data-val="Não" onclick="_plTogSimNao(this,'pl-tem-laudo','pl-laudo-wrap')">Não se aplica</button>
         </div>
       </div>
       <div style="grid-column:span 2;display:none" id="pl-laudo-wrap">
@@ -1411,8 +1412,12 @@ select.fc{cursor:pointer}
         <div id="pl-fotos-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px"></div>
       </div>
       <div style="grid-column:span 2">
-        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pendências e Observação</label>
-        <textarea id="pl-pendencias" class="no-upper" rows="3" oninput="_plAgendarRascunho()" placeholder="O que deu errado, ficou pendente ou precisa ser finalizado depois (opcional)..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.86rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pendências desta Obra</label>
+        <textarea id="pl-pendencias" class="no-upper" rows="3" oninput="_plAgendarRascunho()" placeholder="O que deu errado, ficou pendente ou precisa ser finalizado depois (opcional) — vai pra lista de Finalizados com Pendências, em Planejamento..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.86rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+      </div>
+      <div style="grid-column:span 2">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Observações desta Obra</label>
+        <textarea id="pl-observacoes" class="no-upper" rows="3" oninput="_plAgendarRascunho()" placeholder="Qualquer observação geral sobre a obra (opcional) — NÃO vai pra lista de pendências..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.86rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
       </div>
     </div>
   </div>
@@ -9486,8 +9491,10 @@ function renderPlanejamentoObras(){
 
 // ── FINALIZADOS COM PENDÊNCIAS (2026-07-23) ─────────────────────────────────────────────
 // Obra já finalizada (p.finalizacao.dataFinalizacao) em que o usuário escreveu alguma
-// pendência no campo "Pendências/Observação" do formulário — vira item de acompanhamento
-// à parte, com Data de Resolução Definitiva (definida aqui, não vem de lugar nenhum) e baixa
+// pendência no campo "Pendências desta Obra" do formulário (separado de "Observações desta
+// Obra" desde 2026-07-23 — só Pendências entra aqui, Observações nunca entra) — vira item
+// de acompanhamento à parte, com Data de Resolução Definitiva (definida aqui, não vem de
+// lugar nenhum) e baixa
 // só com foto, tudo ficando registrado no sistema, sem gerar e-mail nenhum.
 function _pfPedidosElegiveis(){
   return pedidos.filter(p=>p.finalizacao&&p.finalizacao.dataFinalizacao&&(p.finalizacao.pendenciasObs||'').trim());
@@ -9495,6 +9502,30 @@ function _pfPedidosElegiveis(){
 function renderPendenciasFinalizacao(){
   const busca=(document.getElementById('pf-fil-busca')?.value||'').toUpperCase().trim();
   const filStatus=document.getElementById('pf-fil-status')?.value||'';
+
+  // Cards no topo — total GERAL (ignora busca/filtro de baixo, igual os cards de
+  // Financeiro) pra sempre mostrar o tamanho real do problema de cara, mesmo se o usuário
+  // estiver com a lista filtrada/buscando outra coisa (2026-07-23, a pedido do usuário:
+  // "preciso de um indicador em cima de ATRASADOS, SEM DATA... bem visível pra cobrar").
+  // Clicáveis — clicar aplica o filtro correspondente na hora.
+  const cardsEl=document.getElementById('pf-cards');
+  if(cardsEl){
+    const hojeISOc=new Date().toISOString().slice(0,10);
+    const todasAbertas=_pfPedidosElegiveis().filter(p=>!(p.pendenciaFin&&p.pendenciaFin.resolvido));
+    const nSemData=todasAbertas.filter(p=>!(p.pendenciaFin&&p.pendenciaFin.dataResolucaoPrevista)).length;
+    const nAtrasadas=todasAbertas.filter(p=>p.pendenciaFin&&p.pendenciaFin.dataResolucaoPrevista&&p.pendenciaFin.dataResolucaoPrevista<hojeISOc).length;
+    const cards=[
+      {val:nAtrasadas,label:'🔴 Atrasadas',color:'#fee2e2',text:'#b91c1c',filtro:'atrasadas'},
+      {val:nSemData,label:'📅 Sem data definida',color:'#ede9fe',text:'#6d28d9',filtro:'semdata'},
+      {val:todasAbertas.length,label:'⚠️ Total em aberto',color:'#f8fafc',text:'#334155',filtro:''}
+    ];
+    cardsEl.style.gridTemplateColumns=`repeat(${cards.length},1fr)`;
+    cardsEl.innerHTML=cards.map(c=>`<div onclick="document.getElementById('pf-fil-status').value='${c.filtro}';renderPendenciasFinalizacao()" style="background:${c.color};border-radius:10px;padding:12px;cursor:pointer">
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:${c.text}">${c.label}</div>
+      <div style="font-size:1.3rem;font-weight:800;color:${c.text}">${c.val}</div>
+    </div>`).join('');
+  }
+
   let lista=_pfPedidosElegiveis();
   if(busca)lista=lista.filter(p=>String(p.os||'').toUpperCase().includes(busca)||(p.cliente||'').toUpperCase().includes(busca)||(p.job||'').toUpperCase().includes(busca));
   const hojeISO=new Date().toISOString().slice(0,10);
@@ -9533,7 +9564,7 @@ function renderPendenciasFinalizacao(){
       <th style="padding:8px 10px">Status</th><th style="padding:8px 10px"></th>
     </tr></thead>
     <tbody>
-    ${rows.map(({p,pf,resolvido,atrasado})=>{
+    ${rows.map(({p,pf,resolvido,semData,atrasado})=>{
       const corLinha=atrasado?'color:#dc2626':'';
       const diasAtraso=atrasado?Math.floor((new Date(hojeISO)-new Date(pf.dataResolucaoPrevista))/86400000):0;
       const statusHtml=resolvido?'<span style="color:var(--success);font-weight:700">✅ Resolvida</span>'
@@ -9541,9 +9572,12 @@ function renderPendenciasFinalizacao(){
         :pf.dataResolucaoPrevista?'<span style="color:#d97706;font-weight:700">⏳ Pendente</span>'
         :'<span style="color:#7c3aed;font-weight:700">📅 Sem data definida</span>';
       const pendTxt=(p.finalizacao.pendenciasObs||'').replace(/"/g,'&quot;');
+      // Data em destaque vermelho tanto atrasada quanto sem data definida ainda — nos dois
+      // casos precisa de ação imediata do usuário (2026-07-23, a pedido do usuário).
+      const precisaAcao=atrasado||semData;
       const dataInput=resolvido
         ?fmtD(pf.dataResolucaoPrevista)||'—'
-        :`<input type="date" value="${pf.dataResolucaoPrevista||''}" onchange="salvarDataResolucaoPendencia('${p.id}',this.value)" style="padding:6px 8px;border-radius:6px;border:1.5px solid ${atrasado?'#dc2626':'#e5e7eb'};font-size:.78rem;font-family:inherit">`;
+        :`<input type="date" value="${pf.dataResolucaoPrevista||''}" onchange="salvarDataResolucaoPendencia('${p.id}',this.value)" style="padding:6px 8px;border-radius:6px;border:1.5px solid ${precisaAcao?'#dc2626':'#e5e7eb'};background:${precisaAcao?'#fef2f2':'#fff'};color:${precisaAcao?'#dc2626':'inherit'};font-weight:${precisaAcao?'700':'400'};font-size:.78rem;font-family:inherit">`;
       const acaoBtn=resolvido
         ?`<button onclick="verResumoPendenciaResolvida('${p.id}')" class="dash-btn-conf" style="white-space:nowrap;background:var(--ink4)">👁️ Ver Resumo</button>`
         :`<button onclick="abrirBaixaPendencia('${p.id}')" class="dash-btn-conf" style="white-space:nowrap">✅ Dar Baixa</button>`;
@@ -9738,10 +9772,11 @@ function verFormularioFinalizacao(pedidoId){
       ${fin.liderTrabalho?`<div><strong>Líder que Realizou o Trabalho:</strong> ${fin.liderTrabalho}</div>`:''}
       ${fin.acompanhanteCliente?`<div><strong>Quem Acompanhou (Cliente):</strong> ${fin.acompanhanteCliente}</div>`:''}
       <div><strong>Preenchido por:</strong> ${fin.preenchidoPor||'—'}${fin.preenchidoEm?' em '+new Date(fin.preenchidoEm).toLocaleString('pt-BR'):''}</div>
-      ${fin.pendenciasObs?`<div style="margin-top:8px"><strong>Pendências/Observação:</strong><br>${fin.pendenciasObs}</div>`:''}
+      ${fin.pendenciasObs?`<div style="margin-top:8px"><strong>Pendências desta Obra:</strong><br>${fin.pendenciasObs}</div>`:''}
+      ${fin.observacoesObs?`<div style="margin-top:8px"><strong>Observações desta Obra:</strong><br>${fin.observacoesObs}</div>`:''}
       <div style="margin-top:10px"><strong>Documento assinado:</strong> ${fin.documentoUrl?`<a href="${cldDownload(fin.documentoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'—'}</div>
       ${fin.temArt?`<div style="margin-top:10px"><strong>ART:</strong> ${fin.temArt==='Sim'&&fin.artUrl?`<a href="${cldDownload(fin.artUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</div>`:''}
-      ${fin.temLaudo?`<div style="margin-top:10px"><strong>Laudo Técnico:</strong> ${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</div>`:''}
+      ${fin.temLaudo?`<div style="margin-top:10px"><strong>Laudo Técnico:</strong> ${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'NÃO SE APLICA'}</div>`:''}
       <div style="margin-top:10px"><strong>Fotos (${(fin.fotos||[]).length}):</strong><div style="margin-top:4px">${fotosHtml}</div></div>
     </div>
   </div>`;
@@ -9988,6 +10023,7 @@ function abrirFinalizacaoObra(pedidoId){
   const lEl=document.getElementById('pl-lider');if(lEl)lEl.value=fin.liderTrabalho||'';
   const aEl=document.getElementById('pl-acompanhante');if(aEl)aEl.value=fin.acompanhanteCliente||'';
   const pEl=document.getElementById('pl-pendencias');if(pEl)pEl.value=fin.pendenciasObs||'';
+  const oEl=document.getElementById('pl-observacoes');if(oEl)oEl.value=fin.observacoesObs||'';
 
   // E-mail do Comprador(a): pedido emitido pelo sistema já traz isso da Emissão (linha
   // acima, automática) — pedido incluído manualmente (venda antiga/planilha) nunca teve
@@ -10091,6 +10127,7 @@ async function _plSalvarRascunhoAgora(){
     liderTrabalho:(document.getElementById('pl-lider')?.value||'').trim(),
     acompanhanteCliente:(document.getElementById('pl-acompanhante')?.value||'').trim(),
     pendenciasObs:(document.getElementById('pl-pendencias')?.value||'').trim(),
+    observacoesObs:(document.getElementById('pl-observacoes')?.value||'').trim(),
     documentoUrl:_plDocUrl,
     fotos:_plFotosUrls.slice(),
     // ART vem da Emissão (p.projetos.art) pro pedido normal de julho/2026+; senão é
@@ -10108,7 +10145,7 @@ async function _plSalvarRascunhoAgora(){
   // Em pedido com ART automática (herdada da Emissão), temArt não conta pro "está vazio";
   // em pedido com ART como pergunta desta tela conta, já que ali é uma resposta real que
   // também pode ficar em aberto ainda. Mesma lógica pro e-mail do comprador manual.
-  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!_plPerguntarArtManual(p)||!draft.temArt)&&(_plEmitidoPeloSistema(p)||!draft.emailComprador);
+  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.observacoesObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!_plPerguntarArtManual(p)||!draft.temArt)&&(_plEmitidoPeloSistema(p)||!draft.emailComprador);
   if(vazio&&!p.finalizacaoDraft)return; // nada preenchido ainda e nunca teve rascunho — não grava à toa
   p.finalizacaoDraft=vazio?null:draft;
   try{
@@ -10288,6 +10325,7 @@ async function salvarFinalizacaoObra(){
   const liderTrabalho=(document.getElementById('pl-lider')?.value||'').trim();
   const acompanhanteCliente=(document.getElementById('pl-acompanhante')?.value||'').trim();
   const pendenciasObs=(document.getElementById('pl-pendencias')?.value||'').trim();
+  const observacoesObs=(document.getElementById('pl-observacoes')?.value||'').trim();
   // ART: pedido normal de julho/2026+ herda da Emissão (p.projetos.art); os demais casos
   // (venda antes de julho, ou não emitida pelo fluxo normal) é pergunta obrigatória desta
   // própria tela, igual Laudo Técnico (ver _plPerguntarArtManual).
@@ -10316,7 +10354,7 @@ async function salvarFinalizacaoObra(){
   // um campo separado espalhado em mais lugares.
   if(!emitidoNormal)p.email_comprador=emailComprador;
   p.finalizacao={
-    dataFinalizacao,liderTrabalho,acompanhanteCliente,pendenciasObs,
+    dataFinalizacao,liderTrabalho,acompanhanteCliente,pendenciasObs,observacoesObs,
     documentoUrl:_plDocUrl,
     fotos:_plFotosUrls.slice(),
     temArt,artUrl:temArt==='Sim'?_plArtUrl:'',
@@ -10437,13 +10475,18 @@ function buildFinalizacaoEmailContent(p){
       </tr>`:''}
       ${fin.temLaudo?`
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Laudo Técnico</td>
-        <td style="padding:10px 0;font-size:13px;font-weight:600">${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600">${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:'NÃO SE APLICA'}</td>
       </tr>`:''}
       ${fin.pendenciasObs?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
-        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Pendências e Observação</span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Pendências desta Obra</span>
       </td></tr>
       <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7">${fin.pendenciasObs}</td></tr>`:''}
+      ${fin.observacoesObs?`
+      <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Observações desta Obra</span>
+      </td></tr>
+      <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7">${fin.observacoesObs}</td></tr>`:''}
 
       <!-- FOTOS/VÍDEOS DE FINALIZAÇÃO -->
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
