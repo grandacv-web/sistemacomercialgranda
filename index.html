@@ -2313,7 +2313,7 @@ function getRegrasTarefasAuto(){
     {id:'default',tipo:'',categoria:'',tarefas:['Lançar no GCore']}
   ];
 }
-function gerarTarefasAutomaticas(tipo,tipoPedido){
+function gerarTarefasAutomaticas(tipo,tipoPedido,extra){
   // Map em vez de Set porque agora cada tarefa carrega quem é o responsável por
   // executá-la (r.responsavel) — se duas regras criarem a mesma tarefa com responsáveis
   // diferentes, a regra que bateu por último decide (mesmo comportamento de sempre, só
@@ -2328,7 +2328,19 @@ function gerarTarefasAutomaticas(tipo,tipoPedido){
   // momento (vendedor emitindo o próprio pedido, ou admin lançando venda manual) — vira
   // criadoPor, pra essa pessoa poder excluir a tarefa depois se precisar.
   const _criadoPor=usuarioLogado?.nomeExibicao||'';
-  return[...porNome.entries()].map(([t,resp])=>novaTarefaComercial(t,resp,'',_criadoPor));
+  const tarefas=[...porNome.entries()].map(([t,resp])=>novaTarefaComercial(t,resp,'',_criadoPor));
+  // Tarefa fixa de Chumbador (2026-07-23, a pedido do usuário) — não passa pelas regras
+  // configuráveis de Tarefas Automáticas (é sempre pro Guilherme, sempre 2 dias de prazo,
+  // sempre com esse nome exato), então fica hardcoded aqui em vez de depender de alguém
+  // cadastrar a regra certa em Configurações. Só dispara na emissão original (mesma regra
+  // de "Lançar no GCore": edição de pedido já emitido não recria tarefas automáticas).
+  if(extra&&extra.chumbador==='Sim'){
+    const prazoChumb=new Date();prazoChumb.setDate(prazoChumb.getDate()+2);
+    const prazoISO=prazoChumb.toISOString().slice(0,10);
+    const infoPedido=`OS ${extra.os||'—'} · ${extra.cliente||'—'}${extra.job?' · JOB: '+extra.job:''}`;
+    tarefas.push(novaTarefaComercial('LANÇAR PEDIDO CHUMBADOR GCORE','GUILHERME CLABONDE',prazoISO,_criadoPor,infoPedido));
+  }
+  return tarefas;
 }
 // Todas as tarefas pendentes — tanto as de pedidos (p.tarefasComerciais) quanto as
 // avulsas SEM venda nenhuma (cfg.tarefasGerais, ver adicionarTarefaGeralAvulsa). Já vem
@@ -5879,7 +5891,7 @@ async function submit(){
     // Tarefas Comerciais: pendências operacionais ligadas a esta venda (hoje só "Lançar
     // no GCore", mas pensado pra crescer — ver novaTarefaComercial()/sec-cat-FERRAMENTAS). Só cria
     // a tarefa padrão na emissão original; numa edição, mantém as tarefas que já existiam.
-    tarefasComerciais:_pedidoExistente?(_pedidoExistente.tarefasComerciais||[]):gerarTarefasAutomaticas(ed.tipo,ed.tipoPedido||'')};
+    tarefasComerciais:_pedidoExistente?(_pedidoExistente.tarefasComerciais||[]):gerarTarefasAutomaticas(ed.tipo,ed.tipoPedido||'',{os:ed.os,cliente:ed.cli,job:ed.job,chumbador:ed.chumbador})};
   const wasEditing=editing;
   editing=null;
   // Fechar modal ANTES do save para não travar
