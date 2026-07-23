@@ -2318,7 +2318,7 @@ function novaTarefaComercial(tipo,responsavel,prazoTarefa,criadoPor,descricao){
 // cadastrada, mantém o comportamento padrão de sempre: só cria "Lançar no GCore".
 function getRegrasTarefasAuto(){
   return cfg.regrasTarefasComerciais&&cfg.regrasTarefasComerciais.length?cfg.regrasTarefasComerciais:[
-    {id:'default',tipo:'',categoria:'',tarefas:['Lançar no GCore']}
+    {id:'default',tipo:'',categoria:'',tarefas:['Lançar no GCore'],responsavel:'GUILHERME CLABONDE'}
   ];
 }
 function gerarTarefasAutomaticas(tipo,tipoPedido,extra){
@@ -2332,6 +2332,10 @@ function gerarTarefasAutomaticas(tipo,tipoPedido,extra){
     const bateCategoria=!r.categoria||r.categoria===tipoPedido;
     if(bateTipo&&bateCategoria)(r.tarefas||[]).forEach(t=>{if(t&&t.trim())porNome.set(t.trim(),r.responsavel||'');});
   });
+  // "Lançar no GCore" nunca pode ficar sem responsável — é sempre o Guilherme que lança no
+  // sistema externo, então se nenhuma regra configurada definiu um responsável específico
+  // pra ela, cai pra ele automaticamente (2026-07-23, pedido do usuário).
+  if(porNome.has('Lançar no GCore')&&!porNome.get('Lançar no GCore'))porNome.set('Lançar no GCore','GUILHERME CLABONDE');
   // Quem lança a tarefa automática é quem está logado emitindo/lançando o pedido nesse
   // momento (vendedor emitindo o próprio pedido, ou admin lançando venda manual) — vira
   // criadoPor, pra essa pessoa poder excluir a tarefa depois se precisar.
@@ -2814,6 +2818,19 @@ function save(){
 }
 function bkp(){}
 
+// Corrige tarefas "Lançar no GCore" já pendentes que ficaram sem responsável (criadas antes
+// de 2026-07-23, ou por regra configurada sem responsável) — sempre é o Guilherme quem lança
+// no GCore, então nunca deveria ficar em aberto sem dono. Só roda pro admin (é quem tem certeza
+// de estar logado como Guilherme) e só reescreve o que realmente precisa, silenciosamente.
+async function _migrarLancarGcoreSemResponsavel(){
+  const afetados=pedidos.filter(p=>(p.tarefasComerciais||[]).some(t=>t.status==='pendente'&&!t.responsavel&&t.tipo==='Lançar no GCore'));
+  if(!afetados.length)return;
+  for(const p of afetados){
+    p.tarefasComerciais.forEach(t=>{if(t.status==='pendente'&&!t.responsavel&&t.tipo==='Lançar no GCore')t.responsavel='GUILHERME CLABONDE';});
+    await savePedidoFS(p);
+  }
+  _refreshTarefasBadge();
+}
 async function savePedidoFS(p){
   if(!window._fbSavePedido){console.warn('Firestore não disponível');return;}
   try{await window._fbSavePedido(p);}
@@ -6483,6 +6500,7 @@ function initAuth(tries){
           if(_vFMesEl){_vFMesEl.value=MESES_PT[new Date().getMonth()+1];}
           renderAll();
           try{renderDashVendas();}catch(e){}
+          if(_getUserCat().isAdm)_migrarLancarGcoreSemResponsavel().catch(e=>console.error('Erro na migração de tarefas GCore',e));
           // Tela padrão ao abrir o sistema: Geral → Gráficos (pra qualquer usuário) — Gráficos
           // era o padrão de Comercial antes de virar uma sub-aba de Geral junto de Vendas/Emissão.
           setSection('geral');
