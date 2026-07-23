@@ -1065,6 +1065,11 @@ select.fc{cursor:pointer}
       <div style="font-size:.78rem;color:var(--ink4);margin-bottom:14px;padding:10px 14px;background:#f8fafc;border-radius:10px;border:1px solid var(--border)">
         🔍 Consulte tudo que já aconteceu com um pedido — emissão, alterações de prazo, pagamentos confirmados ou adiados (com motivo) e finalização de obra. Só consulta, nada aqui pode ser editado. Pedidos emitidos antes de julho/2026 (fora do fluxo normal do sistema) mostram só o que existe registrado — o resto fica em branco.
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <label style="font-size:.72rem;font-weight:600;color:var(--ink3);white-space:nowrap">📅 Indicadores do mês</label>
+        <select id="hp-fil-mes" onchange="_hpMesChanged()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:.78rem;background:var(--surface);color:var(--ink2)"></select>
+      </div>
+      <div id="hp-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
       <input id="hp-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderHistoricoPedidos()" style="width:100%;padding:10px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;margin-bottom:14px;box-sizing:border-box">
       <div id="hp-lista"></div>
     </div>
@@ -1657,7 +1662,11 @@ select.fc{cursor:pointer}
   </div>
   <div class="fg">
     <label>Motivo da alteração <span class="r">*</span></label>
-    <textarea id="pz-motivo" class="fc" rows="3" placeholder="Explique o motivo da mudança de prazo..." style="text-transform:none"></textarea>
+    <select id="pz-motivo-select" class="fc" onchange="_pzMotivoSelChanged()"><option value="">Selecione...</option></select>
+  </div>
+  <div class="fg">
+    <label id="pz-motivo-detalhe-label">Detalhe (opcional)</label>
+    <textarea id="pz-motivo" class="fc" rows="3" placeholder="Explique melhor o que houve..." style="text-transform:none"></textarea>
   </div>
   <div id="pz-historico" style="font-size:.74rem;color:var(--ink4);margin-bottom:12px;max-height:160px;overflow-y:auto"></div>
   <button onclick="salvarAlteracaoPrazoObra()" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">💾 Salvar Alteração</button>
@@ -1723,6 +1732,11 @@ select.fc{cursor:pointer}
     <button onclick="closeM('mo-confirmar-receb')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
   </div>
   <div id="cfr-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px"></div>
+  <div class="fg">
+    <label>Data em que o pagamento entrou <span class="r">*</span></label>
+    <input type="date" class="fc" id="cfr-data-real">
+  </div>
+  <p style="font-size:.7rem;color:var(--ink4);margin:-8px 0 12px">Use a data real em que o cliente pagou — mesmo se você só está confirmando aqui hoje.</p>
   <div style="font-size:.72rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">O valor recebido foi...</div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
     <div class="rc sel" id="cfr-opt-cheio" onclick="_cfrSetNegociado(false)">
@@ -1851,6 +1865,7 @@ select.fc{cursor:pointer}
       <button class="cfg-menu-btn admin-only" data-sec="vendascanceladas" onclick="setCfgSec('vendascanceladas',this)">🚫 Vendas Canceladas</button>
       <button class="cfg-menu-btn admin-only" data-sec="gruposcliente" onclick="setCfgSec('gruposcliente',this)">🏢 Grupos de Cliente</button>
       <button class="cfg-menu-btn admin-only" data-sec="motivosadiamento" onclick="setCfgSec('motivosadiamento',this)">⏭ Motivos de Adiamento</button>
+      <button class="cfg-menu-btn admin-only" data-sec="motivosprazo" onclick="setCfgSec('motivosprazo',this)">📅 Motivos de Alteração de Prazo</button>
       <button class="cfg-menu-btn admin-only" data-sec="tarefasauto" onclick="setCfgSec('tarefasauto',this)">📌 Tarefas Automáticas</button>
       <button class="cfg-menu-btn admin-only" data-sec="metas" onclick="setCfgSec('metas',this)">🎯 Metas</button>
       <button class="cfg-menu-btn admin-only" data-sec="saude" onclick="setCfgSec('saude',this)">🩺 Saúde do Sistema</button>
@@ -2087,6 +2102,18 @@ select.fc{cursor:pointer}
           <div style="display:flex;gap:8px">
             <input class="fc" id="cfg-novo-motivo-adiamento" placeholder="Ex: Problema fiscal" style="flex:1;text-transform:uppercase">
             <button class="btn-next" style="white-space:nowrap;padding:9px 16px" onclick="addMotivoAdiamento()">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+      <div class="cfg-sec" id="cfg-sec-motivosprazo" style="display:none">
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Motivos de Alteração de Prazo (Finalização)</div>
+        <p style="font-size:.75rem;color:var(--ink3);margin-bottom:14px">Opções disponíveis ao alterar o Prazo de Finalização de uma obra em Planejamento — a pessoa escolhe um motivo da lista e ainda pode detalhar melhor num campo de texto opcional logo abaixo.</p>
+        <div id="cfg-motivos-prazo-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+        <div style="background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:10px;padding:14px">
+          <div style="font-size:.72rem;font-weight:700;color:var(--ink3);margin-bottom:10px">+ Novo Motivo</div>
+          <div style="display:flex;gap:8px">
+            <input class="fc" id="cfg-novo-motivo-prazo" placeholder="Ex: Falta de material" style="flex:1;text-transform:uppercase">
+            <button class="btn-next" style="white-space:nowrap;padding:9px 16px" onclick="addMotivoPrazoFinalizacao()">+ Adicionar</button>
           </div>
         </div>
       </div>
@@ -3077,7 +3104,15 @@ document.getElementById('sec-geral').style.display=isGeral?'':'none';
     document.getElementById('sec-cat-PLANEJAMENTO').style.display=isPlan?'':'none';
     document.getElementById('sec-cat-HISTORICO').style.display=isHist?'':'none';
     document.getElementById('sec-cat-generic').style.display=(isFin||isFerr||isPlan||isHist)?'none':'';
-    if(isHist)renderHistoricoPedidos();
+    if(isHist){
+      // Sempre volta pro mês atual real (e limpa qualquer filtro de indicador clicado antes)
+      // toda vez que a aba é reaberta — "sempre que abrir a tela" mostrar o mês corrente,
+      // mas o usuário pode trocar livremente enquanto está nela (2026-07-23).
+      _hpMes=new Date().getMonth()+1;_hpCardFiltro='';
+      const selMesReset=document.getElementById('hp-fil-mes');if(selMesReset)selMesReset.dataset.filled='';
+      const buscaReset=document.getElementById('hp-fil-busca');if(buscaReset)buscaReset.value='';
+      renderHistoricoPedidos();
+    }
     // "Novo Pedido" do cabeçalho de categoria não tem mais seção COMERCIAL pra aparecer
     // (virou aba dentro de Visão Comercial, que já tem seu próprio botão duplicado —
     // btn-novo-pedido-vendas) — fica sempre escondido aqui.
@@ -4038,6 +4073,7 @@ function openEmissao(eid2){
       inum:inst['Instaladores']||'',idias:inst['Estimativa']||'',
       iinteg:inst['Necessita integração na empresa']||'',iseg:inst['Precisa de seguro para esta obra']||'',vseg:'',
       ibloqenergia:inst['Necessita de Bloqueio de Energia']||'',
+      pintubo:inst['Pintura de Tubo']||'',vpintub:'',
       icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',icep_ok:false,
       minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',fcep_ok:false,
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:p.chumbador||'',arq_chumb:p.arq_chumb_url?'Arquivo já enviado':'',arq_chumb_url:p.arq_chumb_url||'',os_chumb:p.os_chumb||'',
@@ -4048,7 +4084,7 @@ function openEmissao(eid2){
       elevacoes:'',elevs:[],velev:'',elevBloqVia:'',remocoes:[],medicao:'',
       tem_oc:'',arq_oc:'',tem_ent:'Não tem entrada',vent:'',dent:'',fent:'',
       nparc:'Sem parcelamento',fparc:'',pdatas:[],pvals:[],nf:'',obsfin:'',art:'',cnpj_art:'',cnpj_art_url:'',arq_prod:'',layout_inst:'',fotos_orig:'',pasta_arquivos:'',laudo:'',
-      iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',icep_ok:false,
+      iacomp:'',itel:'',icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:'',iuf:'',ihor:'Comercial',inum:'',idias:'',iinteg:'',iseg:'',vseg:'',ibloqenergia:'',pintubo:'',vpintub:'',icep_ok:false,
       minfo:'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fend:'',fie:'',facomp:'',ftel:'',fdist:'',bases:'',chumbador:'',arq_chumb:'',os_chumb:'',fcep_ok:false};
   }
   step=0;renderEM();openM('mo-em');
@@ -4123,6 +4159,8 @@ function validarAba(id){
     if(!ed.iseg)erros.push('Informe se precisa de seguro para esta obra');
     if(ed.iseg==='Sim'&&!ed.vseg)erros.push('Valor do seguro não informado');
     if(!ed.ibloqenergia)erros.push('Informe se necessita de bloqueio de energia para instalação');
+    if(!ed.pintubo)erros.push('Informe se tem pintura de tubo');
+    if(ed.pintubo==='Sim'&&!ed.vpintub)erros.push('Valor da mão de obra (pintura de tubo) não informado');
   }
   if(id==='elevacoes'){
     if(!ed.elevBloqVia)erros.push('Informe se necessita de bloqueio da via para realização do trabalho');
@@ -4264,6 +4302,8 @@ function saveSt(){
     ed.iinteg=gon('tg_itg');ed.iseg=gon('tg_seg');
     if(ed.iseg==='Sim')ed.vseg=gv('em-vseg');
     ed.ibloqenergia=gon('tg_bloqenergia');
+    ed.pintubo=gon('tg_pintub');
+    if(ed.pintubo==='Sim')ed.vpintub=gv('em-vpintub');
   }else if(id==='medicao'){ed.minfo=gv('em-minfo');
   }else if(id==='remocoes'){
     ed.remocoes=[...document.querySelectorAll('.rem-r')].map(r=>({
@@ -4512,7 +4552,7 @@ function selRC(el,cls){
 function rTG(cls,val,label,cur,yes){const on=cur===val;
   return`<button class="tgb${yes?' yes':' no'}${on?' on':''} ${cls}" data-val="${val}" onclick="togBtn(this,'${cls}')">${label}</button>`}
 function togBtn(el,cls){
-  const map={tg_oc:'tem_oc',tg_art:'art',tg_elv:'elevacoes',tg_med:'medicao',tg_itg:'iinteg',tg_seg:'iseg',tg_rem:'remocao',tg_chumb:'chumbador',tg_bloqenergia:'ibloqenergia',tg_bloqvia:'elevBloqVia',tg_laudo:'laudo'};
+  const map={tg_oc:'tem_oc',tg_art:'art',tg_elv:'elevacoes',tg_med:'medicao',tg_itg:'iinteg',tg_seg:'iseg',tg_rem:'remocao',tg_chumb:'chumbador',tg_bloqenergia:'ibloqenergia',tg_bloqvia:'elevBloqVia',tg_laudo:'laudo',tg_pintub:'pintubo'};
   el.closest('.tg-grp').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');if(map[cls])ed[map[cls]]=el.dataset.val;
   if(cls==='tg_elv'||cls==='tg_med'){saveSt();renderEM();}else updCond();
@@ -4529,6 +4569,7 @@ function updCond(){
   const cnpjArt=document.getElementById('fg-cnpj-art');if(cnpjArt)cnpjArt.style.display=ed.art==='Sim'?'block':'none';
   const vmedR=document.getElementById('vmed-row');if(vmedR)vmedR.style.display=ed.medicao==='Sim'?'':'none';
   const vartR=document.getElementById('vart-row');if(vartR)vartR.style.display=ed.art==='Sim'?'':'none';
+  const vpintubR=document.getElementById('vpintub-row');if(vpintubR)vpintubR.style.display=ed.pintubo==='Sim'?'':'none';
   const vlaudoR=document.getElementById('vlaudo-row');if(vlaudoR)vlaudoR.style.display=ed.laudo==='Sim'?'':'none';
   const velevR=document.getElementById('velev-row');if(velevR)velevR.style.display=ed.elevacoes==='Sim'?'':'none';
   const es=document.getElementById('elev-s');if(es)es.style.display=ed.elevacoes==='Sim'?'':'none';
@@ -4816,6 +4857,12 @@ function renderStep(id){
       </div>
       <div class="fg"><label>Necessita de bloqueio de energia para instalação? <span class="r">*</span></label>
         <div class="tg-grp">${rTG('tg_bloqenergia','Sim','Sim',ed.ibloqenergia,true)}${rTG('tg_bloqenergia','Não','Não',ed.ibloqenergia,false)}</div>
+      </div>
+      <div class="fg"><label>Tem Pintura de Tubo?</label>
+        <div class="tg-grp">${rTG('tg_pintub','Sim','Sim',ed.pintubo,true)}${rTG('tg_pintub','Não','Não',ed.pintubo,false)}</div>
+      </div>
+      <div id="vpintub-row" style="display:${ed.pintubo==='Sim'?'':'none'}">
+        <div class="fg"><label>Valor Mão de Obra (Pintura de Tubo) <span class="r">*</span></label><input class="fc" id="em-vpintub" value="${ed.vpintub||''}" placeholder="R$ 0,00" oninput="fmtMoney(this)"></div>
       </div>
     </div>`;
   }else if(id==='medicao'){
@@ -5788,6 +5835,8 @@ async function submit(){
   if(ed.iseg)inst['Seguro de Obra']=ed.iseg;
   if(ed.vseg)inst['Valor do Seguro']=fmtV(moneyToNum(ed.vseg));
   if(ed.ibloqenergia)inst['Necessita de Bloqueio de Energia']=ed.ibloqenergia;
+  if(ed.pintubo)inst['Pintura de Tubo']=ed.pintubo;
+  if(ed.pintubo==='Sim'&&ed.vpintub)inst['Valor Mão de Obra (Pintura de Tubo)']=fmtV(moneyToNum(ed.vpintub));
   const fr={};
   if(ed.f_tipo)fr['Modalidade do Frete']=ed.f_tipo;
   if(ed.vfrete)fr['Valor do Frete']=fmtV(moneyToNum(ed.vfrete));
@@ -6262,6 +6311,7 @@ function setCfgSec(sec,btn){
   if(sec==='vendascanceladas')renderVendasCanceladas();
   if(sec==='gruposcliente')renderGruposCliente();
   if(sec==='motivosadiamento')renderMotivosAdiamento();
+  if(sec==='motivosprazo')renderMotivosPrazoFinalizacao();
   if(sec==='tarefasauto')renderRegrasTarefasAuto();
   if(sec==='metas')initPagamentosExtrasForm();
   if(sec==='saude')renderSaudeSistema();
@@ -6675,6 +6725,50 @@ function removeMotivoAdiamento(i){
   if(window._fbSaveCfg)window._fbSaveCfg(cfg);
   localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
   renderMotivosAdiamento();
+  toast('Motivo removido','tok');
+}
+
+// Motivos de Alteração de Prazo (Finalização) — opção obrigatória ao mudar o Prazo de
+// Finalização de uma obra em Planejamento (ver abrirAlterarPrazoObra()/
+// salvarAlteracaoPrazoObra()). Lista separada de Motivos de Adiamento (Financeiro) porque
+// é um contexto diferente — atraso na OBRA, não no PAGAMENTO. Semeada com os 3 motivos
+// pedidos pelo usuário na primeira vez que a tela é aberta, depois 100% editável aqui
+// (mesmo padrão de getMotivosAdiamento/renderMotivosAdiamento, 2026-07-23).
+function getMotivosPrazoFinalizacao(){
+  return(cfg.motivosPrazoFinalizacao&&cfg.motivosPrazoFinalizacao.length)?cfg.motivosPrazoFinalizacao:[
+    'OBRA DO CLIENTE ATRASADA','ATRASO DE PRODUÇÃO GRANDA','OUTROS'
+  ];
+}
+function renderMotivosPrazoFinalizacao(){
+  const el=document.getElementById('cfg-motivos-prazo-list');if(!el)return;
+  if(!cfg.motivosPrazoFinalizacao||!cfg.motivosPrazoFinalizacao.length)cfg.motivosPrazoFinalizacao=getMotivosPrazoFinalizacao().slice();
+  const motivos=cfg.motivosPrazoFinalizacao;
+  if(!motivos.length){el.innerHTML='<p style="font-size:.75rem;color:var(--ink4)">Nenhum motivo cadastrado.</p>';return;}
+  el.innerHTML=motivos.map((m,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:#f8fafc;border:1.5px solid var(--border-lt);border-radius:8px">
+      <span style="font-size:.8rem;font-weight:600;color:#1e293b">${m}</span>
+      <button onclick="removeMotivoPrazoFinalizacao(${i})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.9rem" title="Remover">🗑</button>
+    </div>`).join('');
+}
+function addMotivoPrazoFinalizacao(){
+  const inp=document.getElementById('cfg-novo-motivo-prazo');
+  const v=(inp?.value||'').trim().toUpperCase();
+  if(!v){toast('Descreva o motivo','terr');return;}
+  if(!cfg.motivosPrazoFinalizacao||!cfg.motivosPrazoFinalizacao.length)cfg.motivosPrazoFinalizacao=getMotivosPrazoFinalizacao().slice();
+  if(cfg.motivosPrazoFinalizacao.includes(v)){toast('Esse motivo já existe','terr');return;}
+  cfg.motivosPrazoFinalizacao.push(v);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  if(inp)inp.value='';
+  renderMotivosPrazoFinalizacao();
+  toast('Motivo adicionado!','tok');
+}
+function removeMotivoPrazoFinalizacao(i){
+  if(!confirm('Remover este motivo? Alterações de prazo já registradas com ele continuam mostrando o texto normalmente, só não vai mais aparecer como opção pra marcar de novo.'))return;
+  cfg.motivosPrazoFinalizacao.splice(i,1);
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg);
+  localStorage.setItem('gcore_cfg',JSON.stringify(cfg));
+  renderMotivosPrazoFinalizacao();
   toast('Motivo removido','tok');
 }
 
@@ -9085,9 +9179,10 @@ function _opCalcularTodosEventos(){
     const prazo=p.prazo;
     const base={id:p.id,os:r.p,cliente:r.cl,job:r.job,vendedor:r.v,prazoFinal:prazo};
 
-    // MÃO DE OBRA — instalação + mobilização + remoção + ART (ver pedidoToVendaRow: mo=
-    // Valor da Instalação, vi=Valor da Mobilização, rem=Valor da Remoção, art=Valor da ART).
-    const somaMO=(r.mo||0)+(r.vi||0)+(r.rem||0)+(r.art||0);
+    // MÃO DE OBRA — instalação + mobilização + remoção + ART + pintura de tubo (ver
+    // pedidoToVendaRow: mo=Valor da Instalação, vi=Valor da Mobilização, rem=Valor da
+    // Remoção, art=Valor da ART, pintub=Valor Mão de Obra da Pintura de Tubo, 2026-07-23).
+    const somaMO=(r.mo||0)+(r.vi||0)+(r.rem||0)+(r.art||0)+(r.pintub||0);
     if(somaMO>0.005){
       const metade=somaMO*0.7/2;
       const d1=_opAddDias(prazo,-7),d2=_opAddDias(prazo,7);
@@ -9861,7 +9956,11 @@ function _histPedidoEventos(p){
     const conf=getPagConf(item.confKey);
     if(!conf)return;
     if(conf.status==='confirmado'){
-      add('💰',`Pagamento confirmado — ${item.label}`,conf.confirmedAt||item.dataStr,`${fmtR(conf.valorBrutoConfirmado||item.valorBruto||item.valor||0)} recebido em ${fmtD(conf.novaData)||item.dataStr}`,'#16a34a');
+      // dataRecebimentoReal = data que a pessoa confirmou que o pagamento REALMENTE entrou
+      // (pode ser diferente de quando alguém deu baixa no sistema) — sempre prioridade sobre
+      // confirmedAt (só o timestamp de quando o sistema foi mexido), pra esse evento e os
+      // indicadores de Histórico refletirem a data certa (2026-07-23, a pedido do usuário).
+      add('💰',`Pagamento confirmado — ${item.label}`,conf.dataRecebimentoReal||conf.confirmedAt||item.dataStr,`${fmtR(conf.valorBrutoConfirmado||item.valorBruto||item.valor||0)} recebido em ${fmtD(conf.dataRecebimentoReal)||fmtD(conf.novaData)||item.dataStr}`,'#16a34a');
     }else if(conf.motivoAtraso){
       add('⏳',`Pagamento adiado — ${item.label}`,conf.motivoAtrasoEm||item.dataStr,`Previsto pra ${fmtD(conf.dataPrevistaAnterior)||item.dataStr}, adiado pra ${fmtD(conf.novaData)||'—'} — motivo: ${conf.motivoAtraso}`,'#dc2626');
     }
@@ -9880,13 +9979,77 @@ function _histPedidoEventos(p){
   return eventos;
 }
 
+// Classifica um pedido real (com registro no Firestore) em Pagamento Adiado/Finalização
+// Adiada/Sem Adiamento pros indicadores do Histórico de Pedidos — reaproveita as mesmas
+// fontes já usadas em _histPedidoEventos, sem duplicar lógica de cálculo (2026-07-23, a
+// pedido do usuário).
+function _hpClassificarPedido(p){
+  const parcelas=getParcelas(p)||[];
+  const pagamentoAdiado=parcelas.some(item=>{
+    const conf=getPagConf(item.confKey);
+    return !!(conf&&conf.motivoAtraso);
+  });
+  const finalizacaoAdiada=!!(p.historicoPrazo&&p.historicoPrazo.length);
+  return{pagamentoAdiado,finalizacaoAdiada,semAdiamento:!pagamentoAdiado&&!finalizacaoAdiada};
+}
+// Mês selecionado no filtro de indicadores (1-12, ou '' pra "Todos os meses") — sempre
+// volta pro mês atual real quando a aba HISTÓRICO é reaberta (ver setSection()), mas o
+// usuário pode trocar livremente enquanto está na tela.
+let _hpMes=new Date().getMonth()+1;
+let _hpCardFiltro=''; // '' | 'pagamento' | 'finalizacao' | 'sem'
+function _hpMesChanged(){
+  const v=document.getElementById('hp-fil-mes')?.value||'';
+  _hpMes=v?parseInt(v,10):'';
+  _hpCardFiltro='';
+  renderHistoricoPedidos();
+}
+function _hpFiltrarCard(tipo){
+  _hpCardFiltro=_hpCardFiltro===tipo?'':tipo;
+  renderHistoricoPedidos();
+}
 // Lista/busca de Histórico de Pedidos — mesma fonte de dados da Lista de Vendas
 // (getVendaRowsMerged), pra achar qualquer pedido já vendido, mesmo o que só existe na
 // planilha (esse último clicado mostra aviso, não timeline — nunca teve evento registrado
 // no sistema). Sem busca digitada, mostra os 20 mais recentes; com busca, até 100 resultados.
 function renderHistoricoPedidos(){
+  const selMes=document.getElementById('hp-fil-mes');
+  if(selMes&&!selMes.dataset.filled){
+    selMes.innerHTML='<option value="">Todos os meses</option>'+MESES_PT.map((nome,i)=>i>0?`<option value="${i}">${nome}</option>`:'').join('');
+    selMes.dataset.filled='1';
+    selMes.value=_hpMes?String(_hpMes):'';
+  }
+  // Indicadores do mês selecionado — só entram pedidos REAIS (com registro no Firestore,
+  // r._pid preenchido); linha vinda só da planilha nunca tem historicoPrazo/parcelas
+  // rastreadas, então não é dado confiável nem pra "adiado" nem pra "sem adiamento" — fica
+  // de fora dos 3 indicadores (continua aparecendo normalmente na lista de baixo).
+  const cardsEl=document.getElementById('hp-cards');
+  let idsPagamento=[],idsFinalizacao=[],idsSem=[];
+  if(cardsEl){
+    const rowsMes=(_hpMes?getVendaRowsMerged().filter(r=>r.m===_hpMes):getVendaRowsMerged()).filter(r=>r._pid);
+    rowsMes.forEach(r=>{
+      const p=pedidos.find(x=>x.id===r._pid);
+      if(!p)return;
+      const c=_hpClassificarPedido(p);
+      if(c.pagamentoAdiado)idsPagamento.push(r._pid);
+      if(c.finalizacaoAdiada)idsFinalizacao.push(r._pid);
+      if(c.semAdiamento)idsSem.push(r._pid);
+    });
+    const cards=[
+      {val:idsPagamento.length,label:'💸 Pagamento Adiado',color:'#fee2e2',text:'#b91c1c',filtro:'pagamento'},
+      {val:idsFinalizacao.length,label:'📅 Finalização Adiada',color:'#fef3c7',text:'#92400e',filtro:'finalizacao'},
+      {val:idsSem.length,label:'✅ Sem Adiamento',color:'#dcfce7',text:'#166534',filtro:'sem'}
+    ];
+    cardsEl.innerHTML=cards.map(c=>`<div onclick="_hpFiltrarCard('${c.filtro}')" style="background:${c.color};border-radius:10px;padding:12px;cursor:pointer;border:2px solid ${_hpCardFiltro===c.filtro?c.text:'transparent'}">
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:${c.text}">${c.label}</div>
+      <div style="font-size:1.3rem;font-weight:800;color:${c.text}">${c.val}</div>
+    </div>`).join('');
+  }
   const busca=(document.getElementById('hp-fil-busca')?.value||'').toUpperCase().trim();
   let rows=getVendaRowsMerged().slice().sort((a,b)=>(b.m-a.m)||String(b.p).localeCompare(String(a.p)));
+  if(_hpMes)rows=rows.filter(r=>r.m===_hpMes);
+  if(_hpCardFiltro==='pagamento')rows=rows.filter(r=>idsPagamento.includes(r._pid));
+  else if(_hpCardFiltro==='finalizacao')rows=rows.filter(r=>idsFinalizacao.includes(r._pid));
+  else if(_hpCardFiltro==='sem')rows=rows.filter(r=>idsSem.includes(r._pid));
   if(busca)rows=rows.filter(r=>String(r.p||'').toUpperCase().includes(busca)||(r.cl||'').toUpperCase().includes(busca)||(r.job||'').toUpperCase().includes(busca));
   const body=document.getElementById('hp-lista');
   if(!body)return;
@@ -9894,9 +10057,9 @@ function renderHistoricoPedidos(){
     body.innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink4);font-size:.85rem">Nenhum pedido encontrado.</div>`;
     return;
   }
-  const limite=busca?100:20;
+  const limite=(busca||_hpCardFiltro)?100:20;
   const limitados=rows.slice(0,limite);
-  body.innerHTML=(busca?'':`<div style="font-size:.72rem;color:var(--ink4);margin-bottom:8px">Mostrando os ${limitados.length} pedidos mais recentes — busque por OS, cliente ou JOB pra achar outro.</div>`)
+  body.innerHTML=(busca?'':_hpCardFiltro?`<div style="font-size:.72rem;color:var(--ink4);margin-bottom:8px">Mostrando ${limitados.length} pedido(s) com esse indicador${_hpMes?' em '+MESES_PT[_hpMes]:''}.</div>`:`<div style="font-size:.72rem;color:var(--ink4);margin-bottom:8px">Mostrando os ${limitados.length} pedidos mais recentes${_hpMes?' de '+MESES_PT[_hpMes]:''} — busque por OS, cliente ou JOB pra achar outro.</div>`)
     +limitados.map(r=>`
     <div onclick="abrirHistoricoPedido('${r._pid||''}','${String(r.p).replace(/'/g,"\\'")}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1.5px solid var(--border-lt);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.borderColor='var(--brand)'" onmouseout="this.style.borderColor='var(--border-lt)'">
       <div style="min-width:0">
@@ -9959,6 +10122,9 @@ function abrirAlterarPrazoObra(pedidoId){
   if(infoEl)infoEl.innerHTML=`OS Nº <strong>${p.os||'—'}</strong> · ${p.cliente||'—'}<br>Prazo atual: <strong>${fmtD(p.prazo)||'—'}</strong>${p.prazoOriginal&&p.prazoOriginal!==p.prazo?` · Prazo original: <strong style="color:#e91e63">${fmtD(p.prazoOriginal)}</strong>`:''}`;
   const novoEl=document.getElementById('pz-novo-prazo');if(novoEl)novoEl.value=p.prazo||'';
   const motEl=document.getElementById('pz-motivo');if(motEl)motEl.value='';
+  const selEl=document.getElementById('pz-motivo-select');
+  if(selEl){selEl.innerHTML='<option value="">Selecione...</option>'+getMotivosPrazoFinalizacao().map(m=>`<option value="${m}">${m}</option>`).join('');selEl.value='';}
+  _pzMotivoSelChanged();
   const hist=p.historicoPrazo||[];
   const histEl=document.getElementById('pz-historico');
   if(histEl){
@@ -9966,15 +10132,26 @@ function abrirAlterarPrazoObra(pedidoId){
   }
   openM('mo-prazo-obra');
 }
+// Ativa/mostra o campo de detalhe como obrigatório só quando "OUTROS" é escolhido — nos
+// demais motivos (pré-cadastrados e específicos, ex: "OBRA DO CLIENTE ATRASADA") o detalhe
+// continua sendo só um complemento opcional (2026-07-23, a pedido do usuário).
+function _pzMotivoSelChanged(){
+  const sel=document.getElementById('pz-motivo-select')?.value||'';
+  const lbl=document.getElementById('pz-motivo-detalhe-label');
+  if(lbl)lbl.innerHTML=sel==='OUTROS'?'Detalhe <span class="r">*</span>':'Detalhe (opcional)';
+}
 async function salvarAlteracaoPrazoObra(){
   if(!_isPlanejamentoUser()){toast('Só Planejamento ou administrador pode alterar o prazo.','terr');return;}
   const pedidoId=document.getElementById('pz-pedido-id')?.value;
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!p){toast('Pedido não encontrado','terr');return;}
   const novoPrazo=document.getElementById('pz-novo-prazo')?.value;
-  const motivo=(document.getElementById('pz-motivo')?.value||'').trim();
+  const motivoSel=document.getElementById('pz-motivo-select')?.value||'';
+  const detalhe=(document.getElementById('pz-motivo')?.value||'').trim();
   if(!novoPrazo){toast('Informe o novo prazo','terr');return;}
-  if(!motivo){toast('Informe o motivo da alteração','terr');return;}
+  if(!motivoSel){toast('Selecione o motivo da alteração','terr');return;}
+  if(motivoSel==='OUTROS'&&!detalhe){toast('Detalhe o motivo "Outros"','terr');return;}
+  const motivo=detalhe?`${motivoSel} — ${detalhe}`:motivoSel;
   if(novoPrazo===p.prazo){toast('O novo prazo é igual ao atual','terr');return;}
   if(!p.prazoOriginal)p.prazoOriginal=p.prazo||novoPrazo;
   p.historicoPrazo=p.historicoPrazo||[];
@@ -10697,6 +10874,12 @@ function abrirConfirmarRecebimento(confKey,dataStr,cliente,valorBruto){
   if(inp){inp.value='';inp.dataset.raw='0';}
   const saldoData=document.getElementById('cfr-saldo-data');if(saldoData)saldoData.value='';
   const saldoWrap=document.getElementById('cfr-saldo-wrap');if(saldoWrap)saldoWrap.style.display='none';
+  // Data real do pagamento — sugere hoje, mas SEMPRE editável: quem está dando baixa pode
+  // estar confirmando um pagamento que já entrou antes (ex.: cliente pagou ontem, só deu
+  // pra confirmar no sistema hoje). Sem isso, o evento no Histórico de Pedidos ficava com a
+  // data de quando alguém MEXEU no sistema, não a data real do pagamento (2026-07-23, a
+  // pedido do usuário).
+  const dataRealEl=document.getElementById('cfr-data-real');if(dataRealEl)dataRealEl.value=new Date().toISOString().slice(0,10);
   _cfrSetNegociado(false);
   openM('mo-confirmar-receb');
 }
@@ -10725,6 +10908,8 @@ function _cfrAtualizaSaldo(){
 }
 function salvarConfirmarRecebimento(){
   if(!_cfrConfKey)return;
+  const dataRecebimentoReal=document.getElementById('cfr-data-real')?.value||'';
+  if(!dataRecebimentoReal){toast('Informe a data em que o pagamento realmente entrou','terr');return;}
   let valorBrutoFinal=_cfrValorBruto;
   let saldoDevedor=0,saldoDataBR='';
   if(_cfrNegociado){
@@ -10758,7 +10943,7 @@ function salvarConfirmarRecebimento(){
       criadoEm:new Date().toISOString()
     });
   }
-  setPagConf(_cfrConfKey,{status:'confirmado',novaData:_cfrDataStr,confirmedAt:new Date().toISOString(),motivoAtraso:'',motivoAtrasoEm:'',valorBrutoConfirmado:valorBrutoFinal});
+  setPagConf(_cfrConfKey,{status:'confirmado',novaData:_cfrDataStr,confirmedAt:new Date().toISOString(),dataRecebimentoReal,motivoAtraso:'',motivoAtrasoEm:'',valorBrutoConfirmado:valorBrutoFinal});
   closeM('mo-confirmar-receb');
   toast(saldoDevedor>0.005?`Recebimento parcial confirmado (${fmtR(valorBrutoFinal)}) — saldo de ${fmtR(saldoDevedor)} lançado pra ${saldoDataBR} ✅`:(_cfrNegociado?`Recebimento confirmado com valor negociado (${fmtR(valorBrutoFinal)})! Comissão ajustada e liberada. ✅`:'Recebimento confirmado! Comissão liberada na quinzena. ✅'),'tok');
   const row=document.querySelector(`tr[data-ck="${CSS.escape(_cfrConfKey)}"]`);if(row)row.remove();
@@ -13213,14 +13398,17 @@ function pedidoToVendaRow(p){
   // divergindo da planilha colada agora. (corrigido 2026-07-10 — antes só valia pra
   // p.importadoPlanilha===true, deixando pedidos emitidos com valores errados)
   const xlsxRow=(typeof XLSX_VENDAS_BY_OS!=='undefined')?XLSX_VENDAS_BY_OS[String(p.os)]:null;
-  let br,ft,vi,mo,el,art,rem,med,laudo,op,lq;
+  let br,ft,vi,mo,el,art,rem,med,laudo,pintub,op,lq;
   if(xlsxRow){
     br=xlsxRow.br||0;ft=xlsxRow.ft||0;vi=xlsxRow.vi||0;el=xlsxRow.el||0;mo=xlsxRow.mo||0;
     art=xlsxRow.art||0;rem=xlsxRow.rem||0;med=xlsxRow.med||0;
+    // Pintura de Tubo é uma despesa NOVA (2026-07-23), assim como Laudo Técnico foi antes —
+    // planilha reconciliada (dados anteriores) nunca tem esse campo.
+    pintub=xlsxRow.pintub||0;
     // Laudo Técnico é uma despesa NOVA (2026-07-16), só existe pra pedido emitido a partir
     // de agora — planilha reconciliada (dados anteriores) nunca tem esse campo, por pedido
     // explícito do usuário ("as vendas anteriores... deixa como está").
-    op=ft+vi+el+mo+art+rem+med;
+    op=ft+vi+el+mo+art+rem+med+pintub;
     lq=xlsxRow.lq!=null?xlsxRow.lq:(br-op);
   } else {
     br=moneyToNum(v['Valor Bruto']||v['Valor Total']||'0');
@@ -13232,7 +13420,8 @@ function pedidoToVendaRow(p){
     rem=moneyToNum(inst['Valor da Remoção']||'0');
     med=moneyToNum(inst['Valor da Medição']||'0');
     laudo=moneyToNum(proj['Valor do Laudo Técnico']||'0');
-    op=ft+vi+el+mo+art+rem+med+laudo;
+    pintub=moneyToNum(inst['Valor Mão de Obra (Pintura de Tubo)']||'0');
+    op=ft+vi+el+mo+art+rem+med+laudo+pintub;
     // Usa o líquido salvo (mesma fonte usada pelo cálculo de comissão), com fallback ao cálculo direto
     lq=v['Valor Líquido do Pedido']!=null?moneyToNum(v['Valor Líquido do Pedido']):(br-op);
   }
@@ -13271,7 +13460,7 @@ function pedidoToVendaRow(p){
   // contando no vendedor errado (ou "sem vendedor") por nome divergente/vazio no Firestore.
   const vendaVend=xlsxRow?(mapVendedorName(xlsxRow.v)||p.responsavel||''):(p.responsavel||'');
   return {mes,m,p:p.os,cl:p.cliente,cat:p.tipoPedido||'',v:vendaVend,
-    br,ft,vi,el,mo,art,rem,med,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
+    br,ft,vi,el,mo,art,rem,med,pintub,ba:0,ou:0,lq,op,entrega:p.prazo,parcelas:undefined,_pid:p.id,
     numOC:p.numOC||'',ocUrl:p.ocUrl||'',pedidoPdfUrl:p.arq_os_url||'',job:p.job||'',cidade:p.locCidade||'',
     // prazoOriginal só existe se o prazo já foi alterado em Planejamento (abrirAlterarPrazoObra)
     // — usado na Lista de Vendas pra mostrar "(adiado)" quando entrega!==prazoOriginal
