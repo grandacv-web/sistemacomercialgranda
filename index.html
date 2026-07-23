@@ -1321,6 +1321,11 @@ select.fc{cursor:pointer}
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nome de Quem Acompanhou (Cliente)</label>
         <input id="pl-acompanhante" type="text" class="no-upper" oninput="_plAgendarRascunho()" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
       </div>
+      <div style="grid-column:span 2;display:none" id="pl-email-comprador-field">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">E-mail do Comprador(a) <span class="r">*</span></label>
+        <input id="pl-email-comprador" type="email" class="no-upper" placeholder="comprador@exemplo.com" oninput="_plAgendarRascunho()" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box;text-transform:none">
+        <div style="font-size:.68rem;color:var(--ink4);margin-top:3px">Esta obra não foi emitida pelo sistema, então não tem e-mail de comprador cadastrado — informe para poder enviar o resumo da finalização.</div>
+      </div>
       <div style="grid-column:span 2" id="pl-tem-art-info-field">
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">ART</label>
         <div id="pl-art-info-text" style="font-size:.85rem;font-weight:600;color:var(--ink2);background:#fafbfc;border:1.5px solid var(--border-lt);border-radius:9px;padding:9px 11px"></div>
@@ -9459,17 +9464,22 @@ let _plFotosUrls=[]; // [{url,nome}]
 let _plArtUrl='';
 let _plLaudoUrl='';
 
-// ART: vendas de julho/2026 em diante, emitidas pelo fluxo normal do sistema (Emissão),
-// já respondem isso lá (p.projetos.art) — a Finalização só herda. Vendas de antes de julho
-// nunca tiveram essa pergunta na Emissão (o recurso não existia ainda), então não dá pra
-// confiar em p.projetos.art; pedido que não veio do fluxo normal (incluído manualmente/
-// planilha, ver incluirVendaNaFinalizacao) também não tem resposta pra herdar. Nesses dois
-// casos, pergunta na própria Finalização — igual ao Laudo Técnico (2026-07-23, a pedido do
-// usuário: "toda venda antes de julho perguntar... julho em diante emitidas no sistema já
-// pegar automático").
+// Pedido emitido pelo fluxo normal do sistema (Novo Pedido/Emissão) — mesmo critério usado
+// em toda parte pra "isso é um pedido de verdade, com todos os dados da Emissão preenchidos"
+// (ver isComercialPedido/_plPedidosElegiveis). Incluído manualmente na Finalização
+// (incluirVendaNaFinalizacao, venda antiga/planilha) sempre retorna false aqui.
+function _plEmitidoPeloSistema(p){
+  return !!(p.origemComercial&&!p.importadoPlanilha);
+}
+// ART: vendas de julho/2026 em diante, emitidas pelo fluxo normal do sistema, já respondem
+// isso lá (p.projetos.art) — a Finalização só herda. Vendas de antes de julho nunca tiveram
+// essa pergunta na Emissão (o recurso não existia ainda), então não dá pra confiar em
+// p.projetos.art; pedido que não veio do fluxo normal também não tem resposta pra herdar.
+// Nesses dois casos, pergunta na própria Finalização — igual ao Laudo Técnico (2026-07-23,
+// a pedido do usuário: "toda venda antes de julho perguntar... julho em diante emitidas no
+// sistema já pegar automático").
 function _plPerguntarArtManual(p){
-  const emitidoNormal=!!(p.origemComercial&&!p.importadoPlanilha);
-  return !(emitidoNormal&&_opMesVenda(p)>=7);
+  return !(_plEmitidoPeloSistema(p)&&_opMesVenda(p)>=7);
 }
 
 function abrirFinalizacaoObra(pedidoId){
@@ -9508,13 +9518,29 @@ function abrirFinalizacaoObra(pedidoId){
     dadosEl.innerHTML=linha('Tipo de Pedido',p.tipo)+linha('Responsável pelo Preenchimento',usuarioLogado?.nomeExibicao||usuarioLogado?.email||'—')
       +linha('Cliente',p.cliente)+linha('Nº do Pedido Granda (OS)',p.os)
       +linha('Cidade e Estado da Instalação',loc)
-      +linha('E-mail Comprador(a)',p.email_comprador)+linha('E-mail Engenheiro',p.email_engenheiro)+linha('E-mail Financeiro',p.email_financeiro);
+      // E-mail do Comprador(a) só entra aqui (automático) pro pedido emitido pelo sistema —
+      // pro incluído manualmente vira campo obrigatório de preenchimento, mais abaixo.
+      +(_plEmitidoPeloSistema(p)?linha('E-mail Comprador(a)',p.email_comprador):'')
+      +linha('E-mail Engenheiro',p.email_engenheiro)+linha('E-mail Financeiro',p.email_financeiro);
   }
 
   const dEl=document.getElementById('pl-data-finalizacao');if(dEl)dEl.value=fin.dataFinalizacao||'';
   const lEl=document.getElementById('pl-lider');if(lEl)lEl.value=fin.liderTrabalho||'';
   const aEl=document.getElementById('pl-acompanhante');if(aEl)aEl.value=fin.acompanhanteCliente||'';
   const pEl=document.getElementById('pl-pendencias');if(pEl)pEl.value=fin.pendenciasObs||'';
+
+  // E-mail do Comprador(a): pedido emitido pelo sistema já traz isso da Emissão (linha
+  // acima, automática) — pedido incluído manualmente (venda antiga/planilha) nunca teve
+  // esse cadastro, então vira campo obrigatório aqui pra dar pra enviar o resumo por e-mail
+  // (2026-07-23, a pedido do usuário).
+  const emailCompradorField=document.getElementById('pl-email-comprador-field');
+  const emailCompradorInp=document.getElementById('pl-email-comprador');
+  if(_plEmitidoPeloSistema(p)){
+    if(emailCompradorField)emailCompradorField.style.display='none';
+  }else{
+    if(emailCompradorField)emailCompradorField.style.display='';
+    if(emailCompradorInp)emailCompradorInp.value=fin.emailComprador||p.email_comprador||'';
+  }
 
   const docZone=document.getElementById('pl-doc-zone');
   if(docZone){
@@ -9613,13 +9639,16 @@ async function _plSalvarRascunhoAgora(){
     artUrl:_plArtUrl,
     temLaudo:document.getElementById('pl-tem-laudo')?.value||'',
     laudoUrl:_plLaudoUrl,
+    // E-mail do Comprador(a) só é preenchimento desta tela pro pedido incluído manualmente
+    // (não emitido pelo sistema) — pro emitido normal, vem de p.email_comprador direto.
+    emailComprador:_plEmitidoPeloSistema(p)?'':(document.getElementById('pl-email-comprador')?.value||'').trim(),
     atualizadoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
     atualizadoEm:new Date().toISOString()
   };
   // Em pedido com ART automática (herdada da Emissão), temArt não conta pro "está vazio";
   // em pedido com ART como pergunta desta tela conta, já que ali é uma resposta real que
-  // também pode ficar em aberto ainda.
-  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!_plPerguntarArtManual(p)||!draft.temArt);
+  // também pode ficar em aberto ainda. Mesma lógica pro e-mail do comprador manual.
+  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!_plPerguntarArtManual(p)||!draft.temArt)&&(_plEmitidoPeloSistema(p)||!draft.emailComprador);
   if(vazio&&!p.finalizacaoDraft)return; // nada preenchido ainda e nunca teve rascunho — não grava à toa
   p.finalizacaoDraft=vazio?null:draft;
   try{
@@ -9805,9 +9834,14 @@ async function salvarFinalizacaoObra(){
   const perguntarArt=_plPerguntarArtManual(p);
   const temArt=perguntarArt?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||'');
   const temLaudo=document.getElementById('pl-tem-laudo')?.value||'';
+  // E-mail do Comprador(a): obrigatório informar aqui só pro pedido não emitido pelo
+  // sistema (não tem esse cadastro vindo da Emissão) — 2026-07-23, a pedido do usuário.
+  const emitidoNormal=_plEmitidoPeloSistema(p);
+  const emailComprador=emitidoNormal?(p.email_comprador||''):(document.getElementById('pl-email-comprador')?.value||'').trim();
   if(!dataFinalizacao){toast('Informe a data de finalização do pedido','terr');return;}
   if(!liderTrabalho){toast('Informe o líder que realizou o trabalho','terr');return;}
   if(!acompanhanteCliente){toast('Informe quem acompanhou pelo cliente','terr');return;}
+  if(!emitidoNormal&&(!emailComprador||!emailComprador.includes('@'))){toast('Informe o e-mail do comprador(a) — obra não emitida pelo sistema','terr');return;}
   if(perguntarArt&&!temArt){toast('Informe se esta obra tem ART','terr');return;}
   if(temArt==='Sim'&&!_plArtUrl){toast('Envie o arquivo da ART','terr');return;}
   if(!temLaudo){toast('Informe se esta obra tem Laudo Técnico','terr');return;}
@@ -9816,6 +9850,11 @@ async function salvarFinalizacaoObra(){
   if(!_plFotosUrls.length){toast('Envie ao menos uma foto de finalização','terr');return;}
 
   clearTimeout(_plRascunhoTimer);
+  // Pro pedido não emitido pelo sistema, o e-mail digitado aqui vira o próprio
+  // p.email_comprador do pedido — assim o resto do sistema (resumo da Finalização,
+  // destinatários do envio em _enviarEmailFinalizacao) já lê normalmente, sem precisar de
+  // um campo separado espalhado em mais lugares.
+  if(!emitidoNormal)p.email_comprador=emailComprador;
   p.finalizacao={
     dataFinalizacao,liderTrabalho,acompanhanteCliente,pendenciasObs,
     documentoUrl:_plDocUrl,
