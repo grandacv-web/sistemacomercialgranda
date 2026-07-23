@@ -2543,7 +2543,7 @@ async function _enviarEmailTarefa(t,pedidoInfo){
     // reply_to desta notificação (só tarefa) aponta pra grandacv@gmail.com — diferente do
     // e-mail de emissão de pedido (que usa pedidos@granda.ind.br), a pedido do usuário
     // 2026-07-16: quem responde a esse e-mail de tarefa não deve cair na caixa de pedidos.
-    await emailjs.send(sid,tid,{html_content,to_email:destEmail,to_name:t.responsavel,subject,name:'Comercial Granda',reply_to:'grandacv@gmail.com'});
+    await emailjs.send(sid,tid,{html_content,to_email:destEmail,to_name:t.responsavel,subject,name:'Granda Comunicação Visual',reply_to:'grandacv@gmail.com'});
     toast(`Responsável notificado por e-mail (${destEmail})`,'tok');
     return{ok:true,erro:''};
   }catch(e){
@@ -5308,7 +5308,7 @@ async function _enviarEmailEmissao(p,destEmailsOverride){
     // {{to_email}}, From Name={{name}}, Reply To={{reply_to}}.
     const tid=cfg.t||'template_7rz15hy';
     const{html_content,subject}=buildEmissaoEmailContent(p);
-    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
+    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Granda Comunicação Visual',reply_to:'pedidos@granda.ind.br'});
     p.emailStatus='enviado';p.emailEnviadoEm=new Date().toISOString();p.emailDestinatarios=destEmails;p.emailErro='';
     savePedidoFS(p).catch(e=>console.error('Erro ao gravar status de e-mail:',e));
     return{ok:true,destinatarios:destEmails,erro:''};
@@ -10030,7 +10030,7 @@ async function _enviarEmailFinalizacao(p){
     emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
     const sid=cfg.s||'service_t99xeta';
     const{html_content,subject}=buildFinalizacaoEmailContent(p);
-    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
+    await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Granda Comunicação Visual',reply_to:'pedidos@granda.ind.br'});
     p.finalizacao=p.finalizacao||{};
     p.finalizacao.emailStatus='enviado';p.finalizacao.emailEnviadoEm=new Date().toISOString();p.finalizacao.emailDestinatarios=destEmails;p.finalizacao.emailErro='';
     savePedidoFS(p).catch(e=>console.error('Erro ao gravar status de e-mail de finalização:',e));
