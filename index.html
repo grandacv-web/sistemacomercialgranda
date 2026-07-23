@@ -898,14 +898,21 @@ select.fc{cursor:pointer}
             <button onclick="reclassificarNaoClassificados()" class="dash-btn-conf" style="white-space:nowrap;background:#7c3aed" title="Reaplica as regras de categoria mais atuais em toda despesa ainda 'Não Classificado'">🔄 Reclassificar Não Classificado</button>
           </div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+            <!-- Trocado o filtro "Todos os vendedores" pelo navegador de mês por setinhas
+                 (2026-07-23, a pedido do usuário: "mais prático") — mostra tudo que tem pra
+                 acontecer no mês (Pagar + Receber, ou só um dos dois via filtro Tipo),
+                 movendo direto as datas De/Até pro 1º e último dia do mês escolhido. Colocado
+                 antes do "Mês da venda" (2026-07-23, a pedido do usuário). -->
+            <div class="dash-mes-nav" style="margin:0">
+              <button onclick="fcMesMov(-1)" type="button">◀</button>
+              <div class="dash-mes-label" id="fc-mes-lbl">—</div>
+              <button onclick="fcMesMov(1)" type="button">▶</button>
+            </div>
             <select id="fc-fil-mes-venda" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
               <option value="">📅 Mês da venda (Receber)</option>
               <option>JANEIRO</option><option>FEVEREIRO</option><option>MARÇO</option><option>ABRIL</option>
               <option>MAIO</option><option>JUNHO</option><option>JULHO</option><option>AGOSTO</option>
               <option>SETEMBRO</option><option>OUTUBRO</option><option>NOVEMBRO</option><option>DEZEMBRO</option>
-            </select>
-            <select id="fc-fil-vend" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-              <option value="">Todos os vendedores (Receber)</option>
             </select>
             <select id="fc-fil-empresa" onchange="fcAplicarFiltros()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
               <option value="">🏢 Todas as empresas (Pagar)</option>
@@ -1018,8 +1025,9 @@ select.fc{cursor:pointer}
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
         <input id="pl-fil-busca" placeholder="🔍 Buscar por OS, cliente ou JOB..." oninput="renderPlanejamentoObras()" style="flex:1;min-width:220px;padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit">
         <select id="pl-fil-status" onchange="renderPlanejamentoObras()" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e5e7eb;font-size:.83rem;font-family:inherit;cursor:pointer">
-          <option value="">Todas as obras</option>
+          <option value="">Todas (pendentes + atrasadas)</option>
           <option value="pendentes">⏳ Pendentes</option>
+          <option value="atrasadas">🔴 Atrasadas</option>
           <option value="concluidas">✅ Concluídas</option>
         </select>
       </div>
@@ -1282,14 +1290,17 @@ select.fc{cursor:pointer}
      com usuário próprio. Tipo de pedido/responsável pelo preenchimento/cliente/OS/
      cidade-UF/e-mails vêm todos automáticos da emissão do pedido selecionado — só os
      campos abaixo são preenchidos manualmente aqui. -->
-<div class="mov" id="mo-finalizacao" onclick="if(event.target.id==='mo-finalizacao')closeM('mo-finalizacao')">
+<!-- Sem fechar ao clicar fora (2026-07-23, a pedido do usuário) — só fecha pelo ✕/Cancelar,
+     que passam por fecharFinalizacaoObra() pra garantir que o rascunho fica salvo antes. -->
+<div class="mov" id="mo-finalizacao">
 <div class="mvmod" style="width:560px;max-width:98vw;max-height:90vh;display:flex;flex-direction:column;padding:0">
   <div style="padding:24px 24px 0;flex-shrink:0">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
       <h3 style="margin-bottom:0">🏗️ Finalização de Obra</h3>
-      <button onclick="closeM('mo-finalizacao')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+      <button onclick="fecharFinalizacaoObra()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
     </div>
-    <div id="pl-info" style="font-size:.78rem;color:var(--ink4);margin-bottom:16px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+    <div id="pl-info" style="font-size:.78rem;color:var(--ink4);margin-bottom:6px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid var(--border)"></div>
+    <div id="pl-rascunho-status" style="display:none;font-size:.72rem;color:#7c3aed;font-weight:600;margin-bottom:10px"></div>
   </div>
 
   <div style="overflow-y:auto;flex:1;padding:0 24px 18px">
@@ -1300,15 +1311,43 @@ select.fc{cursor:pointer}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
       <div>
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Data de Finalização do Pedido</label>
-        <input id="pl-data-finalizacao" type="date" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+        <input id="pl-data-finalizacao" type="date" oninput="_plAgendarRascunho()" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
       </div>
       <div>
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Líder que Realizou o Trabalho</label>
-        <input id="pl-lider" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+        <input id="pl-lider" type="text" class="no-upper" oninput="_plAgendarRascunho()" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
       </div>
       <div style="grid-column:span 2">
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nome de Quem Acompanhou (Cliente)</label>
-        <input id="pl-acompanhante" type="text" class="no-upper" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+        <input id="pl-acompanhante" type="text" class="no-upper" oninput="_plAgendarRascunho()" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="grid-column:span 2" id="pl-tem-art-field">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">ART</label>
+        <div id="pl-art-info-text" style="font-size:.85rem;font-weight:600;color:var(--ink2);background:#fafbfc;border:1.5px solid var(--border-lt);border-radius:9px;padding:9px 11px"></div>
+      </div>
+      <div style="grid-column:span 2;display:none" id="pl-art-wrap">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Arquivo da ART <span class="r">*</span></label>
+        <div class="upload-zone" id="pl-art-zone" onclick="document.getElementById('pl-art-file').click()" style="padding:9px 11px;min-height:auto">
+          <span class="uz-icon" style="font-size:.95rem">📄</span>
+          <div class="uz-title" style="font-size:.8rem">Clique para selecionar o arquivo da ART</div>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="pl-art-file" style="display:none" onchange="uploadFinalizacaoArquivo(this,'art')">
+        </div>
+      </div>
+      <div style="grid-column:span 2" id="pl-tem-laudo-field">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Esta obra tem Laudo Técnico? <span class="r">*</span></label>
+        <input type="hidden" id="pl-tem-laudo" value="">
+        <div class="tg-grp">
+          <button type="button" class="tgb yes" data-val="Sim" onclick="_plTogSimNao(this,'pl-tem-laudo','pl-laudo-wrap')">Sim</button>
+          <button type="button" class="tgb no" data-val="Não" onclick="_plTogSimNao(this,'pl-tem-laudo','pl-laudo-wrap')">Não</button>
+        </div>
+      </div>
+      <div style="grid-column:span 2;display:none" id="pl-laudo-wrap">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Arquivo do Laudo Técnico <span class="r">*</span></label>
+        <div class="upload-zone" id="pl-laudo-zone" onclick="document.getElementById('pl-laudo-file').click()" style="padding:9px 11px;min-height:auto">
+          <span class="uz-icon" style="font-size:.95rem">📄</span>
+          <div class="uz-title" style="font-size:.8rem">Clique para selecionar o arquivo do Laudo Técnico</div>
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="pl-laudo-file" style="display:none" onchange="uploadFinalizacaoArquivo(this,'laudo')">
+        </div>
       </div>
       <div style="grid-column:span 2">
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Documento de Finalização Assinado</label>
@@ -1319,24 +1358,24 @@ select.fc{cursor:pointer}
         </div>
       </div>
       <div style="grid-column:span 2">
-        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Fotos de Finalização</label>
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Fotos e Vídeos de Finalização</label>
         <div class="upload-zone" onclick="document.getElementById('pl-fotos-file').click()" style="padding:16px 11px">
           <span class="uz-icon">📸</span>
-          <div class="uz-title">Clique para selecionar as fotos (pode escolher várias)</div>
-          <div class="uz-sub">As fotos são comprimidas com moderação antes do envio, sem perder muita qualidade — este é um registro importante</div>
-          <input type="file" accept="image/*" multiple id="pl-fotos-file" style="display:none" onchange="uploadFinalizacaoFotos(this)">
+          <div class="uz-title">Clique para selecionar fotos ou vídeos (pode escolher vários)</div>
+          <div class="uz-sub">Fotos são comprimidas com moderação antes do envio, sem perder muita qualidade — este é um registro importante. Vídeos vão sem compressão.</div>
+          <input type="file" accept="image/*,video/*" multiple id="pl-fotos-file" style="display:none" onchange="uploadFinalizacaoFotos(this)">
         </div>
         <div id="pl-fotos-status" style="display:none;font-size:.74rem;font-weight:600;color:var(--ink3);margin-top:6px"></div>
         <div id="pl-fotos-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px"></div>
       </div>
       <div style="grid-column:span 2">
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Pendências e Observação</label>
-        <textarea id="pl-pendencias" class="no-upper" rows="3" placeholder="O que deu errado, ficou pendente ou precisa ser finalizado depois (opcional)..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.86rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
+        <textarea id="pl-pendencias" class="no-upper" rows="3" oninput="_plAgendarRascunho()" placeholder="O que deu errado, ficou pendente ou precisa ser finalizado depois (opcional)..." style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.86rem;font-family:inherit;box-sizing:border-box;resize:vertical"></textarea>
       </div>
     </div>
   </div>
   <div style="display:flex;gap:8px;justify-content:flex-end;padding:14px 24px;border-top:1px solid var(--border-lt);background:#fafbfc;flex-shrink:0">
-    <button class="btn-mv" onclick="closeM('mo-finalizacao')">Cancelar</button>
+    <button class="btn-mv" onclick="fecharFinalizacaoObra()">Cancelar</button>
     <button class="btn-ed" onclick="salvarFinalizacaoObra()">💾 Salvar e Enviar E-mail</button>
   </div>
 </div>
@@ -1548,6 +1587,28 @@ select.fc{cursor:pointer}
   </div>
   <div id="tf-adiar-aviso-admin" style="font-size:.72rem;color:#94a3b8;margin-bottom:12px"></div>
   <button onclick="_confirmarAdiamentoTarefa()" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">Enviar pedido de adiamento</button>
+</div>
+</div>
+
+<!-- ALTERAR PRAZO DE FINALIZAÇÃO (OBRA) MODAL — Planejamento/admin, 2026-07-23 -->
+<div class="mov" id="mo-prazo-obra" onclick="cio(event,'mo-prazo-obra')">
+<div class="mvmod" style="width:480px;max-width:96vw">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <h3 style="margin-bottom:0">📅 Alterar Prazo de Finalização</h3>
+    <button onclick="closeM('mo-prazo-obra')" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+  </div>
+  <div id="pz-info" style="font-size:.8rem;color:var(--ink3);margin-bottom:14px"></div>
+  <input type="hidden" id="pz-pedido-id">
+  <div class="fg">
+    <label>Novo Prazo de Finalização <span class="r">*</span></label>
+    <input type="date" id="pz-novo-prazo" class="fc">
+  </div>
+  <div class="fg">
+    <label>Motivo da alteração <span class="r">*</span></label>
+    <textarea id="pz-motivo" class="fc" rows="3" placeholder="Explique o motivo da mudança de prazo..." style="text-transform:none"></textarea>
+  </div>
+  <div id="pz-historico" style="font-size:.74rem;color:var(--ink4);margin-bottom:12px;max-height:160px;overflow-y:auto"></div>
+  <button onclick="salvarAlteracaoPrazoObra()" style="width:100%;background:#1d4ed8;color:#fff;border:none;border-radius:9px;padding:11px;font-size:.85rem;font-weight:700;cursor:pointer">💾 Salvar Alteração</button>
 </div>
 </div>
 
@@ -1817,6 +1878,18 @@ select.fc{cursor:pointer}
           <p style="font-size:.68rem;color:var(--ink4);margin-top:4px">Logo colorida da Granda para o cabeçalho do e-mail</p>
           <input type="file" id="logo-upload-input" accept="image/*" style="display:none" onchange="fazerUploadLogo(this)">
         </div>
+        <div style="font-size:.7rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:1px;margin:22px 0 10px">📊 Uso Estimado de Armazenamento</div>
+        <div style="font-size:.72rem;color:var(--ink4);margin-bottom:12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+          Estimativa somando o tamanho de cada arquivo que o próprio sistema envia (fotos, PDFs, vídeos etc.) — não é o valor oficial do Cloudinary (não conta arquivos apagados direto lá ou enviados fora do sistema). Confira o Dashboard → Usage do Cloudinary de vez em quando pra recalibrar.
+        </div>
+        <div class="fg"><label>Avisar quando passar de (GB)</label><input class="fc no-upper" type="number" id="cfg-cloud-limite" placeholder="25" style="max-width:140px"></div>
+        <div id="cfg-cloud-uso-bar" style="background:#e5e7eb;border-radius:8px;height:10px;overflow:hidden;margin:8px 0 6px">
+          <div id="cfg-cloud-uso-fill" style="height:100%;width:0%;background:#16a34a;transition:width .3s"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <div id="cfg-cloud-uso-texto" style="font-size:.8rem;font-weight:700;color:var(--ink2)">—</div>
+          <button type="button" class="btn-mv" onclick="zerarContadorCloudinary()" style="white-space:nowrap;padding:7px 12px;font-size:.74rem">↺ Zerar contador</button>
+        </div>
       </div>
       <!-- FRETE -->
       <div class="cfg-sec" id="cfg-sec-frete" style="display:none">
@@ -2057,7 +2130,13 @@ function renderCfgPermissoes(){
   }).join('');
 }
 
-let pedidos=[],contasPagar=[],cfg={s:'service_t99xeta',t:'template_8ymz4j4',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
+// t: Template ID de emissão — atualizado 2026-07-23 (o antigo template_8ymz4j4 sumiu/mudou
+// de ID no EmailJS, causando erro "template not found" numa emissão real; novo ID
+// confirmado pelo usuário direto no dashboard, template "Contact Us"). Esse objeto é o
+// valor em memória ANTES do Firestore carregar (_fbWatchCfg faz Object.assign por cima) —
+// se o campo "Template ID (e-mail de emissão de pedido)" nunca foi salvo em Configurações,
+// é ESTE valor aqui que vale de verdade, não o fallback dentro de _enviarEmailEmissao.
+let pedidos=[],contasPagar=[],cfg={s:'service_t99xeta',t:'template_7rz15hy',k:'wtJbXi3uGODPaFIqc',e:'guilherme@granda.ind.br, guilherme.clabonde@granda.ind.br',r:'GUILHERME CLABONDE',cld_cloud:'derlxsg74',cld_preset:'gcoregranda',cld_logo:'',freteTabela:'',freteOrigem:'PONTA GROSSA/PR',avisos:'• Este documento é um resumo do pedido emitido pelo sistema Granda.\n• Em caso de dúvidas entre em contato com seu responsável comercial.\n• Prazos de entrega estão sujeitos à confirmação de produção.'};
 let sf='os',sa=true,vid=null,eid=null;
 let step=0,ed={},editing=null;
 
@@ -2414,8 +2493,8 @@ function buildTarefaEmailContent(t,pedidoInfo){
   <!-- FOOTER -->
   <tr><td style="background:#111827;padding:20px 40px">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#6b7280">Comercial Granda · E-mail automático · Ferramentas Comerciais</td>
-      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+      <td style="font-size:11px;color:#6b7280">PENSE GRANDE, SEJA GRANDA! - E-mail automático sistema Granda</td>
+      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" width="56" alt="Granda" style="height:20px;width:56px;opacity:.5"></td>
     </tr></table>
   </td></tr>
 
@@ -2504,6 +2583,7 @@ async function setUpload(zoneId,nameId,input,edKey){
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   if(edKey)ed[edKey+'_url']=url;
@@ -3369,6 +3449,7 @@ async function uploadEvOc(input){
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   _evOcUrl=url;
@@ -3396,6 +3477,7 @@ async function uploadEvPdf(input){
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   _evPdfUrl=url;
@@ -3581,6 +3663,7 @@ async function uploadVmOc(input){
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   _vmOcUrl=url;
@@ -3607,6 +3690,7 @@ async function uploadVmPdf(input){
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   _vmPdfUrl=url;
@@ -4064,6 +4148,70 @@ function cldDownload(url){
   }catch(e){}
   return url;
 }
+// ── ESTIMATIVA DE USO DO CLOUDINARY (2026-07-23, a pedido do usuário) ───────────────────
+// O sistema não tem como consultar o uso REAL do Cloudinary sem expor a API Secret no
+// navegador (risco de segurança grave — qualquer um com "Ver código-fonte" poderia apagar
+// tudo da conta), então isso aqui é uma ESTIMATIVA: soma o tamanho de cada arquivo que o
+// PRÓPRIO sistema envia (cfg.cloudUsoBytes, compartilhado com a equipe via Firestore).
+// Não conta arquivos apagados direto no Cloudinary nem uploads feitos fora do sistema —
+// recalibre de vez em quando com "↺ Zerar contador" em Configurações, depois de conferir o
+// valor real no Dashboard → Usage do Cloudinary.
+let _cldUsoSaveTimer=null;
+function _cldRegistrarUpload(bytes){
+  if(!bytes)return;
+  cfg.cloudUsoBytes=(cfg.cloudUsoBytes||0)+bytes;
+  _cldChecarLimite();
+  _cldAtualizarPainelUso();
+  // Debounced — evita um setDoc por foto quando sobem 20+ de uma vez (upload de fotos de
+  // finalização, por exemplo); espera a rajada de uploads terminar pra salvar uma vez só.
+  clearTimeout(_cldUsoSaveTimer);
+  _cldUsoSaveTimer=setTimeout(()=>{
+    if(window._fbSaveCfg)window._fbSaveCfg(cfg).catch(e=>console.error('Erro ao salvar uso estimado do Cloudinary',e));
+  },2500);
+}
+// Avisa uma vez ao passar de 80% e de novo ao passar de 95% do limite configurado (padrão
+// 25GB, mesmo do plano gratuito do Cloudinary) — cfg.cloudAvisado80/95 evita repetir o toast
+// a cada upload depois de já ter avisado uma vez. Zera os avisos se o uso cair de novo
+// abaixo de 80% (ex.: depois de "Zerar contador").
+function _cldChecarLimite(){
+  const limiteGB=cfg.cloudLimiteGB||25;
+  const limiteBytes=limiteGB*1024*1024*1024;
+  const usoBytes=cfg.cloudUsoBytes||0;
+  const pct=limiteBytes>0?usoBytes/limiteBytes:0;
+  if(pct>=0.95&&!cfg.cloudAvisado95){
+    cfg.cloudAvisado95=true;
+    toast(`🚨 Armazenamento do Cloudinary (estimado) já passou de 95% do limite de ${limiteGB}GB! Vale checar o uso real e considerar limpeza ou upgrade de plano.`,'terr');
+  } else if(pct>=0.8&&!cfg.cloudAvisado80){
+    cfg.cloudAvisado80=true;
+    toast(`⚠️ Armazenamento do Cloudinary (estimado) passou de 80% do limite de ${limiteGB}GB — fique de olho.`,'twar');
+  } else if(pct<0.8){
+    cfg.cloudAvisado80=false;cfg.cloudAvisado95=false;
+  }
+}
+// Atualiza a barrinha/texto em Configurações → Cloudinary — só faz efeito se o painel
+// estiver aberto (os ids só existem no DOM daquela seção), senão não faz nada.
+function _cldAtualizarPainelUso(){
+  const fill=document.getElementById('cfg-cloud-uso-fill');
+  const texto=document.getElementById('cfg-cloud-uso-texto');
+  if(!fill||!texto)return;
+  const limiteGB=cfg.cloudLimiteGB||25;
+  const usoGB=(cfg.cloudUsoBytes||0)/(1024*1024*1024);
+  const pct=limiteGB>0?Math.min(100,(usoGB/limiteGB)*100):0;
+  fill.style.width=pct+'%';
+  fill.style.background=pct>=95?'#dc2626':pct>=80?'#f59e0b':'#16a34a';
+  texto.textContent=`${usoGB.toFixed(2)} GB de ${limiteGB} GB estimados (${pct.toFixed(1)}%)`;
+}
+// Botão "↺ Zerar contador" em Configurações — usar depois de conferir o uso real no
+// Dashboard → Usage do Cloudinary, pra recalibrar a estimativa.
+function zerarContadorCloudinary(){
+  if(!confirm('Zerar o contador estimado de uso do Cloudinary?\n\nUse isso só depois de conferir o valor real no Dashboard → Usage do Cloudinary, pra recalibrar a estimativa do zero.'))return;
+  cfg.cloudUsoBytes=0;
+  cfg.cloudAvisado80=false;
+  cfg.cloudAvisado95=false;
+  if(window._fbSaveCfg)window._fbSaveCfg(cfg).catch(e=>console.error('Erro ao zerar uso do Cloudinary',e));
+  _cldAtualizarPainelUso();
+  toast('Contador de uso do Cloudinary zerado.','tok');
+}
 function moneyToNum(s){
   // aceita "R$ 1.500,00" ou "1.500,00" ou "1500.00" ou "1500" ou number
   if(!s)return 0;
@@ -4281,7 +4429,11 @@ function renderStep(id){
       <div style="border:1.5px solid #eef0f5;border-radius:12px;padding:16px;margin-bottom:14px">
         <div class="fsec-t" style="font-size:.65rem;margin-bottom:10px">&#128203; Ordem de Serviço</div>
         <div class="g2">
-          <div class="fg"><label>Nº da Ordem de Serviço <span class="r">*</span></label><input class="fc" id="em-os" value="${ed.os||''}" placeholder="Número da OS"></div>
+          <div class="fg"><label>Nº da Ordem de Serviço <span class="r">*</span>${ed.os_travado?' <button type="button" id="em-os-unlock-btn" onclick="desbloquearOsManual()" style="background:none;border:none;color:#1d4ed8;font-size:.68rem;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;margin-left:4px" title="Permitir edição manual — só se o PDF leu o número errado">🔓 corrigir</button>':''}</label>
+            <input class="fc" id="em-os" value="${ed.os||''}" placeholder="Número da OS" oninput="checarOsDuplicado()" ${ed.os_travado?'readonly':''}>
+            <div id="em-os-dup-warn" style="display:none;color:#dc2626;font-size:.72rem;font-weight:700;margin-top:4px"></div>
+            ${ed.os_travado?'<div id="em-os-lock-note" style="font-size:.68rem;color:var(--ink4);margin-top:4px">🔒 Preenchido automaticamente a partir do PDF da Ordem de Serviço.</div>':''}
+          </div>
           <div class="fg"><label>PDF da OS</label>
             <div class="upload-zone" id="uz-os" onclick="document.getElementById('em-pdf').click()">
               <span class="uz-icon">📄</span>
@@ -4294,9 +4446,9 @@ function renderStep(id){
         </div>
         <div id="os-check-result"></div>
       </div>
-      <div class="fg"><label>8. Tipo de Pedido <span class="r">*</span></label>
+      <div class="fg"><label>8. Categoria de Pedido <span class="r">*</span></label>
         <select class="fc" id="em-tped" onchange="ed.tipoPedido=this.value">
-          <option value="">Selecione o tipo...</option>
+          <option value="">Selecione a categoria...</option>
           ${getTiposPedido().map(t=>`<option ${ed.tipoPedido===t?'selected':''}>${t}</option>`).join('')}
         </select>
       </div>
@@ -4660,6 +4812,7 @@ async function uploadCnpjArt(input){
       const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   ed.cnpj_art=f.name;ed.cnpj_art_url=url;
@@ -4846,6 +4999,19 @@ function atualizaPrazo(distArg,cidadeArg,ufArg){
   // DEDICADO: usa distância / 800km por dia corrido
   const origem=cfg.freteOrigem||'PONTA GROSSA/PR';
   const infoEl=document.getElementById('em-dist-info');
+  // Entrega na própria cidade de origem (ex.: Ponta Grossa) não está na tabela de
+  // distâncias — é o ponto zero, não um destino, então dist vem null e caía no aviso
+  // "cidade não encontrada" mesmo sendo uma entrega local válida. Considera 1 dia útil
+  // nesse caso (2026-07-23, a pedido do usuário). Compara com a cidade configurada em
+  // Configurações → Frete (cfg.freteOrigem), não fixo, pra acompanhar se o ponto de origem
+  // mudar no futuro.
+  const origemCidade=(origem.split('/')[0]||'').trim();
+  if(!dist&&cidade&&origemCidade&&norm(cidade)===norm(origemCidade)){
+    res.innerHTML=`<strong>PRAZO ESTIMADO DE ENTREGA: 1 DIA ÚTIL</strong>`;
+    if(infoEl)infoEl.textContent=`📍 Entrega local em ${cidade} (mesma cidade da origem)`;
+    ed.prazo_frete_txt='1 dia útil';
+    return;
+  }
   if(!dist){
     res.innerHTML=cidade
       ?`<span style="color:var(--warning)">⚠️ Cidade "<strong>${cidade}</strong>" não encontrada na tabela. Verifique o CEP.</span>`
@@ -4942,7 +5108,7 @@ function buildEmissaoEmailContent(p){
   <tr><td style="background:#111827;padding:0">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:32px 40px 24px">
-        <img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
+        <img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="52" width="145" alt="Granda Comunicação Visual" style="height:52px;width:145px;display:block;margin:0 auto">
       </td></tr>
       <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
       <tr><td style="padding:24px 40px 28px;background:#111827">
@@ -5053,8 +5219,8 @@ function buildEmissaoEmailContent(p){
   <!-- FOOTER -->
   <tr><td style="background:#111827;padding:20px 40px">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#6b7280">Comercial Granda · E-mail automático</td>
-      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+      <td style="font-size:11px;color:#6b7280">PENSE GRANDE, SEJA GRANDA! - E-mail automático sistema Granda</td>
+      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" width="56" alt="Granda" style="height:20px;width:56px;opacity:.5"></td>
     </tr></table>
   </td></tr>
 
@@ -5080,7 +5246,12 @@ async function _enviarEmailEmissao(p,destEmailsOverride){
   try{
     emailjs.init(cfg.k||'wtJbXi3uGODPaFIqc');
     const sid=cfg.s||'service_t99xeta';
-    const tid=cfg.t||'template_8ymz4j4';
+    // Fallback atualizado 2026-07-23 — o template antigo (template_8ymz4j4) sumiu/foi
+    // recriado no EmailJS com outro ID, causando erro "template not found" numa emissão
+    // real. Novo ID confirmado pelo usuário direto no dashboard do EmailJS: template
+    // "Contact Us" com Subject={{subject}}, Content={{{html_content}}}, To Email=
+    // {{to_email}}, From Name={{name}}, Reply To={{reply_to}}.
+    const tid=cfg.t||'template_7rz15hy';
     const{html_content,subject}=buildEmissaoEmailContent(p);
     await emailjs.send(sid,tid,{html_content,to_email:destEmails.join(','),cc:'',to_name:p.cliente,os_numero:String(p.os),subject,name:'Comercial Granda',reply_to:'pedidos@granda.ind.br'});
     p.emailStatus='enviado';p.emailEnviadoEm=new Date().toISOString();p.emailDestinatarios=destEmails;p.emailErro='';
@@ -5220,6 +5391,12 @@ async function emOsPdfSelecionado(input){
     // vazio; se o vendedor já tinha digitado outro número, NUNCA sobrescreve sem avisar
     // (evita apagar um número certo digitado por engano de leitura do PDF), só alerta pra
     // conferir qual dos dois está certo. Reduz erro de digitação/duplicidade de OS na raiz.
+    //
+    // (2026-07-23, a pedido do usuário) Depois de preencher sozinho, o campo é TRAVADO
+    // (readOnly) — ele não é mais editável por engano. Só destrava clicando em "🔓 corrigir"
+    // (desbloquearOsManual()), pro caso raro do PDF ter sido lido errado. Junto, já roda a
+    // checagem de OS duplicado (_osJaEmUso, mesma usada no submit()) na hora, em vez de só
+    // avisar quando o vendedor tentar emitir.
     const numeroDetectado=_extrairNumeroOsDoPdf(texto);
     if(numeroDetectado){
       const campoOs=document.getElementById('em-os');
@@ -5227,7 +5404,29 @@ async function emOsPdfSelecionado(input){
       if(!atual){
         if(campoOs)campoOs.value=numeroDetectado;
         ed.os=numeroDetectado;
-        toast('Nº da OS preenchido automaticamente a partir do PDF: '+numeroDetectado+' — confira antes de emitir.','tok');
+        ed.os_travado=true;
+        if(campoOs){
+          campoOs.readOnly=true;
+          const label=campoOs.closest('.fg')?.querySelector('label');
+          if(label&&!document.getElementById('em-os-unlock-btn')){
+            const btn=document.createElement('button');
+            btn.type='button';btn.id='em-os-unlock-btn';btn.textContent='🔓 corrigir';
+            btn.title='Permitir edição manual — só se o PDF leu o número errado';
+            btn.style.cssText='background:none;border:none;color:#1d4ed8;font-size:.68rem;font-weight:700;cursor:pointer;text-decoration:underline;padding:0;margin-left:4px';
+            btn.onclick=desbloquearOsManual;
+            label.appendChild(btn);
+          }
+          const fg=campoOs.closest('.fg');
+          if(fg&&!document.getElementById('em-os-lock-note')){
+            const note=document.createElement('div');
+            note.id='em-os-lock-note';
+            note.style.cssText='font-size:.68rem;color:var(--ink4);margin-top:4px';
+            note.textContent='🔒 Preenchido automaticamente a partir do PDF da Ordem de Serviço.';
+            fg.appendChild(note);
+          }
+        }
+        toast('Nº da OS preenchido automaticamente a partir do PDF: '+numeroDetectado+' — campo bloqueado, confira antes de emitir.','tok');
+        checarOsDuplicado();
       } else if(atual!==numeroDetectado){
         toast('⚠️ O PDF indica OS '+numeroDetectado+', mas o campo está com "'+atual+'" — confira qual está certo.','twar');
       }
@@ -5237,6 +5436,32 @@ async function emOsPdfSelecionado(input){
     ed.osPdfTexto='';
     if(panel)panel.innerHTML='<div style="margin-top:10px;font-size:.78rem;color:#94a3b8">Não foi possível ler o conteúdo do PDF automaticamente (pode ser um arquivo escaneado/imagem) — confira manualmente.</div>';
   }
+}
+// Libera o campo de Nº da OS pra edição manual depois de travado pelo autofill do PDF —
+// só existe pro caso raro do PDF ter sido lido errado (2026-07-23). Remove o botão/aviso na
+// hora, sem precisar re-renderizar a aba inteira (evita perder o que já foi digitado nos
+// outros campos da mesma aba).
+function desbloquearOsManual(){
+  ed.os_travado=false;
+  const campoOs=document.getElementById('em-os');
+  if(campoOs){campoOs.readOnly=false;campoOs.focus();}
+  document.getElementById('em-os-unlock-btn')?.remove();
+  document.getElementById('em-os-lock-note')?.remove();
+  toast('Campo liberado — confira o número com atenção antes de emitir.','twar');
+}
+// Checagem AO VIVO de OS duplicado (mesma regra do submit(), ver _osJaEmUso()) — roda assim
+// que o PDF preenche o campo sozinho, e a cada digitação manual também. Só um aviso visual
+// cedo; quem realmente bloqueia o envio continua sendo a validação em submit().
+function checarOsDuplicado(){
+  const campoOs=document.getElementById('em-os');
+  const warnEl=document.getElementById('em-os-dup-warn');
+  if(!campoOs||!warnEl)return false;
+  const os=(campoOs.value||'').trim();
+  const _pedOrigOs=(typeof editing!=='undefined'&&editing)?pedidos.find(x=>x.id===editing):null;
+  const duplicado=!!os&&(!_pedOrigOs||_pedOrigOs.os!==os)&&_osJaEmUso(os,typeof editing!=='undefined'?editing:null,_pedOrigOs?_pedOrigOs.origPlanilhaOs:null);
+  warnEl.style.display=duplicado?'':'none';
+  warnEl.textContent=duplicado?`🔴 Nº da OS "${os}" já está em uso por outra venda — use um número diferente.`:'';
+  return duplicado;
 }
 let _avisosOsResolve=null;
 function _confirmarAvisosOs(itens){
@@ -5491,8 +5716,13 @@ function saveCfg(){
   cfg.tTarefa=document.getElementById('ctt')?.value||cfg.tTarefa;
   cfg.tFinalizacao=document.getElementById('ctf')?.value||cfg.tFinalizacao;
   cfg.freteOrigem=document.getElementById('cfg-frete-origem')?.value||cfg.freteOrigem;
-  cfg.cld_cloud=document.getElementById('cfg-cld')?.value||cfg.cld_cloud;
-  cfg.cld_preset=document.getElementById('cfg-pre')?.value||cfg.cld_preset;
+  // (Corrigido 2026-07-23 — mesmo bug já visto em cs/ct/ck: lia de ids 'cfg-cld'/'cfg-pre'
+  // que não existem no HTML, os inputs reais são 'cc'/'cp'. Cloud Name/Upload Preset digitados
+  // aqui nunca eram salvos de verdade — só "parecia" funcionar porque o valor hardcoded
+  // inicial do objeto cfg já batia com a conta real em uso.)
+  cfg.cld_cloud=document.getElementById('cc')?.value||cfg.cld_cloud;
+  cfg.cld_preset=document.getElementById('cp')?.value||cfg.cld_preset;
+  const cloudLimEl=document.getElementById('cfg-cloud-limite');if(cloudLimEl&&cloudLimEl.value!=='')cfg.cloudLimiteGB=parseFloat(cloudLimEl.value)||25;
   cfg.avisos=document.getElementById('cav')?.value??cfg.avisos;
   const sadmInp=document.getElementById('cfg-senha-admin');
   if(sadmInp&&sadmInp.value.trim())cfg.senhaAdmin=sadmInp.value.trim();
@@ -5813,6 +6043,8 @@ function openSettings(){
   document.getElementById('cc').value=c.cld_cloud||'';
   document.getElementById('cp').value=c.cld_preset||'';
   document.getElementById('clogourl').value=c.cld_logo||'';
+  const cloudLimEl2=document.getElementById('cfg-cloud-limite');if(cloudLimEl2)cloudLimEl2.value=c.cloudLimiteGB||25;
+  _cldAtualizarPainelUso();
   const cav=document.getElementById('cav');if(cav)cav.value=c.avisos||'';
   const cdsadm=document.getElementById('cfg-senha-admin');if(cdsadm)cdsadm.value=c.senhaAdmin||c.senhaExclusao||c.dashMetasPin||'2024';
   const pVB2=document.getElementById('cfg-pct-vend-bate');if(pVB2)pVB2.value=c.pctComissaoVendBate??0.30;
@@ -5919,7 +6151,7 @@ async function fazerUploadLogo(input){
     const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);
     const r=await fetch('https://api.cloudinary.com/v1_1/'+cfg.cld_cloud+'/image/upload',{method:'POST',body:fd});
     const d=await r.json();
-    if(d.secure_url){cfg.cld_logo=d.secure_url;const el=document.getElementById('clogourl');if(el)el.value=d.secure_url;toast('Logo enviada!','tok');}
+    if(d.secure_url){cfg.cld_logo=d.secure_url;_cldRegistrarUpload(f.size);const el=document.getElementById('clogourl');if(el)el.value=d.secure_url;toast('Logo enviada!','tok');}
   }catch(e){toast('Erro no upload: '+e.message,'terr');}
 }
 
@@ -8975,8 +9207,17 @@ function _isPlanejamentoUser(){
 // Mesma base "todo pedido emitido pelo sistema" do pedidosKanban() — mas SEM o filtro por
 // vendedor, porque quem finaliza obra precisa ver as obras de todos os vendedores, não só
 // as próprias (pedidosKanban() é usado pelo vendedor pra ver só as dele).
+// Pedidos sem Valor de Instalação E sem Valor de Frete não têm obra física pra acompanhar
+// (ex.: só material enviado, sem equipe indo até o cliente) — fora da lista de Planejamento
+// (2026-07-23, a pedido do usuário). Mesmos campos usados em pedidoToVendaRow()/Operacionais
+// Pedidos (inst['Valor da Instalação'] / fr['Valor do Frete']).
 function _plPedidosElegiveis(){
-  return pedidos.filter(p=>p.origemComercial&&!p.importadoPlanilha);
+  return pedidos.filter(p=>{
+    if(!p.origemComercial||p.importadoPlanilha)return false;
+    const temInst=moneyToNum((p.instalacao&&p.instalacao['Valor da Instalação'])||'0')>0.005;
+    const temFrete=moneyToNum((p.frete&&p.frete['Valor do Frete'])||'0')>0.005;
+    return temInst||temFrete;
+  });
 }
 
 function renderPlanejamentoObras(){
@@ -8986,12 +9227,27 @@ function renderPlanejamentoObras(){
   if(busca){
     lista=lista.filter(p=>String(p.os||'').toUpperCase().includes(busca)||(p.cliente||'').toUpperCase().includes(busca)||(p.job||'').toUpperCase().includes(busca));
   }
-  let rows=lista.map(p=>({p,concl:!!(p.finalizacao&&p.finalizacao.dataFinalizacao)}));
-  if(filStatus==='pendentes')rows=rows.filter(x=>!x.concl);
+  const hojeISO=new Date().toISOString().slice(0,10);
+  // atrasado = ainda não concluída E o Prazo de Finalização já passou (comparação direta de
+  // string ISO 'YYYY-MM-DD', mesmo formato salvo pelo <input type=date> da Emissão).
+  let rows=lista.map(p=>{
+    const concl=!!(p.finalizacao&&p.finalizacao.dataFinalizacao);
+    const atrasado=!concl&&!!p.prazo&&p.prazo<hojeISO;
+    return{p,concl,atrasado};
+  });
+  // Concluídas somem da lista por padrão — só aparecem quando o filtro "✅ Concluídas" é
+  // escolhido explicitamente (2026-07-23, a pedido do usuário: a lista principal é de
+  // trabalho a fazer, não histórico).
+  if(filStatus==='pendentes')rows=rows.filter(x=>!x.concl&&!x.atrasado);
+  else if(filStatus==='atrasadas')rows=rows.filter(x=>x.atrasado);
   else if(filStatus==='concluidas')rows=rows.filter(x=>x.concl);
+  else rows=rows.filter(x=>!x.concl); // "Todas (pendentes + atrasadas)"
   rows.sort((a,b)=>{
     if(a.concl!==b.concl)return a.concl?1:-1; // pendentes sempre primeiro
-    if(!a.concl)return new Date(a.p.prazo||'2100-01-01')-new Date(b.p.prazo||'2100-01-01'); // mais urgente primeiro
+    if(!a.concl){
+      if(a.atrasado!==b.atrasado)return a.atrasado?-1:1; // atrasadas primeiro
+      return new Date(a.p.prazo||'2100-01-01')-new Date(b.p.prazo||'2100-01-01'); // mais urgente primeiro
+    }
     return new Date(b.p.finalizacao?.preenchidoEm||0)-new Date(a.p.finalizacao?.preenchidoEm||0); // mais recente primeiro
   });
   const body=document.getElementById('pl-body');
@@ -9000,6 +9256,7 @@ function renderPlanejamentoObras(){
     body.innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink4);font-size:.85rem">Nenhuma obra encontrada.</div>`;
     return;
   }
+  const podeEditarPrazo=_isPlanejamentoUser();
   body.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
     <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
       <th style="padding:8px 10px">OS</th><th style="padding:8px 10px">Cliente</th><th style="padding:8px 10px">Tipo</th>
@@ -9007,39 +9264,141 @@ function renderPlanejamentoObras(){
       <th style="padding:8px 10px">Cidade/UF</th><th style="padding:8px 10px">Status</th><th style="padding:8px 10px"></th>
     </tr></thead>
     <tbody>
-    ${rows.map(({p,concl})=>{
+    ${rows.map(({p,concl,atrasado})=>{
       const cid=(p.locCidade||'').toUpperCase(),uf=(p.locUf||'').toUpperCase();
       const loc=cid&&uf?`${cid}/${uf}`:(cid||uf||'—');
-      return`<tr style="border-bottom:1px solid var(--border-lt)">
-        <td style="padding:8px 10px;font-weight:700">${p.os||'—'}</td>
-        <td style="padding:8px 10px" title="${(p.cliente||'').replace(/"/g,'&quot;')}">${p.cliente||'—'}</td>
-        <td style="padding:8px 10px">${p.tipo||'—'}</td>
-        <td style="padding:8px 10px">${p.responsavel||'—'}</td>
-        <td style="padding:8px 10px">${fmtD(p.prazo)||'—'}</td>
-        <td style="padding:8px 10px">${loc}</td>
-        <td style="padding:8px 10px">${concl?'<span style="color:var(--success);font-weight:700">✅ Concluída</span>':'<span style="color:#d97706;font-weight:700">⏳ Pendente</span>'}</td>
+      const corLinha=atrasado?'color:#dc2626':'';
+      const diasAtraso=atrasado?Math.floor((new Date(hojeISO)-new Date(p.prazo))/86400000):0;
+      const statusHtml=concl?'<span style="color:var(--success);font-weight:700">✅ Concluída</span>'
+        :atrasado?`<span style="color:#dc2626;font-weight:700">🔴 Atrasada · ${diasAtraso}d</span>`
+        :'<span style="color:#d97706;font-weight:700">⏳ Pendente</span>';
+      const verFormLink=concl?`<br><a href="#" onclick="verFormularioFinalizacao('${p.id}');return false;" style="font-size:.7rem;color:var(--brand);text-decoration:underline">Ver Formulário de Finalização</a>`:'';
+      const prazoOrigTag=p.prazoOriginal&&p.prazoOriginal!==p.prazo?`<span title="Prazo original: ${fmtD(p.prazoOriginal)}" style="font-size:.68rem;color:${atrasado?'#dc2626':'var(--ink4)'};cursor:help;margin-left:4px">(orig. ${fmtD(p.prazoOriginal)})</span>`:'';
+      const editPrazoBtn=podeEditarPrazo?`<button onclick="abrirAlterarPrazoObra('${p.id}')" title="Alterar prazo de finalização" style="background:none;border:none;cursor:pointer;color:#1d4ed8;font-size:.85rem;padding:0;margin-left:6px;vertical-align:middle">✏️</button>`:'';
+      return`<tr style="border-bottom:1px solid var(--border-lt);${corLinha}">
+        <td style="padding:8px 10px;font-weight:700;${corLinha}">${p.os||'—'}</td>
+        <td style="padding:8px 10px;${corLinha}" title="${(p.cliente||'').replace(/"/g,'&quot;')}">${p.cliente||'—'}${verFormLink}</td>
+        <td style="padding:8px 10px;${corLinha}">${p.tipo||'—'}</td>
+        <td style="padding:8px 10px;${corLinha}">${p.responsavel||'—'}</td>
+        <td style="padding:8px 10px;${corLinha}">${fmtD(p.prazo)||'—'}${prazoOrigTag}${editPrazoBtn}</td>
+        <td style="padding:8px 10px;${corLinha}">${loc}</td>
+        <td style="padding:8px 10px">${statusHtml}</td>
         <td style="padding:8px 10px;text-align:right"><button onclick="abrirFinalizacaoObra('${p.id}')" class="dash-btn-conf" style="white-space:nowrap">${concl?'👁️ Ver / Editar':'🏗️ Finalizar Obra'}</button></td>
       </tr>`;
     }).join('')}
     </tbody></table>`;
 }
 
+// Visualização somente-leitura de uma finalização já preenchida — link "Ver Formulário de
+// Finalização" no nome do cliente na lista (2026-07-23, a pedido do usuário). Fotos aparecem
+// como links de download (Cloudinary), não como preview inline — mais leve pra abrir rápido.
+function verFormularioFinalizacao(pedidoId){
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p||!p.finalizacao||!p.finalizacao.dataFinalizacao){toast('Finalização ainda não preenchida para este pedido','terr');return;}
+  const fin=p.finalizacao;
+  const old=document.getElementById('vf-obra-modal');if(old)old.remove();
+  const modal=document.createElement('div');
+  modal.id='vf-obra-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick=e=>{if(e.target===modal)modal.remove();};
+  const fotosHtml=(fin.fotos||[]).length?(fin.fotos||[]).map((f,i)=>`<a href="${cldDownload(f.url)}" target="_blank" style="color:var(--brand);text-decoration:underline;display:block;margin-bottom:3px">${f.tipo==='video'?'🎥 Vídeo':'📷 Foto'} ${i+1}${f.nome?' — '+f.nome:''} ↗</a>`).join(''):'<span style="color:var(--ink4)">Nenhuma foto</span>';
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px 24px;max-width:520px;width:92%;max-height:82vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px">
+      <div style="font-size:1rem;font-weight:800;color:#1a1f36">🏗️ Formulário de Finalização — OS ${p.os||'—'}</div>
+      <button onclick="document.getElementById('vf-obra-modal').remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.2rem;line-height:1;padding:2px 4px" title="Fechar">✕</button>
+    </div>
+    <div style="font-size:.84rem;line-height:1.9;color:var(--ink2)">
+      <div><strong>Cliente:</strong> ${p.cliente||'—'}</div>
+      <div><strong>Data de Finalização:</strong> ${fmtD(fin.dataFinalizacao)||'—'}</div>
+      <div><strong>Líder que Realizou o Trabalho:</strong> ${fin.liderTrabalho||'—'}</div>
+      <div><strong>Acompanhante (Cliente):</strong> ${fin.acompanhanteCliente||'—'}</div>
+      <div><strong>Preenchido por:</strong> ${fin.preenchidoPor||'—'}${fin.preenchidoEm?' em '+new Date(fin.preenchidoEm).toLocaleString('pt-BR'):''}</div>
+      ${fin.pendenciasObs?`<div style="margin-top:8px"><strong>Pendências/Observação:</strong><br>${fin.pendenciasObs}</div>`:''}
+      <div style="margin-top:10px"><strong>Documento assinado:</strong> ${fin.documentoUrl?`<a href="${cldDownload(fin.documentoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'—'}</div>
+      ${fin.temArt?`<div style="margin-top:10px"><strong>ART:</strong> ${fin.temArt==='Sim'&&fin.artUrl?`<a href="${cldDownload(fin.artUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</div>`:''}
+      ${fin.temLaudo?`<div style="margin-top:10px"><strong>Laudo Técnico:</strong> ${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</div>`:''}
+      <div style="margin-top:10px"><strong>Fotos (${(fin.fotos||[]).length}):</strong><div style="margin-top:4px">${fotosHtml}</div></div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+// Reagenda o Prazo de Finalização direto da lista, restrito a Planejamento/admin
+// (_isPlanejamentoUser()) — motivo obrigatório, guarda SEMPRE o prazo original (a primeira
+// vez que foi definido na emissão, nunca sobrescrito de novo) e todo o histórico de mudanças
+// (2026-07-23, a pedido do usuário). Esse é o MESMO p.prazo usado em Operacionais Pedidos
+// (projeção de Mão de Obra/Frete/Elevações) — mudar aqui also corrige aquela projeção.
+function abrirAlterarPrazoObra(pedidoId){
+  if(!_isPlanejamentoUser()){toast('Só Planejamento ou administrador pode alterar o prazo.','terr');return;}
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  const idEl=document.getElementById('pz-pedido-id');if(idEl)idEl.value=pedidoId;
+  const infoEl=document.getElementById('pz-info');
+  if(infoEl)infoEl.innerHTML=`OS Nº <strong>${p.os||'—'}</strong> · ${p.cliente||'—'}<br>Prazo atual: <strong>${fmtD(p.prazo)||'—'}</strong>${p.prazoOriginal&&p.prazoOriginal!==p.prazo?` · Prazo original: <strong style="color:#e91e63">${fmtD(p.prazoOriginal)}</strong>`:''}`;
+  const novoEl=document.getElementById('pz-novo-prazo');if(novoEl)novoEl.value=p.prazo||'';
+  const motEl=document.getElementById('pz-motivo');if(motEl)motEl.value='';
+  const hist=p.historicoPrazo||[];
+  const histEl=document.getElementById('pz-historico');
+  if(histEl){
+    histEl.innerHTML=hist.length?`<div style="font-weight:700;color:var(--ink3);margin-bottom:4px">Histórico de alterações</div>`+hist.slice().reverse().map(h=>`<div style="padding:6px 0;border-top:1px solid var(--border-lt)"><strong>${fmtD(h.de)||'—'} → ${fmtD(h.para)||'—'}</strong><br>${h.motivo||''}<br><span style="color:var(--ink4)">${h.alteradoPor||''}${h.alteradoEm?' · '+new Date(h.alteradoEm).toLocaleString('pt-BR'):''}</span></div>`).join(''):'';
+  }
+  openM('mo-prazo-obra');
+}
+async function salvarAlteracaoPrazoObra(){
+  if(!_isPlanejamentoUser()){toast('Só Planejamento ou administrador pode alterar o prazo.','terr');return;}
+  const pedidoId=document.getElementById('pz-pedido-id')?.value;
+  const p=pedidos.find(x=>x.id===pedidoId);
+  if(!p){toast('Pedido não encontrado','terr');return;}
+  const novoPrazo=document.getElementById('pz-novo-prazo')?.value;
+  const motivo=(document.getElementById('pz-motivo')?.value||'').trim();
+  if(!novoPrazo){toast('Informe o novo prazo','terr');return;}
+  if(!motivo){toast('Informe o motivo da alteração','terr');return;}
+  if(novoPrazo===p.prazo){toast('O novo prazo é igual ao atual','terr');return;}
+  if(!p.prazoOriginal)p.prazoOriginal=p.prazo||novoPrazo;
+  p.historicoPrazo=p.historicoPrazo||[];
+  p.historicoPrazo.push({de:p.prazo||'',para:novoPrazo,motivo,alteradoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',alteradoEm:new Date().toISOString()});
+  p.prazo=novoPrazo;
+  await savePedidoFS(p);
+  toast('Prazo de Finalização atualizado','tok');
+  closeM('mo-prazo-obra');
+  renderPlanejamentoObras();
+}
+
 let _plFinalizandoId='';
 let _plDocUrl='';
 let _plFotosUrls=[]; // [{url,nome}]
+let _plArtUrl='';
+let _plLaudoUrl='';
 
 function abrirFinalizacaoObra(pedidoId){
   const p=pedidos.find(x=>x.id===pedidoId);
   if(!p){toast('Pedido não encontrado','terr');return;}
   _plFinalizandoId=pedidoId;
-  const fin=p.finalizacao||{};
+  // Se já foi finalizada de verdade (dataFinalizacao preenchida), usa o registro final.
+  // Senão, recupera o rascunho salvo automaticamente (p.finalizacaoDraft) — pode ter sido
+  // preenchido parcialmente numa sessão anterior e fechado sem clicar em "Salvar e Enviar
+  // E-mail" (2026-07-23, a pedido do usuário: nada preenchido pode se perder ao fechar).
+  const jaFinalizado=!!(p.finalizacao&&p.finalizacao.dataFinalizacao);
+  const fin=jaFinalizado?p.finalizacao:(p.finalizacaoDraft||{});
   _plDocUrl=fin.documentoUrl||'';
   _plFotosUrls=Array.isArray(fin.fotos)?fin.fotos.slice():[];
+  _plArtUrl=fin.artUrl||'';
+  _plLaudoUrl=fin.laudoUrl||'';
 
   const cid=(p.locCidade||'').toUpperCase(),uf=(p.locUf||'').toUpperCase();
   const loc=cid&&uf?`${cid}/${uf}`:(cid||uf||'—');
   const infoEl=document.getElementById('pl-info');
-  if(infoEl)infoEl.innerHTML=`OS Nº <strong>${p.os||'—'}</strong> · ${p.cliente||'—'}${fin.dataFinalizacao?' · <span style="color:var(--success);font-weight:700">✅ já finalizada — editando registro</span>':''}`;
+  if(infoEl)infoEl.innerHTML=`OS Nº <strong>${p.os||'—'}</strong> · ${p.cliente||'—'}${jaFinalizado?' · <span style="color:var(--success);font-weight:700">✅ já finalizada — editando registro</span>':''}`;
+
+  const rascunhoEl=document.getElementById('pl-rascunho-status');
+  if(rascunhoEl){
+    if(!jaFinalizado&&p.finalizacaoDraft?.atualizadoEm){
+      rascunhoEl.style.display='';
+      rascunhoEl.textContent='📝 Rascunho recuperado — última alteração em '+new Date(p.finalizacaoDraft.atualizadoEm).toLocaleString('pt-BR');
+    } else {
+      rascunhoEl.style.display='none';rascunhoEl.textContent='';
+    }
+  }
 
   const dadosEl=document.getElementById('pl-dados-auto');
   if(dadosEl){
@@ -9066,7 +9425,96 @@ function abrirFinalizacaoObra(pedidoId){
   const fotoInput=document.getElementById('pl-fotos-file');if(fotoInput)fotoInput.value='';
   _plRenderFotosGrid();
 
+  // ART (2026-07-23, mudou a pedido do usuário): não pergunta mais na Finalização — o
+  // vendedor já respondeu isso na Emissão (p.projetos.art). Aqui só herda a resposta:
+  // se "Sim", mostra a zona de upload (obrigatória pra salvar); se "Não"/vazio, nem mostra.
+  const artEmissao=p.projetos?.art||'';
+  const artInfoEl=document.getElementById('pl-art-info-text');
+  if(artInfoEl){
+    artInfoEl.textContent=artEmissao==='Sim'
+      ?'✅ Definida como SIM na emissão do pedido — anexe o arquivo da ART abaixo.'
+      :'Definida como NÃO na emissão do pedido — nenhum arquivo necessário.';
+  }
+  const artWrap=document.getElementById('pl-art-wrap');if(artWrap)artWrap.style.display=artEmissao==='Sim'?'':'none';
+  _plResetUploadZoneUI('pl-art-zone',_plArtUrl,'o arquivo da ART');
+
+  // Laudo Técnico continua sendo perguntado na própria Finalização (obrigatório responder).
+  _plSetTogGroup('pl-tem-laudo-field','pl-tem-laudo','pl-laudo-wrap',fin.temLaudo||'');
+  _plResetUploadZoneUI('pl-laudo-zone',_plLaudoUrl,'o arquivo do Laudo Técnico');
+
   openM('mo-finalizacao');
+}
+// Marca o botão Sim/Não certo (dentro do grupo identificado por fieldWrapId) e mostra/some
+// a zona de upload correspondente — usado ao reabrir um pedido com rascunho ou já finalizado.
+function _plSetTogGroup(fieldWrapId,hiddenId,wrapId,value){
+  const fieldWrap=document.getElementById(fieldWrapId);
+  if(fieldWrap)fieldWrap.querySelectorAll('.tgb').forEach(b=>b.classList.toggle('on',b.dataset.val===value));
+  const hid=document.getElementById(hiddenId);if(hid)hid.value=value||'';
+  const wrap=document.getElementById(wrapId);if(wrap)wrap.style.display=value==='Sim'?'':'none';
+}
+// Clique nos botões Sim/Não de ART/Laudo Técnico — mostra/esconde a zona de upload
+// correspondente e agenda o autosave do rascunho.
+function _plTogSimNao(btn,hiddenId,wrapId){
+  btn.closest('.tg-grp').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const hid=document.getElementById(hiddenId);if(hid)hid.value=btn.dataset.val;
+  const wrap=document.getElementById(wrapId);if(wrap)wrap.style.display=btn.dataset.val==='Sim'?'':'none';
+  _plAgendarRascunho();
+}
+function _plResetUploadZoneUI(zoneId,url,rotulo){
+  const z=document.getElementById(zoneId);
+  if(!z)return;
+  z.classList.toggle('has-file',!!url);
+  const icon=z.querySelector('.uz-icon');if(icon)icon.textContent=url?'✅':'📄';
+  const title=z.querySelector('.uz-title');if(title)title.textContent=url?'Arquivo já enviado (clique para trocar)':`Clique para selecionar ${rotulo}`;
+  let nm=z.querySelector('.uz-file');if(nm)nm.remove();
+}
+
+// ── RASCUNHO AUTOMÁTICO DA FINALIZAÇÃO (2026-07-23) ─────────────────────────────────────
+// Salva o que foi preenchido em p.finalizacaoDraft a cada mudança de campo (debounced) —
+// SEM tocar em p.finalizacao, que é o registro final (usado em toda parte pra saber se a
+// obra está "concluída", ex.: renderPlanejamentoObras()). Assim o formulário nunca perde o
+// que foi digitado/enviado mesmo fechando sem clicar em "Salvar e Enviar E-mail", mas só
+// dispara o e-mail e marca como concluída quando o usuário realmente confirma.
+let _plRascunhoTimer=null;
+function _plAgendarRascunho(){
+  clearTimeout(_plRascunhoTimer);
+  _plRascunhoTimer=setTimeout(_plSalvarRascunhoAgora,900);
+}
+async function _plSalvarRascunhoAgora(){
+  clearTimeout(_plRascunhoTimer);
+  const p=pedidos.find(x=>x.id===_plFinalizandoId);
+  if(!p)return;
+  if(p.finalizacao&&p.finalizacao.dataFinalizacao)return; // já finalizada de verdade, não mexe
+  const draft={
+    dataFinalizacao:document.getElementById('pl-data-finalizacao')?.value||'',
+    liderTrabalho:(document.getElementById('pl-lider')?.value||'').trim(),
+    acompanhanteCliente:(document.getElementById('pl-acompanhante')?.value||'').trim(),
+    pendenciasObs:(document.getElementById('pl-pendencias')?.value||'').trim(),
+    documentoUrl:_plDocUrl,
+    fotos:_plFotosUrls.slice(),
+    temArt:p.projetos?.art||'', // vem da Emissão, não é mais pergunta da Finalização
+    artUrl:_plArtUrl,
+    temLaudo:document.getElementById('pl-tem-laudo')?.value||'',
+    laudoUrl:_plLaudoUrl,
+    atualizadoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
+    atualizadoEm:new Date().toISOString()
+  };
+  // temArt não entra aqui — vem sempre da Emissão, não é preenchimento do usuário nesta tela.
+  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo;
+  if(vazio&&!p.finalizacaoDraft)return; // nada preenchido ainda e nunca teve rascunho — não grava à toa
+  p.finalizacaoDraft=vazio?null:draft;
+  try{
+    await savePedidoFS(p);
+    const st=document.getElementById('pl-rascunho-status');
+    if(st&&!vazio){st.style.display='';st.textContent='💾 Rascunho salvo automaticamente às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+  }catch(e){console.error('Erro ao salvar rascunho de finalização',e);}
+}
+// Fecha o modal (✕/Cancelar) garantindo que o rascunho mais recente foi salvo antes —
+// substitui closeM('mo-finalizacao') direto nesses dois botões.
+async function fecharFinalizacaoObra(){
+  await _plSalvarRascunhoAgora();
+  closeM('mo-finalizacao');
 }
 
 async function uploadFinalizacaoDoc(input){
@@ -9083,6 +9531,7 @@ async function uploadFinalizacaoDoc(input){
       const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
       const d=await r.json();
       url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
     }catch(e){console.error('Cloudinary upload error',e);}
   }
   _plDocUrl=url;
@@ -9094,6 +9543,40 @@ async function uploadFinalizacaoDoc(input){
     nm.textContent='✓ '+f.name;
     nm.style.display='flex';
   }
+  if(url)_plSalvarRascunhoAgora(); // documento já é um dado caro de re-enviar — salva na hora, sem esperar o debounce
+}
+
+// Upload genérico do arquivo de ART/Laudo Técnico da Finalização (2026-07-23) — mesmo
+// padrão do uploadFinalizacaoDoc(), parametrizado por tipo ('art' ou 'laudo') pra não
+// duplicar a lógica de upload duas vezes.
+async function uploadFinalizacaoArquivo(input,tipo){
+  const f=input.files[0];if(!f)return;
+  const zoneId=tipo==='art'?'pl-art-zone':'pl-laudo-zone';
+  const z=document.getElementById(zoneId);
+  if(z)z.classList.add('has-file');
+  const icon=z?.querySelector('.uz-icon');if(icon)icon.textContent='⏳';
+  const title=z?.querySelector('.uz-title');if(title)title.textContent='Enviando para a nuvem...';
+  let url='';
+  if(cfg.cld_cloud&&cfg.cld_preset){
+    try{
+      const fd=new FormData();fd.append('file',f);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+      const isRaw=f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf');
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isRaw?'raw':'image'}/upload`,{method:'POST',body:fd});
+      const d=await r.json();
+      url=d.secure_url||'';
+      if(url)_cldRegistrarUpload(f.size);
+    }catch(e){console.error('Cloudinary upload error ('+tipo+')',e);}
+  }
+  if(tipo==='art')_plArtUrl=url;else _plLaudoUrl=url;
+  if(icon)icon.textContent=url?'✅':'📄';
+  if(title)title.textContent=url?'Arquivo enviado com sucesso':'Arquivo selecionado (sem Cloudinary configurado)';
+  if(z){
+    let nm=z.querySelector('.uz-file');
+    if(!nm){nm=document.createElement('div');nm.className='uz-file';z.appendChild(nm);}
+    nm.textContent='✓ '+f.name;
+    nm.style.display='flex';
+  }
+  if(url)_plSalvarRascunhoAgora();
 }
 
 // Compressão MODERADA (não agressiva) — a pedido explícito do usuário, porque essas fotos
@@ -9130,51 +9613,65 @@ function _plComprimirImagem(file,maxDim=2000,quality=0.85){
 function _plRenderFotosGrid(){
   const wrap=document.getElementById('pl-fotos-grid');
   if(!wrap)return;
-  wrap.innerHTML=_plFotosUrls.map((f,i)=>`
+  wrap.innerHTML=_plFotosUrls.map((f,i)=>{
+    const isVideo=f.tipo==='video';
+    return`
     <div style="position:relative;border-radius:8px;overflow:hidden;border:1.5px solid var(--border-lt);aspect-ratio:1">
-      <img src="${f.url}" style="width:100%;height:100%;object-fit:cover;display:block">
+      ${isVideo
+        ?`<video src="${f.url}" muted style="width:100%;height:100%;object-fit:cover;display:block"></video>
+           <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+             <div style="width:32px;height:32px;border-radius:50%;background:rgba(15,23,42,.65);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.8rem">▶</div>
+           </div>`
+        :`<img src="${f.url}" style="width:100%;height:100%;object-fit:cover;display:block">`}
       <button onclick="_plRemoverFoto(${i})" title="Remover" style="position:absolute;top:4px;right:4px;background:rgba(15,23,42,.75);color:#fff;border:none;border-radius:6px;width:22px;height:22px;font-size:.75rem;cursor:pointer;line-height:1">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 function _plRemoverFoto(i){
   _plFotosUrls.splice(i,1);
   _plRenderFotosGrid();
 }
 
-// Upload de várias fotos (as vezes 20+ por obra) com concorrência limitada (3 por vez) —
-// evita travar o navegador subindo tudo de uma vez só. Cada foto é comprimida (ver
-// _plComprimirImagem) antes de ir pro Cloudinary.
+// Upload de várias fotos/vídeos (as vezes 20+ por obra) com concorrência limitada (3 por
+// vez) — evita travar o navegador subindo tudo de uma vez só. Fotos são comprimidas (ver
+// _plComprimirImagem — já passa vídeo direto sem tocar, só comprime image/*) antes de ir
+// pro Cloudinary. Vídeo (2026-07-23, novo, mesmo campo) vai pro endpoint /video/upload do
+// Cloudinary, sem compressão nenhuma, e fica marcado com tipo:'video' pra o e-mail saber
+// que precisa de thumbnail + link "assistir" em vez de mostrar como foto normal.
 async function uploadFinalizacaoFotos(input){
   const files=Array.from(input.files||[]);
   if(!files.length)return;
   input.value='';
   const statusEl=document.getElementById('pl-fotos-status');
   let enviados=0;
-  if(statusEl){statusEl.style.display='';statusEl.textContent=`⏳ Enviando 0 de ${files.length} foto(s)...`;}
+  if(statusEl){statusEl.style.display='';statusEl.textContent=`⏳ Enviando 0 de ${files.length} arquivo(s)...`;}
   const fila=[...files];
   const nWorkers=Math.min(3,fila.length);
   const workers=Array.from({length:nWorkers},()=>(async function worker(){
     while(fila.length){
       const f=fila.shift();
       if(!f)break;
+      const isVideo=f.type&&f.type.startsWith('video/');
       try{
-        const comprimido=await _plComprimirImagem(f);
+        const arquivo=isVideo?f:await _plComprimirImagem(f);
         if(cfg.cld_cloud&&cfg.cld_preset){
-          const fd=new FormData();fd.append('file',comprimido);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
-          const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/image/upload`,{method:'POST',body:fd});
+          const fd=new FormData();fd.append('file',arquivo);fd.append('upload_preset',cfg.cld_preset);fd.append('folder','gcore_pedidos');
+          const r=await fetch(`https://api.cloudinary.com/v1_1/${cfg.cld_cloud}/${isVideo?'video':'image'}/upload`,{method:'POST',body:fd});
           const d=await r.json();
           if(d.secure_url){
-            _plFotosUrls.push({url:d.secure_url,nome:f.name});
+            _cldRegistrarUpload(arquivo.size);
+            _plFotosUrls.push({url:d.secure_url,nome:f.name,tipo:isVideo?'video':'foto'});
             _plRenderFotosGrid();
           }
         }
-      }catch(e){console.error('Erro ao enviar foto de finalização',e);}
+      }catch(e){console.error('Erro ao enviar foto/vídeo de finalização',e);}
       enviados++;
-      if(statusEl)statusEl.textContent=`⏳ Enviando ${enviados} de ${files.length} foto(s)...`;
+      if(statusEl)statusEl.textContent=`⏳ Enviando ${enviados} de ${files.length} arquivo(s)...`;
     }
   })());
   await Promise.all(workers);
-  if(statusEl)statusEl.textContent=`✅ ${_plFotosUrls.length} foto(s) enviada(s) no total`;
+  if(statusEl)statusEl.textContent=`✅ ${_plFotosUrls.length} arquivo(s) enviado(s) no total`;
+  _plSalvarRascunhoAgora(); // já subiram pro Cloudinary — salva o rascunho na hora, sem esperar o debounce
 }
 
 async function salvarFinalizacaoObra(){
@@ -9184,19 +9681,28 @@ async function salvarFinalizacaoObra(){
   const liderTrabalho=(document.getElementById('pl-lider')?.value||'').trim();
   const acompanhanteCliente=(document.getElementById('pl-acompanhante')?.value||'').trim();
   const pendenciasObs=(document.getElementById('pl-pendencias')?.value||'').trim();
+  const temArt=p.projetos?.art||''; // vem da Emissão (TEM ART?), não é mais pergunta daqui
+  const temLaudo=document.getElementById('pl-tem-laudo')?.value||'';
   if(!dataFinalizacao){toast('Informe a data de finalização do pedido','terr');return;}
   if(!liderTrabalho){toast('Informe o líder que realizou o trabalho','terr');return;}
   if(!acompanhanteCliente){toast('Informe quem acompanhou pelo cliente','terr');return;}
+  if(temArt==='Sim'&&!_plArtUrl){toast('Envie o arquivo da ART (esta obra tem ART, definido na emissão)','terr');return;}
+  if(!temLaudo){toast('Informe se esta obra tem Laudo Técnico','terr');return;}
+  if(temLaudo==='Sim'&&!_plLaudoUrl){toast('Envie o arquivo do Laudo Técnico','terr');return;}
   if(!_plDocUrl){toast('Envie a foto do documento de finalização assinado','terr');return;}
   if(!_plFotosUrls.length){toast('Envie ao menos uma foto de finalização','terr');return;}
 
+  clearTimeout(_plRascunhoTimer);
   p.finalizacao={
     dataFinalizacao,liderTrabalho,acompanhanteCliente,pendenciasObs,
     documentoUrl:_plDocUrl,
     fotos:_plFotosUrls.slice(),
+    temArt,artUrl:temArt==='Sim'?_plArtUrl:'',
+    temLaudo,laudoUrl:temLaudo==='Sim'?_plLaudoUrl:'',
     preenchidoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
     preenchidoEm:new Date().toISOString()
   };
+  p.finalizacaoDraft=null; // finalizado de verdade — o rascunho não é mais necessário
   await savePedidoFS(p);
   toast('Finalização de obra salva com sucesso!','tok');
   closeM('mo-finalizacao');
@@ -9228,11 +9734,27 @@ function buildFinalizacaoEmailContent(p){
       </td></tr>
       <tr><td colspan="2" style="padding:0">${rows?`<table width="100%" cellpadding="0" cellspacing="0">${rows}</table>`:''}</td></tr>`;
   };
-  const fotosRows=[];
+  // Grid de fotos/vídeos responsivo (2026-07-23, corrigido a pedido do usuário: a versão
+  // anterior usava uma <table><tr> rígida de 4 colunas fixas — em celular (Gmail app etc.)
+  // isso não quebra linha, só CORTA as fotos que passam da largura da tela. Trocado por
+  // divs "display:inline-block;width:47%" (2 por linha) dentro de um wrapper com
+  // font-size:0 (remove o espaço em branco entre inline-blocks que quebraria a conta de
+  // 47%+47%=94% cabendo em 100%) — isso sim quebra linha sozinho em qualquer largura de
+  // tela, sem cortar nada. Vídeo (novo, mesmo campo de fotos) usa o auto-thumbnail do
+  // Cloudinary (troca a extensão do arquivo por .jpg = pega o primeiro frame) com uma
+  // legenda "▶ Vídeo" — o e-mail não consegue tocar vídeo inline, então vira link.
   const fArr=fin.fotos||[];
-  for(let i=0;i<fArr.length;i+=4){
-    fotosRows.push(`<tr>${fArr.slice(i,i+4).map(f=>`<td style="padding:4px"><a href="${cldDownload(f.url)}" target="_blank"><img src="${f.url}" width="130" height="130" style="width:130px;height:130px;object-fit:cover;border-radius:8px;display:block;border:1px solid #e5e7eb"></a></td>`).join('')}</tr>`);
-  }
+  const _cldVideoThumb=url=>(url||'').replace(/\.[a-zA-Z0-9]+(\?.*)?$/,'.jpg$1');
+  const fotosGridHtml=fArr.length?`<div style="font-size:0">${fArr.map(f=>{
+    const isVideo=f.tipo==='video';
+    const thumb=isVideo?_cldVideoThumb(f.url):f.url;
+    return`<div style="display:inline-block;width:47%;margin:0 1.5% 12px;vertical-align:top;font-size:0">
+      <a href="${cldDownload(f.url)}" target="_blank" style="display:block;text-decoration:none">
+        <img src="${thumb}" style="width:100%;height:160px;object-fit:cover;border-radius:8px;display:block;border:1px solid #e5e7eb">
+        ${isVideo?`<div style="font-size:11px;color:#e91e63;font-weight:700;margin-top:4px">▶ Vídeo — clique para assistir</div>`:''}
+      </a>
+    </div>`;
+  }).join('')}</div>`:'';
   const html_content=`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:40px 16px">
@@ -9243,7 +9765,7 @@ function buildFinalizacaoEmailContent(p){
   <tr><td style="background:#111827;padding:0">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td align="center" style="padding:32px 40px 24px">
-        <img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="52" alt="Granda Comunicação Visual" style="height:52px;display:block;margin:0 auto">
+        <img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="52" width="145" alt="Granda Comunicação Visual" style="height:52px;width:145px;display:block;margin:0 auto">
       </td></tr>
       <tr><td style="background:#e91e63;padding:3px 0"></td></tr>
       <tr><td style="padding:24px 40px 28px;background:#111827">
@@ -9272,6 +9794,11 @@ function buildFinalizacaoEmailContent(p){
   <!-- BODY -->
   <tr><td style="padding:32px 40px;background:#ffffff">
     <table width="100%" cellpadding="0" cellspacing="0">
+      ${fmtSec('Contatos',{
+        ...(p.email_comprador?{"E-mail do Comprador(a)":p.email_comprador}:{}),
+        ...(p.email_engenheiro?{"E-mail do Engenheiro da Obra":p.email_engenheiro}:{}),
+        ...(p.email_financeiro?{"E-mail Financeiro (envio de NF's)":p.email_financeiro}:{})
+      })}
       ${fmtSec('Dados da Finalização',{
         'Cidade e Estado da Instalação':loc,
         'Líder que Realizou o Trabalho':fin.liderTrabalho||'—',
@@ -9282,25 +9809,33 @@ function buildFinalizacaoEmailContent(p){
       <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Documento de Finalização Assinado</td>
         <td style="padding:10px 0;font-size:13px;font-weight:600"><a href="${cldDownload(fin.documentoUrl)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a></td>
       </tr>`:''}
+      ${fin.temArt?`
+      <tr style="background:#ffffff"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">ART</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600">${fin.temArt==='Sim'&&fin.artUrl?`<a href="${cldDownload(fin.artUrl)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</td>
+      </tr>`:''}
+      ${fin.temLaudo?`
+      <tr style="background:#fafafa"><td style="padding:10px 16px 10px 0;color:#6b7280;font-size:13px;width:40%">Laudo Técnico</td>
+        <td style="padding:10px 0;font-size:13px;font-weight:600">${fin.temLaudo==='Sim'&&fin.laudoUrl?`<a href="${cldDownload(fin.laudoUrl)}" target="_blank" style="color:#e91e63;font-weight:700;text-decoration:underline">Clique aqui para baixar ↗</a>`:'Não'}</td>
+      </tr>`:''}
       ${fin.pendenciasObs?`
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
         <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Pendências e Observação</span>
       </td></tr>
       <tr><td colspan="2" style="padding:12px 0;color:#374151;font-size:13px;line-height:1.7">${fin.pendenciasObs}</td></tr>`:''}
 
-      <!-- FOTOS DE FINALIZAÇÃO -->
+      <!-- FOTOS/VÍDEOS DE FINALIZAÇÃO -->
       <tr><td colspan="2" style="padding:20px 0 8px;border-bottom:2px solid #e91e63">
-        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Fotos de Finalização (${fArr.length})</span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111827">Fotos e Vídeos de Finalização (${fArr.length})</span>
       </td></tr>
-      <tr><td colspan="2" style="padding:10px 0 0"><table cellpadding="0" cellspacing="0">${fotosRows.join('')}</table></td></tr>
+      <tr><td colspan="2" style="padding:10px 0 0">${fotosGridHtml}</td></tr>
     </table>
   </td></tr>
 
   <!-- FOOTER -->
   <tr><td style="background:#111827;padding:20px 40px">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font-size:11px;color:#6b7280">Comercial Granda · E-mail automático</td>
-      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" alt="Granda" style="height:20px;opacity:.5"></td>
+      <td style="font-size:11px;color:#6b7280">PENSE GRANDE, SEJA GRANDA! - E-mail automático sistema Granda</td>
+      <td align="right"><img src="https://grandacv-web.github.io/sistemacomercialgranda/logo_granda_branca.png" height="20" width="56" alt="Granda" style="height:20px;width:56px;opacity:.5"></td>
     </tr></table>
   </td></tr>
 
@@ -9751,6 +10286,34 @@ function _fcAplicarFiltroMesVigentePadrao(){
   di.value=`${y}-${pad(m+1)}-01`;
   df.value=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
 }
+// Navegador de mês por setinhas (2026-07-23, substitui o filtro "Todos os vendedores" — a
+// pedido do usuário, "mais prático") — desloca as mesmas datas De/Até já usadas pelo filtro
+// de período pro 1º/último dia do mês anterior/seguinte, então continua mostrando tudo que
+// tem pra acontecer no mês (Pagar + Receber juntos, ou só um via filtro Tipo), sem duplicar
+// nenhuma lógica de filtragem nova.
+function fcMesMov(dir){
+  const di=document.getElementById('fc-fil-data-ini'),df=document.getElementById('fc-fil-data-fim');
+  if(!di||!df)return;
+  const pad=n=>String(n).padStart(2,'0');
+  // Ponto de partida: o que já estiver em "De" (ou o mês vigente, se ainda estiver vazio).
+  const base=di.value?new Date(di.value+'T00:00:00'):new Date();
+  let y=base.getFullYear(),m=base.getMonth()+dir;
+  if(m>11){m=0;y++;} else if(m<0){m=11;y--;}
+  di.value=`${y}-${pad(m+1)}-01`;
+  df.value=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
+  _fcMesVigenteAplicado=true; // não deixa o default de "mês vigente" sobrescrever a navegação manual
+  fcAplicarFiltros();
+}
+// Atualiza o rótulo "◀ MÊS ANO ▶" a partir do que estiver em "De" — sempre chamado no fim de
+// fcAplicarFiltros() pra nunca desalinhar do período realmente filtrado.
+function _fcAtualizarLabelMes(){
+  const lbl=document.getElementById('fc-mes-lbl');
+  if(!lbl)return;
+  const di=document.getElementById('fc-fil-data-ini')?.value||'';
+  if(!di){lbl.textContent='—';return;}
+  const d=new Date(di+'T00:00:00');
+  lbl.textContent=`${MESES_PT[d.getMonth()+1]} ${d.getFullYear()}`;
+}
 function fcSetOrdem(v){_fcOrdem=v;renderContasUnificado();}
 function fcSetTipo(v){
   const fluxoBtn=document.getElementById('fc-tab-fluxo');
@@ -9799,6 +10362,7 @@ function fcAplicarFiltros(){
   const cat=document.getElementById('fc-fil-categoria')?.value||'';
   const cpCat=document.getElementById('cp-fil-categoria');if(cpCat)cpCat.value=cat;
 
+  _fcAtualizarLabelMes();
   renderContasUnificado();
 }
 function renderContasUnificado(){
