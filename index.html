@@ -2528,9 +2528,10 @@ function _irParaTarefas(){
 function _renderPainelUsuario(){
   const alvos=[document.getElementById('ui-bar-geral'),document.getElementById('ui-bar-cat')].filter(Boolean);
   if(!alvos.length)return;
-  const {isAdm}=_getUserCat();
   const meuNome=usuarioLogado?.nomeExibicao||'';
-  const minhas=getTarefasComerciaisPendentes().filter(t=>isAdm||t.responsavel===meuNome);
+  // Sempre só as tarefas do usuário logado, mesmo pra admin — pra ver as de todo mundo é
+  // no menu Ferramentas → Tarefas (lá sim admin vê tudo, ver _refreshTarefasBadge).
+  const minhas=getTarefasComerciaisPendentes().filter(t=>t.responsavel===meuNome);
   const total=minhas.length;
   const atrasadas=minhas.filter(_tarefaAtrasada).length;
   let html;
@@ -2538,7 +2539,7 @@ function _renderPainelUsuario(){
     html=`<div class="ui-bar-pills"><span class="ui-bar-pill" style="background:var(--success-lt);color:var(--success)">✅ Nenhuma tarefa pendente</span></div><span class="ui-bar-cta">Ver tarefas →</span>`;
   }else{
     html=`<div class="ui-bar-pills">
-      <span class="ui-bar-pill" style="background:var(--brand-lt);color:var(--brand-d)">📋 ${total} tarefa${total===1?'':'s'} a realizar</span>
+      <span class="ui-bar-pill" style="background:var(--brand-lt);color:var(--brand-d)">📋 VOCÊ TEM ${total} TAREFA${total===1?'':'S'} PRA REALIZAR</span>
       ${atrasadas?`<span class="ui-bar-pill" style="background:var(--danger-lt);color:var(--danger)">⚠️ ${atrasadas} atrasada${atrasadas===1?'':'s'}</span>`:''}
     </div><span class="ui-bar-cta">Ver tarefas →</span>`;
   }
