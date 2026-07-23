@@ -2822,11 +2822,14 @@ function bkp(){}
 // de 2026-07-23, ou por regra configurada sem responsável) — sempre é o Guilherme quem lança
 // no GCore, então nunca deveria ficar em aberto sem dono. Só roda pro admin (é quem tem certeza
 // de estar logado como Guilherme) e só reescreve o que realmente precisa, silenciosamente.
+function _ehTarefaGcore(t){
+  return (t.tipo||'').trim().toLowerCase()==='lançar no gcore';
+}
 async function _migrarLancarGcoreSemResponsavel(){
-  const afetados=pedidos.filter(p=>(p.tarefasComerciais||[]).some(t=>t.status==='pendente'&&!t.responsavel&&t.tipo==='Lançar no GCore'));
+  const afetados=pedidos.filter(p=>(p.tarefasComerciais||[]).some(t=>t.status==='pendente'&&!t.responsavel&&_ehTarefaGcore(t)));
   if(!afetados.length)return;
   for(const p of afetados){
-    p.tarefasComerciais.forEach(t=>{if(t.status==='pendente'&&!t.responsavel&&t.tipo==='Lançar no GCore')t.responsavel='GUILHERME CLABONDE';});
+    p.tarefasComerciais.forEach(t=>{if(t.status==='pendente'&&!t.responsavel&&_ehTarefaGcore(t))t.responsavel='GUILHERME CLABONDE';});
     await savePedidoFS(p);
   }
   _refreshTarefasBadge();
@@ -2837,10 +2840,21 @@ async function savePedidoFS(p){
   catch(e){toast('Erro ao salvar no servidor: '+e.message,'terr');console.error(e);}
 }
 
+// Trava pra _migrarLancarGcoreSemResponsavel() rodar só 1x por sessão, mesmo o listener de
+// pedidos disparando de novo a cada mudança (senão reescreveria o mesmo pedido repetidas vezes).
+let _gcoreMigracaoFeita=false;
 function setupRealtimeSync(){
   if(!window._fbWatchPedidos)return;
   window._fbWatchPedidos(function(snapshot){
     pedidos=snapshot.docs.map(d=>d.data());
+    // Pedidos só existem de fato a partir daqui (chegam assíncrono, ver comentário abaixo) —
+    // é por isso que a migração não pode rodar direto no load(), tem que esperar o primeiro
+    // snapshot chegar. usuarioLogado.email já está setado desde o login, então _getUserCat()
+    // já identifica admin corretamente mesmo antes de categoria ser atribuída.
+    if(!_gcoreMigracaoFeita&&_getUserCat().isAdm){
+      _gcoreMigracaoFeita=true;
+      _migrarLancarGcoreSemResponsavel().catch(e=>{_gcoreMigracaoFeita=false;console.error('Erro na migração de tarefas GCore',e);});
+    }
     // Sem isso, getComissaoItemsAll() continuava servindo o array em cache (_comItemsCache)
     // montado ANTES dessa atualização de pedidos — editar OS/valores/vendedor num pedido
     // (Editar Valores, Venda Manual etc.) atualizava o Firestore corretamente, mas Financeiro/
@@ -6500,7 +6514,6 @@ function initAuth(tries){
           if(_vFMesEl){_vFMesEl.value=MESES_PT[new Date().getMonth()+1];}
           renderAll();
           try{renderDashVendas();}catch(e){}
-          if(_getUserCat().isAdm)_migrarLancarGcoreSemResponsavel().catch(e=>console.error('Erro na migração de tarefas GCore',e));
           // Tela padrão ao abrir o sistema: Geral → Gráficos (pra qualquer usuário) — Gráficos
           // era o padrão de Comercial antes de virar uma sub-aba de Geral junto de Vendas/Emissão.
           setSection('geral');
