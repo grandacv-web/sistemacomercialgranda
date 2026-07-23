@@ -1321,9 +1321,17 @@ select.fc{cursor:pointer}
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Nome de Quem Acompanhou (Cliente)</label>
         <input id="pl-acompanhante" type="text" class="no-upper" oninput="_plAgendarRascunho()" style="width:100%;padding:9px 11px;border:1.5px solid var(--border-lt);border-radius:9px;font-size:.88rem;font-family:inherit;box-sizing:border-box">
       </div>
-      <div style="grid-column:span 2" id="pl-tem-art-field">
+      <div style="grid-column:span 2" id="pl-tem-art-info-field">
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">ART</label>
         <div id="pl-art-info-text" style="font-size:.85rem;font-weight:600;color:var(--ink2);background:#fafbfc;border:1.5px solid var(--border-lt);border-radius:9px;padding:9px 11px"></div>
+      </div>
+      <div style="grid-column:span 2;display:none" id="pl-tem-art-pergunta-field">
+        <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Esta obra tem ART? <span class="r">*</span></label>
+        <input type="hidden" id="pl-tem-art" value="">
+        <div class="tg-grp">
+          <button type="button" class="tgb yes" data-val="Sim" onclick="_plTogSimNao(this,'pl-tem-art','pl-art-wrap')">Sim</button>
+          <button type="button" class="tgb no" data-val="Não" onclick="_plTogSimNao(this,'pl-tem-art','pl-art-wrap')">Não</button>
+        </div>
       </div>
       <div style="grid-column:span 2;display:none" id="pl-art-wrap">
         <label style="font-size:.7rem;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Arquivo da ART <span class="r">*</span></label>
@@ -9506,17 +9514,29 @@ function abrirFinalizacaoObra(pedidoId){
   const fotoInput=document.getElementById('pl-fotos-file');if(fotoInput)fotoInput.value='';
   _plRenderFotosGrid();
 
-  // ART (2026-07-23, mudou a pedido do usuário): não pergunta mais na Finalização — o
-  // vendedor já respondeu isso na Emissão (p.projetos.art). Aqui só herda a resposta:
-  // se "Sim", mostra a zona de upload (obrigatória pra salvar); se "Não"/vazio, nem mostra.
-  const artEmissao=p.projetos?.art||'';
-  const artInfoEl=document.getElementById('pl-art-info-text');
-  if(artInfoEl){
-    artInfoEl.textContent=artEmissao==='Sim'
-      ?'✅ Definida como SIM na emissão do pedido — anexe o arquivo da ART abaixo.'
-      :'Definida como NÃO na emissão do pedido — nenhum arquivo necessário.';
+  // ART: pedido normal (passou pela Emissão) herda a resposta de lá (p.projetos.art), só
+  // mostra info + zona de upload se "Sim". Pedido incluído manualmente na Finalização
+  // (p.forcarFinalizacao, ver incluirVendaNaFinalizacao — venda antiga sem Emissão) não tem
+  // essa resposta pra herdar, então pergunta na hora, igual ao Laudo Técnico (2026-07-23, a
+  // pedido do usuário).
+  const infoField=document.getElementById('pl-tem-art-info-field');
+  const perguntaField=document.getElementById('pl-tem-art-pergunta-field');
+  if(p.forcarFinalizacao){
+    if(infoField)infoField.style.display='none';
+    if(perguntaField)perguntaField.style.display='';
+    _plSetTogGroup('pl-tem-art-pergunta-field','pl-tem-art','pl-art-wrap',fin.temArt||'');
+  }else{
+    if(infoField)infoField.style.display='';
+    if(perguntaField)perguntaField.style.display='none';
+    const artEmissao=p.projetos?.art||'';
+    const artInfoEl=document.getElementById('pl-art-info-text');
+    if(artInfoEl){
+      artInfoEl.textContent=artEmissao==='Sim'
+        ?'✅ Definida como SIM na emissão do pedido — anexe o arquivo da ART abaixo.'
+        :'Definida como NÃO na emissão do pedido — nenhum arquivo necessário.';
+    }
+    const artWrap=document.getElementById('pl-art-wrap');if(artWrap)artWrap.style.display=artEmissao==='Sim'?'':'none';
   }
-  const artWrap=document.getElementById('pl-art-wrap');if(artWrap)artWrap.style.display=artEmissao==='Sim'?'':'none';
   _plResetUploadZoneUI('pl-art-zone',_plArtUrl,'o arquivo da ART');
 
   // Laudo Técnico continua sendo perguntado na própria Finalização (obrigatório responder).
@@ -9574,15 +9594,19 @@ async function _plSalvarRascunhoAgora(){
     pendenciasObs:(document.getElementById('pl-pendencias')?.value||'').trim(),
     documentoUrl:_plDocUrl,
     fotos:_plFotosUrls.slice(),
-    temArt:p.projetos?.art||'', // vem da Emissão, não é mais pergunta da Finalização
+    // ART vem da Emissão (p.projetos.art) pro pedido normal; pro incluído manualmente
+    // (p.forcarFinalizacao) é pergunta desta tela, igual Laudo Técnico.
+    temArt:p.forcarFinalizacao?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||''),
     artUrl:_plArtUrl,
     temLaudo:document.getElementById('pl-tem-laudo')?.value||'',
     laudoUrl:_plLaudoUrl,
     atualizadoPor:usuarioLogado?.nomeExibicao||usuarioLogado?.email||'',
     atualizadoEm:new Date().toISOString()
   };
-  // temArt não entra aqui — vem sempre da Emissão, não é preenchimento do usuário nesta tela.
-  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo;
+  // Em pedido normal, temArt vem sempre da Emissão (não é preenchimento do usuário nesta
+  // tela) então não conta pro "está vazio"; em pedido manual (forcarFinalizacao) conta, já
+  // que ali é uma pergunta real que também pode ficar sem resposta ainda.
+  const vazio=!draft.dataFinalizacao&&!draft.liderTrabalho&&!draft.acompanhanteCliente&&!draft.pendenciasObs&&!draft.documentoUrl&&!draft.fotos.length&&!draft.artUrl&&!draft.temLaudo&&(!p.forcarFinalizacao||!draft.temArt);
   if(vazio&&!p.finalizacaoDraft)return; // nada preenchido ainda e nunca teve rascunho — não grava à toa
   p.finalizacaoDraft=vazio?null:draft;
   try{
@@ -9762,12 +9786,15 @@ async function salvarFinalizacaoObra(){
   const liderTrabalho=(document.getElementById('pl-lider')?.value||'').trim();
   const acompanhanteCliente=(document.getElementById('pl-acompanhante')?.value||'').trim();
   const pendenciasObs=(document.getElementById('pl-pendencias')?.value||'').trim();
-  const temArt=p.projetos?.art||''; // vem da Emissão (TEM ART?), não é mais pergunta daqui
+  // ART: pedido normal herda da Emissão (p.projetos.art); pedido incluído manualmente
+  // (p.forcarFinalizacao) é pergunta obrigatória desta própria tela, igual Laudo Técnico.
+  const temArt=p.forcarFinalizacao?(document.getElementById('pl-tem-art')?.value||''):(p.projetos?.art||'');
   const temLaudo=document.getElementById('pl-tem-laudo')?.value||'';
   if(!dataFinalizacao){toast('Informe a data de finalização do pedido','terr');return;}
   if(!liderTrabalho){toast('Informe o líder que realizou o trabalho','terr');return;}
   if(!acompanhanteCliente){toast('Informe quem acompanhou pelo cliente','terr');return;}
-  if(temArt==='Sim'&&!_plArtUrl){toast('Envie o arquivo da ART (esta obra tem ART, definido na emissão)','terr');return;}
+  if(p.forcarFinalizacao&&!temArt){toast('Informe se esta obra tem ART','terr');return;}
+  if(temArt==='Sim'&&!_plArtUrl){toast('Envie o arquivo da ART','terr');return;}
   if(!temLaudo){toast('Informe se esta obra tem Laudo Técnico','terr');return;}
   if(temLaudo==='Sim'&&!_plLaudoUrl){toast('Envie o arquivo do Laudo Técnico','terr');return;}
   if(!_plDocUrl){toast('Envie a foto do documento de finalização assinado','terr');return;}
