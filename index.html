@@ -4031,7 +4031,7 @@ function openEmissao(eid2){
       icep:'',ilog:'',inum_e:'',icomp:'',ibairro:'',icidade:p.locCidade||'',iuf:p.locUf||'',icep_ok:false,
       minfo:inst['Informações sobre a Medição']||'',fcep:'',flog:'',fnum_e:'',fcomp:'',fbairro:'',fcidade:'',fuf:'',fdist:'',fcep_ok:false,
       fend:fr['Endereço de Entrega']||'',fie:fr['Inscrição Estadual']||'',chumbador:p.chumbador||'',arq_chumb:p.arq_chumb_url?'Arquivo já enviado':'',arq_chumb_url:p.arq_chumb_url||'',os_chumb:p.os_chumb||'',
-      facomp:fr['Acompanhante da Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
+      facomp:fr['Quem Acompanhou a Descarga']||'',ftel:fr['Telefone Descarga']||'',bases:p.bases||''};
   } else {
     ed={tipo:'',resp:usuarioLogado?.nomeExibicao||'',cli:'',emails:[],email_comprador:'',email_engenheiro:'',email_financeiro:'',job:'',prazo:'',os:'',obs:'',
       vtotal:'',i_tipo:'',vinst:'',vmob:'',vrem:'',remocao:'',f_tipo:'',fmod:'',vfrete:'',vmed:'',vart:'',vlaudo:'',
@@ -4900,7 +4900,7 @@ function renderStep(id){
       </div>
       <div class="fg"><label>Inscrição Estadual do Destinatário</label><input class="fc" id="em-fi" value="${ed.fie||''}" placeholder="IE"></div>
       <div class="g2">
-        <div class="fg"><label>Acompanhante da Descarga</label><input class="fc no-upper" id="em-fc" value="${ed.facomp||''}" placeholder="Nome"></div>
+        <div class="fg"><label>Quem vai acompanhar a descarga</label><input class="fc no-upper" id="em-fc" value="${ed.facomp||''}" placeholder="Nome"></div>
         <div class="fg"><label>Telefone Descarga</label><input class="fc no-upper" id="em-ft2" value="${ed.ftel||''}" placeholder="(00) 00000-0000" oninput="fmtTel(this)" maxlength="15"></div>
       </div>
       <div style="border:1.5px solid var(--brand);border-radius:12px;padding:14px;margin-top:6px;background:var(--brand-xlt)">
@@ -5762,7 +5762,7 @@ async function submit(){
   if(ed.medicao)inst['Medição Técnica']=ed.medicao;
   if(ed.medicao==='Sim'&&ed.vmed)inst['Valor da Medição']=fmtV(moneyToNum(ed.vmed));
   if(ed.medicao==='Sim'&&ed.minfo)inst['Informações sobre a Medição']=ed.minfo;
-  if(ed.iacomp)inst['Acompanhante da Obra']=ed.iacomp;
+  if(ed.iacomp)inst['Quem Acompanhou a Obra']=ed.iacomp;
   if(ed.itel)inst['Telefone']=ed.itel;
   const iend=[ed.icep?'CEP '+ed.icep:'',ed.ilog,ed.inum_e,ed.icomp,ed.ibairro,[ed.icidade,ed.iuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
   if(iend)inst['Endereço de Instalação']=iend;
@@ -5780,7 +5780,7 @@ async function submit(){
   const fend=[ed.fcep?'CEP '+ed.fcep:'',ed.flog,ed.fnum_e,ed.fcomp,ed.fbairro,[ed.fcidade,ed.fuf].filter(Boolean).join('/')].filter(Boolean).join(', ');
   if(fend)fr['Endereço de Entrega']=fend;
   if(ed.fie)fr['Inscrição Estadual']=ed.fie;
-  if(ed.facomp)fr['Acompanhante da Descarga']=ed.facomp;
+  if(ed.facomp)fr['Quem Acompanhou a Descarga']=ed.facomp;
   if(ed.ftel)fr['Telefone da Descarga']=ed.ftel;
   if(ed.fdist)fr['Distância']=ed.fdist+' km';
   if(ed.prazo_frete_txt)fr['Prazo Estimado de Entrega']=ed.prazo_frete_txt;
@@ -9736,7 +9736,7 @@ function verFormularioFinalizacao(pedidoId){
       <div><strong>Cliente:</strong> ${p.cliente||'—'}</div>
       <div><strong>Data de Finalização:</strong> ${fmtD(fin.dataFinalizacao)||'—'}</div>
       ${fin.liderTrabalho?`<div><strong>Líder que Realizou o Trabalho:</strong> ${fin.liderTrabalho}</div>`:''}
-      ${fin.acompanhanteCliente?`<div><strong>Acompanhante (Cliente):</strong> ${fin.acompanhanteCliente}</div>`:''}
+      ${fin.acompanhanteCliente?`<div><strong>Quem Acompanhou (Cliente):</strong> ${fin.acompanhanteCliente}</div>`:''}
       <div><strong>Preenchido por:</strong> ${fin.preenchidoPor||'—'}${fin.preenchidoEm?' em '+new Date(fin.preenchidoEm).toLocaleString('pt-BR'):''}</div>
       ${fin.pendenciasObs?`<div style="margin-top:8px"><strong>Pendências/Observação:</strong><br>${fin.pendenciasObs}</div>`:''}
       <div style="margin-top:10px"><strong>Documento assinado:</strong> ${fin.documentoUrl?`<a href="${cldDownload(fin.documentoUrl)}" target="_blank" style="color:var(--brand);text-decoration:underline">Clique aqui para baixar ↗</a>`:'—'}</div>
@@ -9804,7 +9804,7 @@ function _histPedidoEventos(p){
     const fin=p.finalizacao;
     const detalheFin=fin.finalizadoSemFormulario
       ?'Finalizada sem formulário completo, por um administrador.'
-      :`Líder: ${fin.liderTrabalho||'—'} · Acompanhante: ${fin.acompanhanteCliente||'—'}`;
+      :`Líder: ${fin.liderTrabalho||'—'} · Quem Acompanhou: ${fin.acompanhanteCliente||'—'}`;
     add('🏗️','Obra finalizada',fin.preenchidoEm||fin.dataFinalizacao,detalheFin,'#7c3aed');
   }
 
