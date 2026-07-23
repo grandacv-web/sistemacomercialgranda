@@ -9260,7 +9260,7 @@ function renderPlanejamentoObras(){
   body.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:.82rem">
     <thead><tr style="text-align:left;border-bottom:2px solid var(--border)">
       <th style="padding:8px 10px">OS</th><th style="padding:8px 10px">Cliente</th><th style="padding:8px 10px">Tipo</th>
-      <th style="padding:8px 10px">Vendedor</th><th style="padding:8px 10px">Prazo de Finalização</th>
+      <th style="padding:8px 10px">Vendedor</th><th style="padding:8px 10px">Mês da Venda</th><th style="padding:8px 10px">Prazo de Finalização</th>
       <th style="padding:8px 10px">Cidade/UF</th><th style="padding:8px 10px">Status</th><th style="padding:8px 10px"></th>
     </tr></thead>
     <tbody>
@@ -9275,11 +9275,16 @@ function renderPlanejamentoObras(){
       const verFormLink=concl?`<br><a href="#" onclick="verFormularioFinalizacao('${p.id}');return false;" style="font-size:.7rem;color:var(--brand);text-decoration:underline">Ver Formulário de Finalização</a>`:'';
       const prazoOrigTag=p.prazoOriginal&&p.prazoOriginal!==p.prazo?`<span title="Prazo original: ${fmtD(p.prazoOriginal)}" style="font-size:.68rem;color:${atrasado?'#dc2626':'var(--ink4)'};cursor:help;margin-left:4px">(orig. ${fmtD(p.prazoOriginal)})</span>`:'';
       const editPrazoBtn=podeEditarPrazo?`<button onclick="abrirAlterarPrazoObra('${p.id}')" title="Alterar prazo de finalização" style="background:none;border:none;cursor:pointer;color:#1d4ed8;font-size:.85rem;padding:0;margin-left:6px;vertical-align:middle">✏️</button>`:'';
+      // Mesma fonte usada em Operacionais Pedidos (_opMesVenda) — override manual > planilha
+      // reconciliada > mês de emissão, nunca uma conta própria nova (2026-07-23, a pedido do usuário).
+      const mesVendaNum=_opMesVenda(p);
+      const mesVendaTxt=mesVendaNum?MESES_PT[mesVendaNum]:'—';
       return`<tr style="border-bottom:1px solid var(--border-lt);${corLinha}">
         <td style="padding:8px 10px;font-weight:700;${corLinha}">${p.os||'—'}</td>
         <td style="padding:8px 10px;${corLinha}" title="${(p.cliente||'').replace(/"/g,'&quot;')}">${p.cliente||'—'}${verFormLink}</td>
         <td style="padding:8px 10px;${corLinha}">${p.tipo||'—'}</td>
         <td style="padding:8px 10px;${corLinha}">${p.responsavel||'—'}</td>
+        <td style="padding:8px 10px;${corLinha}">${mesVendaTxt}</td>
         <td style="padding:8px 10px;${corLinha}">${fmtD(p.prazo)||'—'}${prazoOrigTag}${editPrazoBtn}</td>
         <td style="padding:8px 10px;${corLinha}">${loc}</td>
         <td style="padding:8px 10px">${statusHtml}</td>
